@@ -1,0 +1,8 @@
+.claude
+node_modules
+apps/*/node_modules
+apps/mobile
+apps/knowledge
+**/.next
+**/.expo
+*.log

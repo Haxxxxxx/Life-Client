@@ -119,13 +119,29 @@ cp apps/web/.env.example apps/web/.env.local   # fill in the values from steps 1
 npm run dev:web
 ```
 
-Deploy to Vercel: link `apps/web` as the project root (`vercel link`, set root directory to
-`apps/web`), then push env vars with `vercel env add` for each key above. The cron schedule in
-`apps/web/vercel.json` takes effect automatically once deployed — it runs once daily (Vercel's
-free Hobby plan only allows daily cron jobs; a Pro plan unlocks more frequent schedules like
-every 30 minutes). You can always trigger a sync on demand in the meantime:
+**Deploying to Vercel** (this repo is live at https://life-client-web.vercel.app):
+
+apps/web depends on the `packages/shared` workspace package, so the Vercel project must be
+linked and deployed from the **repo root** (not `apps/web`) — otherwise the upload doesn't
+include `packages/shared` and `npm install` fails with a 404 for `@life-client/shared`. The
+Vercel project's **Root Directory** setting (Dashboard → Settings → General → Root Directory)
+is set to `apps/web` so the build itself still runs scoped there. A root-level `.vercelignore`
+excludes `node_modules`, `apps/mobile`, and `apps/knowledge` from the upload (irrelevant to this
+project and large enough to hit Vercel's file-count limit otherwise).
+
 ```
-curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>.vercel.app/api/cron/sync
+cd <repo root>
+vercel link --yes --project life-client-web   # first time only
+vercel env add <NAME> production              # once per key above, reading from .env.local
+vercel --prod --yes
+```
+
+The cron schedule in `apps/web/vercel.json` takes effect automatically once deployed — it runs
+once daily (Vercel's free Hobby plan only allows daily cron jobs; a Pro plan unlocks more
+frequent schedules like every 30 minutes). You can always trigger a sync on demand in the
+meantime:
+```
+curl -H "Authorization: Bearer $CRON_SECRET" https://life-client-web.vercel.app/api/cron/sync
 ```
 
 ### 5. Run the Knowledge app (apps/knowledge)
