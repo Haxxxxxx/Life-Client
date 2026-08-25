@@ -1,6 +1,12 @@
 "use client";
 
-import { type NowPlayingTrack, type SpotifySummary, getNowPlaying, subscribeSpotifySummary } from "@life-client/shared";
+import {
+  type NowPlayingTrack,
+  type SpotifySummary,
+  getNowPlaying,
+  subscribeSpotifySummary,
+  syncSpotifyNow,
+} from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -40,9 +46,17 @@ function NowPlayingSection() {
 
     poll();
     const interval = setInterval(poll, NOW_PLAYING_POLL_MS);
+    // Browsers throttle setInterval in background tabs, so switching away to
+    // Spotify and back can leave this stale well past the poll interval —
+    // re-poll immediately the moment the tab regains focus.
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") poll();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [user]);
 
@@ -83,9 +97,35 @@ function NowPlayingSection() {
 }
 
 function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSync() {
+    setSyncing(true);
+    setError(null);
+    try {
+      await syncSpotifyNow(webApiClient);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sync Spotify");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeader eyebrow="History" title="Recently Played" />
+      <div className="flex items-center justify-between gap-2">
+        <SectionHeader eyebrow="History" title="Recently Played" />
+        <button
+          type="button"
+          onClick={handleSync}
+          disabled={syncing}
+          className="shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
+        >
+          {syncing ? "Syncing…" : "Sync now"}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
       <ul className="flex flex-col gap-2">
         {(summary?.recentTracks ?? []).map((track) => (
           <li

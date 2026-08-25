@@ -1,6 +1,12 @@
-import { type NowPlayingTrack, type SpotifySummary, getNowPlaying, subscribeSpotifySummary } from '@life-client/shared';
+import {
+  type NowPlayingTrack,
+  type SpotifySummary,
+  getNowPlaying,
+  subscribeSpotifySummary,
+  syncSpotifyNow,
+} from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -48,9 +54,16 @@ function NowPlayingSection() {
 
     poll();
     const interval = setInterval(poll, NOW_PLAYING_POLL_MS);
+    // Timers pause while the app is backgrounded, so switching to Spotify and
+    // back can leave this stale well past the poll interval — re-poll
+    // immediately the moment the app returns to the foreground.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') poll();
+    });
     return () => {
       cancelled = true;
       clearInterval(interval);
+      subscription.remove();
     };
   }, [user]);
 
@@ -98,9 +111,34 @@ function NowPlayingSection() {
 
 function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
   const theme = useTheme();
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSync() {
+    setSyncing(true);
+    setError(null);
+    try {
+      await syncSpotifyNow(webApiClient);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not sync Spotify');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <View style={styles.section}>
-      <SectionHeader eyebrow="History" title="Recently Played" />
+      <View style={styles.sectionHeaderRow}>
+        <SectionHeader eyebrow="History" title="Recently Played" />
+        <Pressable onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
+          <ThemedText type="small">{syncing ? 'Syncing…' : 'Sync now'}</ThemedText>
+        </Pressable>
+      </View>
+      {error && (
+        <ThemedText themeColor="text" style={styles.error}>
+          {error}
+        </ThemedText>
+      )}
       <View style={styles.list}>
         {(summary?.recentTracks ?? []).map((track) => (
           <Pressable key={`${track.id}-${track.playedAt}`} onPress={() => track.url && Linking.openURL(track.url)}>
@@ -205,6 +243,8 @@ const styles = StyleSheet.create({
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   section: { gap: Spacing.two },
   sectionHeader: { gap: 2 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
+  syncButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
   error: { marginTop: Spacing.one },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   nowPlayingCard: {

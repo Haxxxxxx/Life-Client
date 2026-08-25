@@ -14,3 +14,18 @@ export async function getNowPlaying(client: KnowledgeApiClient): Promise<NowPlay
   }
   return (await response.json()) as NowPlayingTrack;
 }
+
+/** Refreshes recently-played/top-artists on demand, rather than waiting for the once-daily cron. */
+export async function syncSpotifyNow(client: KnowledgeApiClient): Promise<{ ok: true }> {
+  const token = await client.getIdToken();
+  if (!token) throw new Error("Not signed in");
+  const response = await fetch(`${client.baseUrl}/api/spotify/sync`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Request to /api/spotify/sync failed: ${response.status}`);
+  }
+  return (await response.json()) as { ok: true };
+}
