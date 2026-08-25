@@ -98,11 +98,20 @@ export default function DashboardPage() {
           <p className="text-sm text-muted">open pull request{openPrCount === 1 ? "" : "s"}</p>
         </Card>
 
-        <Card title="Agenda" href="/integrations">
+        <Card title="Agenda" href="/agenda">
           {events.length > 0 ? (
-            <p className="text-sm text-muted">
-              Next: <span className="font-bold text-foreground">{events[0]!.title}</span>
-            </p>
+            <>
+              <p className="truncate text-lg font-bold">{events[0]!.title}</p>
+              <p className="text-sm text-muted">
+                {events[0]!.start.includes("T")
+                  ? new Date(events[0]!.start).toLocaleString(undefined, {
+                      weekday: "short",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : "All day"}
+              </p>
+            </>
           ) : (
             <p className="text-sm text-muted">No events yet — connect Google Calendar.</p>
           )}

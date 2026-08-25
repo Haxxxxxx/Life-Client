@@ -122,11 +122,22 @@ export default function DashboardScreen() {
               </ThemedText>
             </Card>
 
-            <Card title="Agenda" href="/integrations">
+            <Card title="Agenda" href="/agenda">
               {events.length > 0 ? (
-                <ThemedText themeColor="textSecondary">
-                  Next: <ThemedText type="smallBold">{events[0]!.title}</ThemedText>
-                </ThemedText>
+                <>
+                  <ThemedText type="smallBold" numberOfLines={1}>
+                    {events[0]!.title}
+                  </ThemedText>
+                  <ThemedText themeColor="textSecondary">
+                    {events[0]!.start.includes('T')
+                      ? new Date(events[0]!.start).toLocaleString(undefined, {
+                          weekday: 'short',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })
+                      : 'All day'}
+                  </ThemedText>
+                </>
               ) : (
                 <ThemedText themeColor="textSecondary">No events yet — connect Calendar.</ThemedText>
               )}
