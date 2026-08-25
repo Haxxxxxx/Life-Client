@@ -3,10 +3,13 @@
 import {
   type CalendarEvent,
   type DevActivitySummary,
+  type Reminder,
   type SportActivity,
   type Task,
+  isDueSoon,
   subscribeCalendarEvents,
   subscribeDevActivity,
+  subscribeReminders,
   subscribeSportActivities,
   subscribeTasks,
 } from "@life-client/shared";
@@ -42,6 +45,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [github, setGithub] = useState<DevActivitySummary | null>(null);
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -51,6 +55,7 @@ export default function DashboardPage() {
       subscribeCalendarEvents(db, user.uid, setEvents, undefined, 3),
       subscribeDevActivity(db, user.uid, "github", setGithub),
       subscribeDevActivity(db, user.uid, "gitlab", setGitlab),
+      subscribeReminders(db, user.uid, setReminders),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -58,6 +63,7 @@ export default function DashboardPage() {
   const openTasks = tasks.filter((t) => t.status !== "done");
   const latestActivity = activities[0];
   const openPrCount = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
+  const dueSoonReminders = reminders.filter((r) => isDueSoon(r.deadline));
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -99,6 +105,19 @@ export default function DashboardPage() {
             </p>
           ) : (
             <p className="text-sm text-muted">No events yet — connect Google Calendar.</p>
+          )}
+        </Card>
+
+        <Card title="Remember" href="/remember">
+          {dueSoonReminders.length > 0 ? (
+            <>
+              <p className="text-3xl font-bold text-primary">{dueSoonReminders.length}</p>
+              <p className="text-sm text-muted">
+                due soon — next: <span className="font-bold text-foreground">{dueSoonReminders[0]!.title}</span>
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted">Nothing due soon.</p>
           )}
         </Card>
       </div>

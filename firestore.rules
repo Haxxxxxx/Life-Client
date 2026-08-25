@@ -13,7 +13,7 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
-      // Written only by Cloud Functions (Admin SDK bypasses these rules);
+      // Written only by the server (firebase-admin bypasses these rules);
       // the client may only read its own sync state.
       match /integrations/{provider} {
         allow read: if isOwner(uid);
@@ -40,10 +40,14 @@ service cloud.firestore {
       match /manualProgress/{characteristicId} {
         allow read, write: if isOwner(uid);
       }
+
+      match /reminders/{reminderId} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     // Short-lived OAuth CSRF state and long-lived provider tokens.
-    // Never readable/writable by clients — Cloud Functions only.
+    // Never readable/writable by clients — server (firebase-admin) only.
     match /oauthState/{token} {
       allow read, write: if false;
     }

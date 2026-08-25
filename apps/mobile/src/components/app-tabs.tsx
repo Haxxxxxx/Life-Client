@@ -33,6 +33,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf="link" md="link" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="remember">
+        <NativeTabs.Trigger.Label>Remember</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="bell" md="notifications" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="person.circle" md="account_circle" />

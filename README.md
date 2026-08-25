@@ -147,3 +147,9 @@ Firebase Console apps you create for each platform, placed per that package's in
   until an integration is connected and has synced at least once.
 - **Integrations**: connecting is fully implemented (OAuth exchange, token storage, initial +
   scheduled sync via Vercel Cron) — it just needs the credentials from step 3 to go live.
+- **Remember** tracks anything with a deadline (referral codes, trial expirations, renewal
+  dates). Reminders due within 2 days are highlighted in the Remember tab itself and surfaced on
+  the Dashboard — this is computed client-side from the deadline, no email/push yet. Email
+  delivery (1/2 days before) was designed for but not wired up: it needs a domain you control so
+  Resend can verify a sender (Vercel's own `*.vercel.app` domains can't be used for this since
+  Vercel controls their DNS, not you) — revisit once a domain is available.

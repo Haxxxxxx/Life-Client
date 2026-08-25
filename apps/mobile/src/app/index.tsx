@@ -1,10 +1,13 @@
 import {
   type CalendarEvent,
   type DevActivitySummary,
+  type Reminder,
   type SportActivity,
   type Task,
+  isDueSoon,
   subscribeCalendarEvents,
   subscribeDevActivity,
+  subscribeReminders,
   subscribeSportActivities,
   subscribeTasks,
 } from '@life-client/shared';
@@ -36,6 +39,7 @@ export default function DashboardScreen() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [github, setGithub] = useState<DevActivitySummary | null>(null);
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -45,6 +49,7 @@ export default function DashboardScreen() {
       subscribeCalendarEvents(db, user.uid, setEvents, undefined, 3),
       subscribeDevActivity(db, user.uid, 'github', setGithub),
       subscribeDevActivity(db, user.uid, 'gitlab', setGitlab),
+      subscribeReminders(db, user.uid, setReminders),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -52,6 +57,7 @@ export default function DashboardScreen() {
   const openTasks = tasks.filter((t) => t.status !== 'done');
   const latestActivity = activities[0];
   const openPrCount = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
+  const dueSoonReminders = reminders.filter((r) => isDueSoon(r.deadline));
 
   return (
     <ThemedView style={styles.screen}>
@@ -105,6 +111,21 @@ export default function DashboardScreen() {
                 </ThemedText>
               ) : (
                 <ThemedText themeColor="textSecondary">No events yet — connect Calendar.</ThemedText>
+              )}
+            </Card>
+
+            <Card title="Remember">
+              {dueSoonReminders.length > 0 ? (
+                <>
+                  <ThemedText type="title" themeColor="primary" style={styles.bigNumber}>
+                    {dueSoonReminders.length}
+                  </ThemedText>
+                  <ThemedText themeColor="textSecondary">
+                    due soon — next: <ThemedText type="smallBold">{dueSoonReminders[0]!.title}</ThemedText>
+                  </ThemedText>
+                </>
+              ) : (
+                <ThemedText themeColor="textSecondary">Nothing due soon.</ThemedText>
               )}
             </Card>
           </View>

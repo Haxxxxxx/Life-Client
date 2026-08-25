@@ -6,3 +6,4 @@ export * from "./integrations";
 export * from "./devActivity";
 export * from "./calendar";
 export * from "./characteristics";
+export * from "./reminders";

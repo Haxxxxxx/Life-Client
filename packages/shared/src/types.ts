@@ -85,6 +85,17 @@ export interface CalendarEvent {
   url?: string;
 }
 
+export interface Reminder {
+  id: string;
+  title: string;
+  note?: string; // e.g. "Referral code from a friend", linked account, or any other context
+  deadline: string; // ISO datetime
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NewReminder = Omit<Reminder, "id" | "createdAt" | "updatedAt">;
+
 export type CharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social";
 export type CharacteristicSource = "computed" | "manual";
 
