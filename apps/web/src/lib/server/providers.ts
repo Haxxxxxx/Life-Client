@@ -5,6 +5,9 @@ export interface ProviderOAuthConfig {
   tokenUrl: string;
   scope: string;
   extraAuthParams?: Record<string, string>;
+  /** "basic" sends client_id/secret via an HTTP Basic Authorization header instead
+   * of the request body — Spotify requires this; the others accept body params. */
+  authStyle?: "body" | "basic";
 }
 
 export const PROVIDER_CONFIG: Record<IntegrationProvider, ProviderOAuthConfig> = {
@@ -30,6 +33,12 @@ export const PROVIDER_CONFIG: Record<IntegrationProvider, ProviderOAuthConfig> =
     scope: "activity:read_all",
     extraAuthParams: { approval_prompt: "auto" },
   },
+  spotify: {
+    authorizeUrl: "https://accounts.spotify.com/authorize",
+    tokenUrl: "https://accounts.spotify.com/api/token",
+    scope: "user-read-currently-playing user-read-recently-played user-top-read",
+    authStyle: "basic",
+  },
 };
 
 export function clientIdFor(provider: IntegrationProvider): string {
@@ -42,6 +51,8 @@ export function clientIdFor(provider: IntegrationProvider): string {
       return process.env.GOOGLE_CLIENT_ID ?? "";
     case "strava":
       return process.env.STRAVA_CLIENT_ID ?? "";
+    case "spotify":
+      return process.env.SPOTIFY_CLIENT_ID ?? "";
   }
 }
 
@@ -55,6 +66,8 @@ export function clientSecretFor(provider: IntegrationProvider): string {
       return process.env.GOOGLE_CLIENT_SECRET ?? "";
     case "strava":
       return process.env.STRAVA_CLIENT_SECRET ?? "";
+    case "spotify":
+      return process.env.SPOTIFY_CLIENT_SECRET ?? "";
   }
 }
 
@@ -65,27 +78,37 @@ interface ExchangeParams {
   redirectUri: string;
 }
 
+function tokenRequestHeaders(config: ProviderOAuthConfig, clientId: string, clientSecret: string): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    Accept: "application/json",
+  };
+  if (config.authStyle === "basic") {
+    headers.Authorization = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`;
+  }
+  return headers;
+}
+
 /** POSTs the authorization code to a provider's token endpoint and returns the raw JSON body. */
 export async function exchangeCodeForToken(
   provider: IntegrationProvider,
   params: ExchangeParams,
 ): Promise<Record<string, unknown>> {
   const config = PROVIDER_CONFIG[provider];
-  const body = new URLSearchParams({
-    client_id: params.clientId,
-    client_secret: params.clientSecret,
+  const bodyParams: Record<string, string> = {
     code: params.code,
     redirect_uri: params.redirectUri,
     grant_type: "authorization_code",
-  });
+  };
+  if (config.authStyle !== "basic") {
+    bodyParams.client_id = params.clientId;
+    bodyParams.client_secret = params.clientSecret;
+  }
 
   const response = await fetch(config.tokenUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json",
-    },
-    body: body.toString(),
+    headers: tokenRequestHeaders(config, params.clientId, params.clientSecret),
+    body: new URLSearchParams(bodyParams).toString(),
   });
 
   const text = await response.text();
@@ -117,20 +140,19 @@ export async function refreshAccessToken(
   params: RefreshParams,
 ): Promise<Record<string, unknown>> {
   const config = PROVIDER_CONFIG[provider];
-  const body = new URLSearchParams({
-    client_id: params.clientId,
-    client_secret: params.clientSecret,
+  const bodyParams: Record<string, string> = {
     refresh_token: params.refreshToken,
     grant_type: "refresh_token",
-  });
+  };
+  if (config.authStyle !== "basic") {
+    bodyParams.client_id = params.clientId;
+    bodyParams.client_secret = params.clientSecret;
+  }
 
   const response = await fetch(config.tokenUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json",
-    },
-    body: body.toString(),
+    headers: tokenRequestHeaders(config, params.clientId, params.clientSecret),
+    body: new URLSearchParams(bodyParams).toString(),
   });
 
   if (!response.ok) {

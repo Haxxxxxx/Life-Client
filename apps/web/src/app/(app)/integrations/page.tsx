@@ -35,9 +35,14 @@ const PROVIDER_META: Record<
     description: "Sync your runs/rides into the Sports tab automatically.",
     badge: "STR",
   },
+  spotify: {
+    label: "Spotify",
+    description: "Currently playing, recent tracks, and top artists in Music.",
+    badge: "SPT",
+  },
 };
 
-const PROVIDER_ORDER: IntegrationProvider[] = ["github", "gitlab", "google_calendar", "strava"];
+const PROVIDER_ORDER: IntegrationProvider[] = ["github", "gitlab", "google_calendar", "strava", "spotify"];
 
 export default function IntegrationsPage() {
   const { user } = useAuth();

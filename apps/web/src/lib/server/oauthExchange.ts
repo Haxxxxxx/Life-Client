@@ -36,6 +36,15 @@ async function fetchGoogleEmail(accessToken: string): Promise<string | undefined
   return data.email;
 }
 
+async function fetchSpotifyDisplayName(accessToken: string): Promise<string | undefined> {
+  const res = await fetch("https://api.spotify.com/v1/me", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return undefined;
+  const data = (await res.json()) as { display_name?: string };
+  return data.display_name;
+}
+
 function requireAccessToken(provider: IntegrationProvider, raw: Record<string, unknown>): string {
   if (typeof raw.access_token !== "string" || !raw.access_token) {
     throw new Error(`${provider} token exchange response had no access_token: ${JSON.stringify(raw)}`);
@@ -113,6 +122,22 @@ export async function handleOAuthExchange(
           athlete?.username ?? ([athlete?.firstname, athlete?.lastname].filter(Boolean).join(" ") || undefined),
       };
     }
+    case "spotify": {
+      const raw = await exchangeCodeForToken(provider, {
+        clientId: clientIdFor("spotify"),
+        clientSecret: clientSecretFor("spotify"),
+        code,
+        redirectUri,
+      });
+      const accessToken = requireAccessToken(provider, raw);
+      return {
+        accessToken,
+        refreshToken: raw.refresh_token as string | undefined,
+        expiresAt: raw.expires_in ? Date.now() + (raw.expires_in as number) * 1000 : undefined,
+        scope: raw.scope as string | undefined,
+        externalAccountLabel: await fetchSpotifyDisplayName(accessToken),
+      };
+    }
   }
 }
 
@@ -136,6 +161,11 @@ export async function triggerInitialSync(provider: IntegrationProvider, uid: str
     case "strava": {
       const { syncStravaForUser } = await import("./syncStrava");
       await syncStravaForUser(uid);
+      return;
+    }
+    case "spotify": {
+      const { syncSpotifyForUser } = await import("./syncSpotify");
+      await syncSpotifyForUser(uid);
       return;
     }
   }

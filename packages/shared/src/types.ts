@@ -96,10 +96,17 @@ export type IntegrationProvider =
   | "github"
   | "gitlab"
   | "google_calendar"
-  | "strava";
+  | "strava"
+  | "spotify";
 
 export function isIntegrationProvider(value: unknown): value is IntegrationProvider {
-  return value === "github" || value === "gitlab" || value === "google_calendar" || value === "strava";
+  return (
+    value === "github" ||
+    value === "gitlab" ||
+    value === "google_calendar" ||
+    value === "strava" ||
+    value === "spotify"
+  );
 }
 
 export type IntegrationStatus = "connected" | "disconnected" | "error";
@@ -153,7 +160,7 @@ export interface Reminder {
 
 export type NewReminder = Omit<Reminder, "id" | "createdAt" | "updatedAt" | "calendarEventId">;
 
-export type CoreCharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social";
+export type CoreCharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social" | "rhythm";
 export type CharacteristicId = CoreCharacteristicId | TaskCategory;
 export type CharacteristicSource = "computed" | "manual";
 export type CharacteristicGroup = "core" | "category";
@@ -200,6 +207,13 @@ export const CHARACTERISTICS: CharacteristicDefinition[] = [
     label: "Social",
     description: "Log time well spent with people to grow this.",
     source: "manual",
+    group: "core",
+  },
+  {
+    id: "rhythm",
+    label: "Rhythm",
+    description: "Grows with your recent Spotify listening — tracks played and variety of artists.",
+    source: "computed",
     group: "core",
   },
   ...TASK_CATEGORIES.map(
@@ -296,3 +310,38 @@ export interface ReadingListItem {
 }
 
 export type NewReadingListItem = Pick<ReadingListItem, "url">;
+
+export interface SpotifyTrack {
+  id: string;
+  name: string;
+  artists: string; // joined, e.g. "Tame Impala, Kevin Parker"
+  albumArtUrl?: string;
+  url: string;
+  playedAt: string; // ISO datetime
+  durationMs: number;
+}
+
+export interface SpotifyTopArtist {
+  name: string;
+  playCount: number;
+}
+
+export interface SpotifySummary {
+  recentTracks: SpotifyTrack[];
+  topArtists: SpotifyTopArtist[];
+  /** Sum of recentTracks durations — a recent-window estimate, not lifetime listening time. */
+  totalMinutesRecent: number;
+  lastSyncAt: string;
+}
+
+export interface NowPlayingTrack {
+  isPlaying: boolean;
+  track?: {
+    name: string;
+    artists: string;
+    albumArtUrl?: string;
+    url: string;
+    durationMs: number;
+    progressMs: number;
+  };
+}

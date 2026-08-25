@@ -5,12 +5,14 @@ import {
   type DevActivitySummary,
   type Reminder,
   type SportActivity,
+  type SpotifySummary,
   type Task,
   isDueSoon,
   subscribeCalendarEvents,
   subscribeDevActivity,
   subscribeReminders,
   subscribeSportActivities,
+  subscribeSpotifySummary,
   subscribeTasks,
 } from "@life-client/shared";
 import Link from "next/link";
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [github, setGithub] = useState<DevActivitySummary | null>(null);
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [spotify, setSpotify] = useState<SpotifySummary | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -56,6 +59,7 @@ export default function DashboardPage() {
       subscribeDevActivity(db, user.uid, "github", setGithub),
       subscribeDevActivity(db, user.uid, "gitlab", setGitlab),
       subscribeReminders(db, user.uid, setReminders),
+      subscribeSpotifySummary(db, user.uid, setSpotify),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -114,6 +118,21 @@ export default function DashboardPage() {
             </>
           ) : (
             <p className="text-sm text-muted">No events yet — connect Google Calendar.</p>
+          )}
+        </Card>
+
+        <Card title="Music" href="/music">
+          {spotify && spotify.recentTracks.length > 0 ? (
+            <>
+              <p className="truncate text-lg font-bold">{spotify.recentTracks[0]!.name}</p>
+              <p className="text-sm text-muted">
+                {spotify.topArtists[0]
+                  ? `Top artist: ${spotify.topArtists[0].name}`
+                  : spotify.recentTracks[0]!.artists}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted">No listening history yet — connect Spotify.</p>
           )}
         </Card>
 

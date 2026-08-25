@@ -3,12 +3,14 @@ import {
   type DevActivitySummary,
   type Reminder,
   type SportActivity,
+  type SpotifySummary,
   type Task,
   isDueSoon,
   subscribeCalendarEvents,
   subscribeDevActivity,
   subscribeReminders,
   subscribeSportActivities,
+  subscribeSpotifySummary,
   subscribeTasks,
 } from '@life-client/shared';
 import { Link, type Href } from 'expo-router';
@@ -58,6 +60,7 @@ export default function DashboardScreen() {
   const [github, setGithub] = useState<DevActivitySummary | null>(null);
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [spotify, setSpotify] = useState<SpotifySummary | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -68,6 +71,7 @@ export default function DashboardScreen() {
       subscribeDevActivity(db, user.uid, 'github', setGithub),
       subscribeDevActivity(db, user.uid, 'gitlab', setGitlab),
       subscribeReminders(db, user.uid, setReminders),
+      subscribeSpotifySummary(db, user.uid, setSpotify),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -140,6 +144,23 @@ export default function DashboardScreen() {
                 </>
               ) : (
                 <ThemedText themeColor="textSecondary">No events yet — connect Calendar.</ThemedText>
+              )}
+            </Card>
+
+            <Card title="Music" href="/music">
+              {spotify && spotify.recentTracks.length > 0 ? (
+                <>
+                  <ThemedText type="smallBold" numberOfLines={1}>
+                    {spotify.recentTracks[0]!.name}
+                  </ThemedText>
+                  <ThemedText themeColor="textSecondary" numberOfLines={1}>
+                    {spotify.topArtists[0]
+                      ? `Top artist: ${spotify.topArtists[0].name}`
+                      : spotify.recentTracks[0]!.artists}
+                  </ThemedText>
+                </>
+              ) : (
+                <ThemedText themeColor="textSecondary">No listening history yet — connect Spotify.</ThemedText>
               )}
             </Card>
 

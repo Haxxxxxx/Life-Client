@@ -10,3 +10,5 @@ export * from "./reminders";
 export * from "./knowledge";
 export * from "./knowledgeApi";
 export * from "./remindersApi";
+export * from "./spotify";
+export * from "./spotifyApi";

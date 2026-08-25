@@ -6,17 +6,20 @@ import {
   type ManualEventType,
   type ManualProgress,
   type SportActivity,
+  type SpotifySummary,
   type Task,
   type TaskCategory,
   computeCategoryXp,
   computeCraftXp,
   computeDisciplineXp,
   computeFitnessXp,
+  computeRhythmXp,
   levelFromXp,
   logManualEvent,
   subscribeDevActivity,
   subscribeManualProgress,
   subscribeSportActivities,
+  subscribeSpotifySummary,
   subscribeTasks,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
@@ -194,6 +197,7 @@ export default function ProfileScreen() {
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
   const [focusProgress, setFocusProgress] = useState<ManualProgress | null>(null);
   const [socialProgress, setSocialProgress] = useState<ManualProgress | null>(null);
+  const [spotify, setSpotify] = useState<SpotifySummary | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -204,6 +208,7 @@ export default function ProfileScreen() {
       subscribeDevActivity(db, user.uid, 'gitlab', setGitlab),
       subscribeManualProgress(db, user.uid, 'focus', setFocusProgress),
       subscribeManualProgress(db, user.uid, 'social', setSocialProgress),
+      subscribeSpotifySummary(db, user.uid, setSpotify),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -219,6 +224,7 @@ export default function ProfileScreen() {
     craft: computeCraftXp(github, gitlab),
     focus: focusProgress?.xp ?? 0,
     social: socialProgress?.xp ?? 0,
+    rhythm: computeRhythmXp(spotify),
   };
 
   const xpByCharacteristic: Record<string, number> = Object.fromEntries(

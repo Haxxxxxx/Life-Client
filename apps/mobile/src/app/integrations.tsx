@@ -22,9 +22,10 @@ const PROVIDER_META: Record<IntegrationProvider, { label: string; description: s
   gitlab: { label: 'GitLab', description: 'Same as GitHub, for GitLab-hosted projects.', badge: 'GL' },
   google_calendar: { label: 'Google Calendar', description: "This week's events on your Dashboard.", badge: 'CAL' },
   strava: { label: 'Strava', description: 'Your runs/rides synced into Sports.', badge: 'STR' },
+  spotify: { label: 'Spotify', description: 'Currently playing, recent tracks, and top artists in Music.', badge: 'SPT' },
 };
 
-const PROVIDER_ORDER: IntegrationProvider[] = ['github', 'gitlab', 'google_calendar', 'strava'];
+const PROVIDER_ORDER: IntegrationProvider[] = ['github', 'gitlab', 'google_calendar', 'strava', 'spotify'];
 
 export default function IntegrationsScreen() {
   const { user } = useAuth();

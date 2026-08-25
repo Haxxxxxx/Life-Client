@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/tasks", label: "Tasks" },
   { href: "/sports", label: "Sports" },
   { href: "/agenda", label: "Agenda" },
+  { href: "/music", label: "Music" },
   { href: "/integrations", label: "Integrations" },
   { href: "/remember", label: "Remember" },
   { href: "/profile", label: "Profile" },

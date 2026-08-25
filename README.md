@@ -23,7 +23,7 @@ Data lives in **Firestore**, under `users/{uid}/...` (tasks, sportActivities, de
 calendarEvents, integrations, manualProgress). Auth is **Firebase Authentication** (Google
 sign-in) on both clients — that stays on Firebase's free Spark plan.
 
-Third-party integrations (GitHub, GitLab, Google Calendar, Strava) are connected via a
+Third-party integrations (GitHub, GitLab, Google Calendar, Strava, Spotify) are connected via a
 server-side OAuth flow that lives in `apps/web`'s own API routes (`/api/oauth/*`), not a
 separate backend — Firebase Cloud Functions were the original design but require the paid
 Blaze plan, so the whole OAuth exchange + scheduled sync moved to Vercel Functions instead.
@@ -88,7 +88,7 @@ npm install    # installs all workspaces (apps/web, apps/mobile, packages/shared
 ### 3. OAuth apps for each integration
 
 Each integration needs an OAuth app registered with that provider. The callback URL is the
-same shape for all four — your deployed web app's origin plus `/api/oauth/callback`:
+same shape for all of them — your deployed web app's origin plus `/api/oauth/callback`:
 
 ```
 https://<your-app>.vercel.app/api/oauth/callback        # production
@@ -101,12 +101,14 @@ http://localhost:3000/api/oauth/callback                 # local dev
 | GitLab | gitlab.com/-/user_settings/applications | `read_api read_user` |
 | Google (Calendar) | Google Cloud Console → APIs & Services → enable **Calendar API** → Credentials → OAuth client ID (Web application) | `calendar.readonly` |
 | Strava | strava.com/settings/api | `activity:read_all` |
+| Spotify | developer.spotify.com/dashboard → Create app → add the callback URL under "Redirect URIs" | `user-read-currently-playing user-read-recently-played user-top-read` |
 
 Set each client ID/secret in `apps/web/.env.local` (and as Vercel env vars for production):
 `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITLAB_CLIENT_ID`, `GITLAB_CLIENT_SECRET`,
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`. You
-only need to set the ones for integrations you're actually using — the rest can stay blank and
-their Connect buttons will just fail gracefully until configured.
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`,
+`SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`. You only need to set the ones for integrations
+you're actually using — the rest can stay blank and their Connect buttons will just fail
+gracefully until configured.
 
 Also set `CRON_SECRET` to a random string — it authenticates Vercel Cron's calls to
 `/api/cron/sync` (Vercel sets this automatically as a header when deployed; for local testing,
@@ -201,11 +203,13 @@ Firebase Console apps you create for each platform, placed per that package's in
 
 - **Tasks** (create/update/complete/delete) work fully on both clients right now, backed by
   Firestore.
-- **Profile** shows account info plus five trainable life characteristics (Discipline, Fitness,
-  Craft — computed live from Tasks/Strava/dev-activity — and Focus/Social, logged manually via
-  an event form: type, duration, headcount).
-- **Sports, Dev Activity, Agenda** read live from Firestore and render correctly, but stay empty
-  until an integration is connected and has synced at least once.
+- **Profile** shows account info plus six trainable life characteristics (Discipline, Fitness,
+  Craft, Rhythm — computed live from Tasks/Strava/dev-activity/Spotify — and Focus/Social,
+  logged manually via an event form: type, duration, headcount).
+- **Sports, Dev Activity, Agenda, Music** read live from Firestore and render correctly, but stay
+  empty until their integration is connected and has synced at least once. Music's "Now Playing"
+  is the exception — it's a live proxy to Spotify's API on each page load (polled every ~15s),
+  not part of the periodic sync, so it reflects playback in near-real-time.
 - **Knowledge** (daily lesson, code drills, vocabulary, reading-list summaries) lives in its own
   app (`apps/knowledge`) and is fully implemented end to end — it just needs its own deployment
   plus `AI_GATEWAY_API_KEY` (step 5) to actually generate anything. Life Client (`apps/web`)

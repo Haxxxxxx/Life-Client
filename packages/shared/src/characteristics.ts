@@ -14,6 +14,7 @@ import {
   type ManualEventType,
   type ManualProgress,
   type SportActivity,
+  type SpotifySummary,
   type Task,
   type TaskCategory,
 } from "./types";
@@ -24,6 +25,8 @@ const XP_PER_REP = 1;
 const XP_PER_SET_BONUS = 5;
 const XP_PER_MERGED_PR = 25;
 const XP_PER_OPEN_PR = 5;
+const XP_PER_RECENT_TRACK = 2;
+const XP_PER_UNIQUE_ARTIST = 6;
 
 function completedTaskXp(task: Task): number {
   return TASK_DIFFICULTY_XP[task.difficulty ?? "medium"];
@@ -78,6 +81,14 @@ export function computeCraftXp(
   const merged = (github?.totalMergedCount ?? 0) + (gitlab?.totalMergedCount ?? 0);
   const open = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
   return merged * XP_PER_MERGED_PR + open * XP_PER_OPEN_PR;
+}
+
+/** Rewards listening variety (unique artists) more than raw track count. */
+export function computeRhythmXp(spotify: SpotifySummary | null): number {
+  if (!spotify) return 0;
+  const trackXp = spotify.recentTracks.length * XP_PER_RECENT_TRACK;
+  const artistXp = spotify.topArtists.length * XP_PER_UNIQUE_ARTIST;
+  return trackXp + artistXp;
 }
 
 function manualProgressDoc(db: Firestore, uid: string, characteristicId: CharacteristicId) {
