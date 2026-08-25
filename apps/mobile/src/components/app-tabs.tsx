@@ -45,13 +45,20 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
         style={[
           styles.tabButtonView,
           {
-            borderColor: theme.border,
+            borderColor: isFocused ? theme.border : 'transparent',
             backgroundColor: isFocused ? theme.primary : 'transparent',
+          },
+          isFocused && {
+            shadowColor: theme.border,
+            shadowOffset: { width: 2, height: 2 },
+            shadowOpacity: 1,
+            shadowRadius: 0,
+            elevation: 2,
           },
         ]}>
         <ThemedText
-          type="smallBold"
-          style={isFocused ? { color: theme.primaryForeground } : undefined}
+          type="code"
+          style={[styles.tabButtonLabel, isFocused ? { color: theme.primaryForeground } : undefined]}
           themeColor={isFocused ? undefined : 'textSecondary'}>
           {children}
         </ThemedText>
@@ -90,8 +97,13 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   tabButtonView: {
     borderWidth: 2,
-    borderRadius: 999,
+    borderRadius: Spacing.two,
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
+  },
+  tabButtonLabel: {
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

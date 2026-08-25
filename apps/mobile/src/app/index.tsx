@@ -11,24 +11,31 @@ import {
   subscribeSportActivities,
   subscribeTasks,
 } from '@life-client/shared';
+import { Link, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, href, children }: { title: string; href: Href; children: React.ReactNode }) {
+  const theme = useTheme();
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
-      <ThemedText type="code" themeColor="primary" style={styles.cardEyebrow}>
-        {title}
-      </ThemedText>
-      {children}
-    </ThemedView>
+    <Link href={href} asChild>
+      <Pressable style={({ pressed }) => [styles.cardSlot, pressed && styles.cardPressed]}>
+        <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
+          <ThemedText type="code" themeColor="primary" style={styles.cardEyebrow}>
+            {title}
+          </ThemedText>
+          {children}
+        </ThemedView>
+      </Pressable>
+    </Link>
   );
 }
 
@@ -73,7 +80,7 @@ export default function DashboardScreen() {
           </View>
 
           <View style={styles.grid}>
-            <Card title="Tasks">
+            <Card title="Tasks" href="/tasks">
               <ThemedText type="title" style={styles.bigNumber}>
                 {openTasks.length}
               </ThemedText>
@@ -82,7 +89,7 @@ export default function DashboardScreen() {
               </ThemedText>
             </Card>
 
-            <Card title="Sports">
+            <Card title="Sports" href="/sports">
               {latestActivity ? (
                 <>
                   <ThemedText type="smallBold">{latestActivity.name}</ThemedText>
@@ -95,7 +102,7 @@ export default function DashboardScreen() {
               )}
             </Card>
 
-            <Card title="Dev Activity">
+            <Card title="Dev Activity" href="/integrations">
               <ThemedText type="title" style={styles.bigNumber}>
                 {openPrCount}
               </ThemedText>
@@ -104,7 +111,7 @@ export default function DashboardScreen() {
               </ThemedText>
             </Card>
 
-            <Card title="Agenda">
+            <Card title="Agenda" href="/integrations">
               {events.length > 0 ? (
                 <ThemedText themeColor="textSecondary">
                   Next: <ThemedText type="smallBold">{events[0]!.title}</ThemedText>
@@ -114,7 +121,7 @@ export default function DashboardScreen() {
               )}
             </Card>
 
-            <Card title="Remember">
+            <Card title="Remember" href="/remember">
               {dueSoonReminders.length > 0 ? (
                 <>
                   <ThemedText type="title" themeColor="primary" style={styles.bigNumber}>
@@ -157,9 +164,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.three,
   },
+  cardSlot: { flexGrow: 1, flexBasis: 160 },
+  cardPressed: { opacity: 0.7 },
   card: {
-    flexGrow: 1,
-    flexBasis: 160,
+    borderWidth: 2,
     borderRadius: Spacing.three,
     padding: Spacing.four,
     gap: Spacing.one,

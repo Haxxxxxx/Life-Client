@@ -11,7 +11,7 @@ import {
   type TaskStatus,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -95,7 +95,7 @@ export default function TasksScreen() {
             onSubmitEditing={handleAdd}
             returnKeyType="done"
           />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+          <View style={styles.chipRowWrap}>
             {TASK_CATEGORIES.map((c) => {
               const active = c.id === category;
               return (
@@ -114,7 +114,7 @@ export default function TasksScreen() {
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
           <View style={styles.chipRowWrap}>
             {TASK_DIFFICULTIES.map((d) => {
               const active = d.id === difficulty;
@@ -198,7 +198,6 @@ const styles = StyleSheet.create({
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   form: { gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
   input: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
-  chipRow: { gap: Spacing.one },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
