@@ -103,7 +103,21 @@ Also set `CRON_SECRET` to a random string — it authenticates Vercel Cron's cal
 `/api/cron/sync` (Vercel sets this automatically as a header when deployed; for local testing,
 pass `Authorization: Bearer <value>` yourself).
 
-### 4. Run the web app
+### 4. AI Gateway (for the Knowledge tab)
+
+The Knowledge feature (daily lessons, code drills, vocabulary, reading-list summaries) calls
+Anthropic's Claude through the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway). Get an
+API key from your Vercel dashboard → **AI Gateway → API Keys**, then set it in
+`apps/web/.env.local` and as a Vercel env var for production:
+
+```
+AI_GATEWAY_API_KEY=
+```
+
+(When deployed on Vercel with the AI Gateway enabled for the project, this can also work via
+Vercel's OIDC token with no key needed — the env var is the simplest path for local dev.)
+
+### 5. Run the web app
 
 ```
 cp apps/web/.env.example apps/web/.env.local   # fill in the values from steps 1 & 3
@@ -114,7 +128,7 @@ Deploy to Vercel: link `apps/web` as the project root (`vercel link`, set root d
 `apps/web`), then push env vars with `vercel env add` for each key above. The cron schedule in
 `apps/web/vercel.json` (every 30 minutes) takes effect automatically once deployed.
 
-### 5. Run the mobile app
+### 6. Run the mobile app
 
 ```
 cp apps/mobile/.env.example apps/mobile/.env   # fill in the values from step 1
@@ -145,6 +159,9 @@ Firebase Console apps you create for each platform, placed per that package's in
   an event form: type, duration, headcount).
 - **Sports, Dev Activity, Agenda** read live from Firestore and render correctly, but stay empty
   until an integration is connected and has synced at least once.
+- **Knowledge** (daily lesson, code drills, vocabulary, reading-list summaries) is fully
+  implemented end to end — it just needs `AI_GATEWAY_API_KEY` (step 4) to actually generate
+  anything.
 - **Integrations**: connecting is fully implemented (OAuth exchange, token storage, initial +
   scheduled sync via Vercel Cron) — it just needs the credentials from step 3 to go live.
 - **Remember** tracks anything with a deadline (referral codes, trial expirations, renewal
