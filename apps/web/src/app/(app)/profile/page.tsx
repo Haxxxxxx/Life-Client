@@ -4,6 +4,8 @@ import {
   CHARACTERISTICS,
   type CharacteristicDefinition,
   type DevActivitySummary,
+  MANUAL_EVENT_TYPES,
+  type ManualEventType,
   type ManualProgress,
   type SportActivity,
   type Task,
@@ -11,7 +13,7 @@ import {
   computeDisciplineXp,
   computeFitnessXp,
   levelFromXp,
-  logManualSession,
+  logManualEvent,
   subscribeDevActivity,
   subscribeManualProgress,
   subscribeSportActivities,
@@ -30,16 +32,83 @@ function ProgressBar({ progress }: { progress: number }) {
   );
 }
 
+const EVENT_TYPE_LABEL = Object.fromEntries(MANUAL_EVENT_TYPES.map((t) => [t.id, t.label])) as Record<
+  ManualEventType,
+  string
+>;
+
+function LogEventForm({ onSubmit }: { onSubmit: (input: { eventType: ManualEventType; durationMinutes: number; peopleCount: number }) => void }) {
+  const [eventType, setEventType] = useState<ManualEventType>(MANUAL_EVENT_TYPES[0]!.id);
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [peopleCount, setPeopleCount] = useState(1);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit({ eventType, durationMinutes, peopleCount });
+      }}
+      className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3"
+    >
+      <div className="flex gap-2">
+        <select
+          value={eventType}
+          onChange={(e) => setEventType(e.target.value as ManualEventType)}
+          className="flex-1 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-xs"
+        >
+          {MANUAL_EVENT_TYPES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <label className="flex flex-1 flex-col gap-1 text-xs text-muted">
+          Minutes
+          <input
+            type="number"
+            min={1}
+            value={durationMinutes}
+            onChange={(e) => setDurationMinutes(Number(e.target.value))}
+            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+          />
+        </label>
+        <label className="flex flex-1 flex-col gap-1 text-xs text-muted">
+          People
+          <input
+            type="number"
+            min={1}
+            value={peopleCount}
+            onChange={(e) => setPeopleCount(Number(e.target.value))}
+            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+          />
+        </label>
+      </div>
+      <button
+        type="submit"
+        className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+      >
+        Log it
+      </button>
+    </form>
+  );
+}
+
 function CharacteristicCard({
   def,
   totalXp,
-  onLogSession,
+  manualProgress,
+  onLogEvent,
 }: {
   def: CharacteristicDefinition;
   totalXp: number;
-  onLogSession?: () => void;
+  manualProgress?: ManualProgress | null;
+  onLogEvent?: (input: { eventType: ManualEventType; durationMinutes: number; peopleCount: number }) => void;
 }) {
+  const [formOpen, setFormOpen] = useState(false);
   const level = levelFromXp(totalXp);
+
   return (
     <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
@@ -56,16 +125,30 @@ function CharacteristicCard({
         <p className="font-mono text-xs text-muted">
           {level.xpIntoLevel} / {level.xpForNextLevel} XP
         </p>
-        {onLogSession && (
+        {onLogEvent && !formOpen && (
           <button
             type="button"
-            onClick={onLogSession}
-            className="rounded-md border-2 border-foreground bg-primary px-3 py-1 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+            onClick={() => setFormOpen(true)}
+            className="rounded-md border-2 border-foreground px-3 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20"
           >
-            +1 session
+            Log event
           </button>
         )}
       </div>
+      {manualProgress?.lastEventType && !formOpen && (
+        <p className="font-mono text-xs text-muted">
+          Last: {EVENT_TYPE_LABEL[manualProgress.lastEventType]} · {manualProgress.lastDurationMinutes}min ·{" "}
+          {manualProgress.lastPeopleCount} {manualProgress.lastPeopleCount === 1 ? "person" : "people"}
+        </p>
+      )}
+      {onLogEvent && formOpen && (
+        <LogEventForm
+          onSubmit={(input) => {
+            onLogEvent(input);
+            setFormOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -91,6 +174,11 @@ export default function ProfilePage() {
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
+
+  const manualProgressByCharacteristic: Record<string, ManualProgress | null> = {
+    focus: focusProgress,
+    social: socialProgress,
+  };
 
   const xpByCharacteristic: Record<string, number> = {
     discipline: computeDisciplineXp(tasks),
@@ -142,9 +230,10 @@ export default function ProfilePage() {
               key={def.id}
               def={def}
               totalXp={xpByCharacteristic[def.id] ?? 0}
-              onLogSession={
+              manualProgress={manualProgressByCharacteristic[def.id]}
+              onLogEvent={
                 def.source === "manual" && user && db
-                  ? () => logManualSession(db!, user.uid, def.id)
+                  ? (input) => logManualEvent(db!, user.uid, def.id, input)
                   : undefined
               }
             />

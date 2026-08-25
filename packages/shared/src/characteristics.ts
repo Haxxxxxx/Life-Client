@@ -10,12 +10,12 @@ import type {
   CharacteristicId,
   CharacteristicLevel,
   DevActivitySummary,
+  ManualEventType,
   ManualProgress,
   SportActivity,
   Task,
 } from "./types";
 
-const XP_PER_MANUAL_SESSION = 20;
 const XP_PER_TASK_DONE = 15;
 const XP_PER_KM = 10;
 const XP_PER_SPORT_SESSION = 5;
@@ -76,17 +76,49 @@ export function subscribeManualProgress(
   });
 }
 
-export async function logManualSession(
+export interface ManualEventInput {
+  eventType: ManualEventType;
+  durationMinutes: number;
+  peopleCount: number;
+}
+
+const EVENT_TYPE_MULTIPLIER: Record<ManualEventType, number> = {
+  pro: 1.2,
+  sport: 1.1,
+  bar: 1,
+  restaurant: 1,
+  other: 1,
+};
+
+const XP_PER_MINUTE = 0.5;
+const PEOPLE_BONUS_PER_HEAD = 0.15;
+const MAX_PEOPLE_BONUS_HEADS = 8;
+
+/** Modulates a session's XP by how long it ran, who else was there, and what kind of event it was. */
+export function computeManualEventXp(input: ManualEventInput): number {
+  const base = Math.max(0, input.durationMinutes) * XP_PER_MINUTE;
+  const extraPeople = Math.min(Math.max(input.peopleCount - 1, 0), MAX_PEOPLE_BONUS_HEADS);
+  const peopleMultiplier = 1 + extraPeople * PEOPLE_BONUS_PER_HEAD;
+  const categoryMultiplier = EVENT_TYPE_MULTIPLIER[input.eventType];
+  return Math.max(1, Math.round(base * peopleMultiplier * categoryMultiplier));
+}
+
+export async function logManualEvent(
   db: Firestore,
   uid: string,
   characteristicId: CharacteristicId,
+  input: ManualEventInput,
 ): Promise<void> {
+  const xp = computeManualEventXp(input);
   await setDoc(
     manualProgressDoc(db, uid, characteristicId),
     {
       characteristicId,
       sessionCount: increment(1),
-      xp: increment(XP_PER_MANUAL_SESSION),
+      xp: increment(xp),
+      lastEventType: input.eventType,
+      lastDurationMinutes: input.durationMinutes,
+      lastPeopleCount: input.peopleCount,
       updatedAt: serverTimestamp(),
     },
     { merge: true },

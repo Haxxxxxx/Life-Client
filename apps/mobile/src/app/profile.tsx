@@ -2,6 +2,8 @@ import {
   CHARACTERISTICS,
   type CharacteristicDefinition,
   type DevActivitySummary,
+  MANUAL_EVENT_TYPES,
+  type ManualEventType,
   type ManualProgress,
   type SportActivity,
   type Task,
@@ -9,14 +11,14 @@ import {
   computeDisciplineXp,
   computeFitnessXp,
   levelFromXp,
-  logManualSession,
+  logManualEvent,
   subscribeDevActivity,
   subscribeManualProgress,
   subscribeSportActivities,
   subscribeTasks,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -25,6 +27,11 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
+
+const EVENT_TYPE_LABEL = Object.fromEntries(MANUAL_EVENT_TYPES.map((t) => [t.id, t.label])) as Record<
+  ManualEventType,
+  string
+>;
 
 function ProgressBar({ progress }: { progress: number }) {
   const theme = useTheme();
@@ -36,17 +43,102 @@ function ProgressBar({ progress }: { progress: number }) {
   );
 }
 
+interface EventInput {
+  eventType: ManualEventType;
+  durationMinutes: number;
+  peopleCount: number;
+}
+
+function LogEventForm({ onSubmit }: { onSubmit: (input: EventInput) => void }) {
+  const theme = useTheme();
+  const [eventType, setEventType] = useState<ManualEventType>(MANUAL_EVENT_TYPES[0]!.id);
+  const [durationMinutes, setDurationMinutes] = useState('30');
+  const [peopleCount, setPeopleCount] = useState('1');
+
+  return (
+    <View style={[styles.form, { borderColor: theme.border }]}>
+      <View style={styles.chipRow}>
+        {MANUAL_EVENT_TYPES.map((t) => {
+          const active = t.id === eventType;
+          return (
+            <Pressable
+              key={t.id}
+              onPress={() => setEventType(t.id)}
+              style={[
+                styles.chip,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: active ? theme.primary : 'transparent',
+                },
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}
+              >
+                {t.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.formRow}>
+        <View style={styles.formField}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Minutes
+          </ThemedText>
+          <TextInput
+            value={durationMinutes}
+            onChangeText={setDurationMinutes}
+            keyboardType="number-pad"
+            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          />
+        </View>
+        <View style={styles.formField}>
+          <ThemedText type="small" themeColor="textSecondary">
+            People
+          </ThemedText>
+          <TextInput
+            value={peopleCount}
+            onChangeText={setPeopleCount}
+            keyboardType="number-pad"
+            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          />
+        </View>
+      </View>
+      <Pressable
+        onPress={() =>
+          onSubmit({
+            eventType,
+            durationMinutes: Number(durationMinutes) || 0,
+            peopleCount: Number(peopleCount) || 1,
+          })
+        }
+        style={[styles.logButton, { backgroundColor: theme.primary, borderColor: theme.border }]}
+      >
+        <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
+          Log it
+        </ThemedText>
+      </Pressable>
+    </View>
+  );
+}
+
 function CharacteristicCard({
   def,
   totalXp,
-  onLogSession,
+  manualProgress,
+  onLogEvent,
 }: {
   def: CharacteristicDefinition;
   totalXp: number;
-  onLogSession?: () => void;
+  manualProgress?: ManualProgress | null;
+  onLogEvent?: (input: EventInput) => void;
 }) {
   const theme = useTheme();
+  const [formOpen, setFormOpen] = useState(false);
   const level = levelFromXp(totalXp);
+
   return (
     <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
       <View style={styles.cardHeader}>
@@ -67,16 +159,26 @@ function CharacteristicCard({
         <ThemedText type="small" themeColor="textSecondary">
           {level.xpIntoLevel} / {level.xpForNextLevel} XP
         </ThemedText>
-        {onLogSession && (
-          <Pressable
-            onPress={onLogSession}
-            style={[styles.logButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-              +1 session
-            </ThemedText>
+        {onLogEvent && !formOpen && (
+          <Pressable onPress={() => setFormOpen(true)} style={[styles.logToggle, { borderColor: theme.border }]}>
+            <ThemedText type="small">Log event</ThemedText>
           </Pressable>
         )}
       </View>
+      {manualProgress?.lastEventType && !formOpen && (
+        <ThemedText type="code" themeColor="textSecondary">
+          Last: {EVENT_TYPE_LABEL[manualProgress.lastEventType]} · {manualProgress.lastDurationMinutes}min ·{' '}
+          {manualProgress.lastPeopleCount} {manualProgress.lastPeopleCount === 1 ? 'person' : 'people'}
+        </ThemedText>
+      )}
+      {onLogEvent && formOpen && (
+        <LogEventForm
+          onSubmit={(input) => {
+            onLogEvent(input);
+            setFormOpen(false);
+          }}
+        />
+      )}
     </ThemedView>
   );
 }
@@ -103,6 +205,11 @@ export default function ProfileScreen() {
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
+
+  const manualProgressByCharacteristic: Record<string, ManualProgress | null> = {
+    focus: focusProgress,
+    social: socialProgress,
+  };
 
   const xpByCharacteristic: Record<string, number> = {
     discipline: computeDisciplineXp(tasks),
@@ -156,9 +263,10 @@ export default function ProfileScreen() {
                 key={def.id}
                 def={def}
                 totalXp={xpByCharacteristic[def.id] ?? 0}
-                onLogSession={
+                manualProgress={manualProgressByCharacteristic[def.id]}
+                onLogEvent={
                   def.source === 'manual' && user && db
-                    ? () => logManualSession(db!, user.uid, def.id)
+                    ? (input) => logManualEvent(db!, user.uid, def.id, input)
                     : undefined
                 }
               />
@@ -203,6 +311,19 @@ const styles = StyleSheet.create({
   progressTrack: { height: 10, borderRadius: 999, borderWidth: 2, overflow: 'hidden' },
   progressFill: { height: '100%' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  logButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  logToggle: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  logButton: {
+    borderWidth: 2,
+    borderRadius: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    alignItems: 'center',
+  },
   signOut: { alignSelf: 'center', marginTop: Spacing.two, padding: Spacing.two },
+  form: { gap: Spacing.two, borderWidth: 2, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  formRow: { flexDirection: 'row', gap: Spacing.two },
+  formField: { flex: 1, gap: Spacing.half },
+  input: { borderWidth: 2, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
 });

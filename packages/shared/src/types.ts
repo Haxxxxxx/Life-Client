@@ -124,10 +124,23 @@ export const CHARACTERISTICS: CharacteristicDefinition[] = [
   },
 ];
 
+export type ManualEventType = "pro" | "sport" | "bar" | "restaurant" | "other";
+
+export const MANUAL_EVENT_TYPES: { id: ManualEventType; label: string }[] = [
+  { id: "pro", label: "Work" },
+  { id: "sport", label: "Sport" },
+  { id: "bar", label: "Bar" },
+  { id: "restaurant", label: "Restaurant" },
+  { id: "other", label: "Other" },
+];
+
 export interface ManualProgress {
   characteristicId: CharacteristicId;
   sessionCount: number;
   xp: number;
+  lastEventType?: ManualEventType;
+  lastDurationMinutes?: number;
+  lastPeopleCount?: number;
   updatedAt: string;
 }
 
