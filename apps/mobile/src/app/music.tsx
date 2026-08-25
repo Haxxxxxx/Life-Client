@@ -30,10 +30,19 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   );
 }
 
+function formatMs(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 function NowPlayingSection() {
   const { user } = useAuth();
   const theme = useTheme();
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null);
+  const [fetchedAt, setFetchedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,6 +54,7 @@ function NowPlayingSection() {
         const result = await getNowPlaying(webApiClient);
         if (!cancelled) {
           setNowPlaying(result);
+          setFetchedAt(Date.now());
           setError(null);
         }
       } catch (err) {
@@ -67,6 +77,19 @@ function NowPlayingSection() {
     };
   }, [user]);
 
+  // Ticks every second so the progress bar/time advance live between polls,
+  // instead of only jumping every NOW_PLAYING_POLL_MS.
+  useEffect(() => {
+    if (!nowPlaying?.isPlaying) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [nowPlaying?.isPlaying]);
+
+  const track = nowPlaying?.track;
+  const liveProgressMs = track
+    ? Math.min(track.durationMs, track.progressMs + Math.max(0, now - fetchedAt))
+    : 0;
+
   return (
     <View style={styles.section}>
       <SectionHeader eyebrow="Live" title="Now Playing" />
@@ -75,28 +98,33 @@ function NowPlayingSection() {
           {error}
         </ThemedText>
       )}
-      {nowPlaying?.isPlaying && nowPlaying.track ? (
+      {nowPlaying?.isPlaying && track ? (
         <ThemedView type="backgroundElement" style={[styles.nowPlayingCard, { borderColor: theme.border }]}>
-          {nowPlaying.track.albumArtUrl && (
-            <Image source={{ uri: nowPlaying.track.albumArtUrl }} style={[styles.albumArt, { borderColor: theme.border }]} />
+          {track.albumArtUrl && (
+            <Image source={{ uri: track.albumArtUrl }} style={[styles.albumArt, { borderColor: theme.border }]} />
           )}
           <View style={styles.nowPlayingInfo}>
             <ThemedText type="smallBold" numberOfLines={1}>
-              {nowPlaying.track.name}
+              {track.name}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-              {nowPlaying.track.artists}
+              {track.artists}
             </ThemedText>
-            <View style={[styles.progressTrack, { borderColor: theme.border }]}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: theme.primary,
-                    width: `${Math.min(100, (nowPlaying.track.progressMs / nowPlaying.track.durationMs) * 100)}%`,
-                  },
-                ]}
-              />
+            <View style={styles.progressRow}>
+              <View style={[styles.progressTrack, { borderColor: theme.border }]}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      backgroundColor: theme.primary,
+                      width: `${Math.min(100, (liveProgressMs / track.durationMs) * 100)}%`,
+                    },
+                  ]}
+                />
+              </View>
+              <ThemedText type="code" themeColor="textSecondary">
+                {formatMs(liveProgressMs)} / {formatMs(track.durationMs)}
+              </ThemedText>
             </View>
           </View>
         </ThemedView>
@@ -139,35 +167,36 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
           {error}
         </ThemedText>
       )}
-      <View style={styles.list}>
-        {(summary?.recentTracks ?? []).map((track) => (
-          <Pressable key={`${track.id}-${track.playedAt}`} onPress={() => track.url && Linking.openURL(track.url)}>
-            <ThemedView type="backgroundElement" style={[styles.trackRow, { borderColor: theme.border }]}>
-              {track.albumArtUrl && (
-                <Image source={{ uri: track.albumArtUrl }} style={[styles.trackArt, { borderColor: theme.border }]} />
-              )}
-              <View style={styles.trackInfo}>
-                <ThemedText type="smallBold" numberOfLines={1}>
-                  {track.name}
+      {summary && summary.recentTracks.length > 0 ? (
+        <ScrollView style={styles.trackListScroll} nestedScrollEnabled contentContainerStyle={styles.list}>
+          {summary.recentTracks.map((track) => (
+            <Pressable key={`${track.id}-${track.playedAt}`} onPress={() => track.url && Linking.openURL(track.url)}>
+              <ThemedView type="backgroundElement" style={[styles.trackRow, { borderColor: theme.border }]}>
+                {track.albumArtUrl && (
+                  <Image source={{ uri: track.albumArtUrl }} style={[styles.trackArt, { borderColor: theme.border }]} />
+                )}
+                <View style={styles.trackInfo}>
+                  <ThemedText type="smallBold" numberOfLines={1}>
+                    {track.name}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                    {track.artists}
+                  </ThemedText>
+                </View>
+                <ThemedText type="code" themeColor="textSecondary">
+                  {new Date(track.playedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                 </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-                  {track.artists}
-                </ThemedText>
-              </View>
-              <ThemedText type="code" themeColor="textSecondary">
-                {new Date(track.playedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-              </ThemedText>
-            </ThemedView>
-          </Pressable>
-        ))}
-        {(!summary || summary.recentTracks.length === 0) && (
-          <ThemedView type="backgroundElement" style={styles.emptyState}>
-            <ThemedText themeColor="textSecondary">
-              No listening history yet — connect Spotify from Integrations.
-            </ThemedText>
-          </ThemedView>
-        )}
-      </View>
+              </ThemedView>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : (
+        <ThemedView type="backgroundElement" style={styles.emptyState}>
+          <ThemedText themeColor="textSecondary">
+            No listening history yet — connect Spotify from Integrations.
+          </ThemedText>
+        </ThemedView>
+      )}
     </View>
   );
 }
@@ -257,8 +286,10 @@ const styles = StyleSheet.create({
   },
   albumArt: { width: 64, height: 64, borderRadius: Spacing.two, borderWidth: 2 },
   nowPlayingInfo: { flex: 1, gap: 4, minWidth: 0 },
-  progressTrack: { height: 6, borderRadius: 999, borderWidth: 1, overflow: 'hidden', marginTop: Spacing.one },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.one },
+  progressTrack: { flex: 1, height: 6, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
   progressFill: { height: '100%' },
+  trackListScroll: { maxHeight: 340 },
   list: { gap: Spacing.two },
   trackRow: {
     flexDirection: 'row',

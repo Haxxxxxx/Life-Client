@@ -56,6 +56,30 @@ function toSpotifyTrack(item: SpotifyApiTrack, playedAt: string): SpotifyTrack {
   };
 }
 
+/**
+ * Estimates actual listening time from play-start timestamps, rather than
+ * summing each track's full duration — a track skipped after 10 seconds, or
+ * played hours apart from the next one, shouldn't count as its whole length.
+ * `tracks` must be ordered most-recent-first (Spotify's own API order).
+ * Each track's contribution is capped at the real gap until the next
+ * (more recent) play started; the most recent play has no later play to
+ * bound it, so it's counted at its full duration.
+ */
+function estimateListenedMs(tracksMostRecentFirst: SpotifyTrack[]): number {
+  let total = 0;
+  for (let i = 0; i < tracksMostRecentFirst.length; i++) {
+    const track = tracksMostRecentFirst[i]!;
+    if (i === 0) {
+      total += track.durationMs;
+      continue;
+    }
+    const moreRecent = tracksMostRecentFirst[i - 1]!;
+    const gapMs = new Date(moreRecent.playedAt).getTime() - new Date(track.playedAt).getTime();
+    total += Math.min(track.durationMs, Math.max(0, gapMs));
+  }
+  return total;
+}
+
 function computeTopArtists(tracks: SpotifyTrack[]): SpotifyTopArtist[] {
   const counts = new Map<string, number>();
   for (const track of tracks) {
@@ -85,7 +109,7 @@ export async function syncSpotifyForUser(uid: string): Promise<void> {
     const data = (await response.json()) as { items: SpotifyRecentlyPlayedItem[] };
     const recentTracks = data.items.map((item) => toSpotifyTrack(item.track, item.played_at));
     const topArtists = computeTopArtists(recentTracks);
-    const totalMinutesRecent = Math.round(recentTracks.reduce((sum, t) => sum + t.durationMs, 0) / 60_000);
+    const totalMinutesRecent = Math.round(estimateListenedMs(recentTracks) / 60_000);
 
     await adminDb
       .collection("users")

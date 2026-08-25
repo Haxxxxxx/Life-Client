@@ -23,9 +23,18 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   );
 }
 
+function formatMs(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function NowPlayingSection() {
   const { user } = useAuth();
   const [nowPlaying, setNowPlaying] = useState<NowPlayingTrack | null>(null);
+  const [fetchedAt, setFetchedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,6 +46,7 @@ function NowPlayingSection() {
         const result = await getNowPlaying(webApiClient);
         if (!cancelled) {
           setNowPlaying(result);
+          setFetchedAt(Date.now());
           setError(null);
         }
       } catch (err) {
@@ -60,30 +70,46 @@ function NowPlayingSection() {
     };
   }, [user]);
 
+  // Ticks every second so the progress bar/time advance live between polls,
+  // instead of only jumping every NOW_PLAYING_POLL_MS.
+  useEffect(() => {
+    if (!nowPlaying?.isPlaying) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [nowPlaying?.isPlaying]);
+
+  const track = nowPlaying?.track;
+  const liveProgressMs = track
+    ? Math.min(track.durationMs, track.progressMs + Math.max(0, now - fetchedAt))
+    : 0;
+
   return (
     <section className="flex flex-col gap-3">
       <SectionHeader eyebrow="Live" title="Now Playing" />
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {nowPlaying?.isPlaying && nowPlaying.track ? (
+      {nowPlaying?.isPlaying && track ? (
         <div className="flex items-center gap-4 rounded-md border-2 border-foreground bg-surface p-4">
-          {nowPlaying.track.albumArtUrl && (
+          {track.albumArtUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={nowPlaying.track.albumArtUrl}
+              src={track.albumArtUrl}
               alt=""
               className="h-16 w-16 shrink-0 rounded-md border-2 border-foreground"
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate font-bold">{nowPlaying.track.name}</p>
-            <p className="truncate text-sm text-muted">{nowPlaying.track.artists}</p>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full border border-foreground/30 bg-background">
-              <div
-                className="h-full bg-primary"
-                style={{
-                  width: `${Math.min(100, (nowPlaying.track.progressMs / nowPlaying.track.durationMs) * 100)}%`,
-                }}
-              />
+            <p className="truncate font-bold">{track.name}</p>
+            <p className="truncate text-sm text-muted">{track.artists}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full border border-foreground/30 bg-background">
+                <div
+                  className="h-full bg-primary"
+                  style={{ width: `${Math.min(100, (liveProgressMs / track.durationMs) * 100)}%` }}
+                />
+              </div>
+              <p className="shrink-0 font-mono text-xs text-muted">
+                {formatMs(liveProgressMs)} / {formatMs(track.durationMs)}
+              </p>
             </div>
           </div>
         </div>
@@ -126,7 +152,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
         </button>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <ul className="flex flex-col gap-2">
+      <ul className="flex max-h-[352px] flex-col gap-2 overflow-y-auto pr-1">
         {(summary?.recentTracks ?? []).map((track) => (
           <li
             key={`${track.id}-${track.playedAt}`}
