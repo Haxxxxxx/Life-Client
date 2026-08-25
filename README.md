@@ -121,7 +121,12 @@ npm run dev:web
 
 Deploy to Vercel: link `apps/web` as the project root (`vercel link`, set root directory to
 `apps/web`), then push env vars with `vercel env add` for each key above. The cron schedule in
-`apps/web/vercel.json` (every 30 minutes) takes effect automatically once deployed.
+`apps/web/vercel.json` takes effect automatically once deployed — it runs once daily (Vercel's
+free Hobby plan only allows daily cron jobs; a Pro plan unlocks more frequent schedules like
+every 30 minutes). You can always trigger a sync on demand in the meantime:
+```
+curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>.vercel.app/api/cron/sync
+```
 
 ### 5. Run the Knowledge app (apps/knowledge)
 
