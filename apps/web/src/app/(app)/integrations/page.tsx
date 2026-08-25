@@ -84,9 +84,9 @@ export default function IntegrationsPage() {
                   <p className="mt-1.5 text-xs text-muted">{meta.description}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex min-w-0 items-center justify-between gap-2">
                 <span
-                  className={`font-mono text-[10px] font-bold tracking-wide uppercase ${
+                  className={`min-w-0 flex-1 truncate font-mono text-[10px] font-bold tracking-wide uppercase ${
                     connected ? "text-primary" : "text-muted"
                   }`}
                 >
@@ -103,7 +103,7 @@ export default function IntegrationsPage() {
                         : buildConnectUrl(origin, provider, user.uid, "/integrations")
                   }
                   aria-disabled={!user}
-                  className={`rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition ${
+                  className={`shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition ${
                     !user
                       ? "pointer-events-none opacity-40"
                       : connected

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   error: { marginTop: Spacing.two },
-  listContent: { paddingVertical: Spacing.four, paddingBottom: BottomTabInset + Spacing.four, gap: Spacing.two },
+  listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   card: {
     flexDirection: 'row',

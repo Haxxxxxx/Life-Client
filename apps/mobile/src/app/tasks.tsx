@@ -1,18 +1,22 @@
 import {
+  TASK_CATEGORIES,
+  TASK_DIFFICULTIES,
   createTask,
   deleteTask,
   setTaskStatus,
   subscribeTasks,
   type Task,
+  type TaskCategory,
+  type TaskDifficulty,
   type TaskStatus,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -24,6 +28,15 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
   done: 'Done',
 };
 
+const CATEGORY_LABEL = Object.fromEntries(TASK_CATEGORIES.map((c) => [c.id, c.label])) as Record<
+  TaskCategory,
+  string
+>;
+const DIFFICULTY_LABEL = Object.fromEntries(TASK_DIFFICULTIES.map((d) => [d.id, d.label])) as Record<
+  TaskDifficulty,
+  string
+>;
+
 function nextStatus(status: TaskStatus): TaskStatus {
   const idx = STATUS_ORDER.indexOf(status);
   return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]!;
@@ -34,6 +47,8 @@ export default function TasksScreen() {
   const theme = useTheme();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<TaskCategory>('work');
+  const [difficulty, setDifficulty] = useState<TaskDifficulty>('medium');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,6 +64,8 @@ export default function TasksScreen() {
         title: title.trim(),
         status: 'todo',
         priority: 'medium',
+        difficulty,
+        category,
         source: 'manual',
         tags: [],
       });
@@ -68,21 +85,59 @@ export default function TasksScreen() {
           <ThemedText type="subtitle">Tasks</ThemedText>
         </View>
 
-        <View style={styles.inputRow}>
+        <View style={[styles.form, { borderColor: theme.border }]}>
           <TextInput
             value={title}
             onChangeText={setTitle}
             placeholder="Add a task…"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
             onSubmitEditing={handleAdd}
             returnKeyType="done"
           />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+            {TASK_CATEGORIES.map((c) => {
+              const active = c.id === category;
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => setCategory(c.id)}
+                  style={[
+                    styles.chip,
+                    { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' },
+                  ]}>
+                  <ThemedText
+                    type="small"
+                    style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                    {c.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.chipRowWrap}>
+            {TASK_DIFFICULTIES.map((d) => {
+              const active = d.id === difficulty;
+              return (
+                <Pressable
+                  key={d.id}
+                  onPress={() => setDifficulty(d.id)}
+                  style={[
+                    styles.chip,
+                    { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' },
+                  ]}>
+                  <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
+                    {d.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
           <Pressable
             onPress={handleAdd}
             disabled={!title.trim()}
             style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-            <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add</ThemedText>
+            <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add task</ThemedText>
           </Pressable>
         </View>
 
@@ -105,12 +160,15 @@ export default function TasksScreen() {
             <ThemedView type="backgroundElement" style={[styles.taskCard, { borderColor: theme.border }]}>
               <View style={styles.taskInfo}>
                 <ThemedText
+                  numberOfLines={1}
                   style={item.status === 'done' ? styles.doneText : undefined}
                   themeColor={item.status === 'done' ? 'textSecondary' : 'text'}>
                   {item.title}
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                   {STATUS_LABEL[item.status]} · {item.source}
+                  {item.category && ` · ${CATEGORY_LABEL[item.category]}`}
+                  {item.difficulty && ` · ${DIFFICULTY_LABEL[item.difficulty]}`}
                 </ThemedText>
               </View>
               <View style={styles.taskActions}>
@@ -138,11 +196,14 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   header: { marginTop: Spacing.four, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  inputRow: { flexDirection: 'row', gap: Spacing.two, marginTop: Spacing.four },
-  input: { flex: 1, borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
-  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.four, justifyContent: 'center' },
+  form: { gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
+  input: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  chipRow: { gap: Spacing.one },
+  chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   error: { marginTop: Spacing.two },
-  listContent: { paddingVertical: Spacing.four, paddingBottom: BottomTabInset + Spacing.four, gap: Spacing.two },
+  listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   taskCard: {
     flexDirection: 'row',
@@ -153,7 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.three,
     padding: Spacing.three,
   },
-  taskInfo: { flex: 1, gap: 2 },
+  taskInfo: { flex: 1, gap: 2, minWidth: 0 },
   doneText: { textDecorationLine: 'line-through' },
   taskActions: { gap: Spacing.one, alignItems: 'flex-end' },
   pillButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },

@@ -7,6 +7,8 @@ import {
   type ManualProgress,
   type SportActivity,
   type Task,
+  type TaskCategory,
+  computeCategoryXp,
   computeCraftXp,
   computeDisciplineXp,
   computeFitnessXp,
@@ -211,13 +213,23 @@ export default function ProfileScreen() {
     social: socialProgress,
   };
 
-  const xpByCharacteristic: Record<string, number> = {
+  const coreXp: Record<string, number> = {
     discipline: computeDisciplineXp(tasks),
     fitness: computeFitnessXp(activities),
     craft: computeCraftXp(github, gitlab),
     focus: focusProgress?.xp ?? 0,
     social: socialProgress?.xp ?? 0,
   };
+
+  const xpByCharacteristic: Record<string, number> = Object.fromEntries(
+    CHARACTERISTICS.map((def) => [
+      def.id,
+      def.group === 'core' ? (coreXp[def.id] ?? 0) : computeCategoryXp(tasks, def.id as TaskCategory),
+    ]),
+  );
+
+  const coreCharacteristics = CHARACTERISTICS.filter((c) => c.group === 'core');
+  const categoryCharacteristics = CHARACTERISTICS.filter((c) => c.group === 'category');
 
   const memberSince = user?.metadata.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString(undefined, {
@@ -255,10 +267,10 @@ export default function ProfileScreen() {
           </ThemedView>
 
           <ThemedText type="code" themeColor="primary" style={[styles.eyebrow, styles.sectionTitle]}>
-            Life Stats
+            Core Stats
           </ThemedText>
           <View style={styles.list}>
-            {CHARACTERISTICS.map((def) => (
+            {coreCharacteristics.map((def) => (
               <CharacteristicCard
                 key={def.id}
                 def={def}
@@ -270,6 +282,15 @@ export default function ProfileScreen() {
                     : undefined
                 }
               />
+            ))}
+          </View>
+
+          <ThemedText type="code" themeColor="primary" style={[styles.eyebrow, styles.sectionTitle]}>
+            Task Categories
+          </ThemedText>
+          <View style={styles.list}>
+            {categoryCharacteristics.map((def) => (
+              <CharacteristicCard key={def.id} def={def} totalXp={xpByCharacteristic[def.id] ?? 0} />
             ))}
           </View>
 
@@ -287,7 +308,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
-  content: { paddingBottom: Spacing.six, gap: Spacing.four },
+  content: { gap: Spacing.four },
   header: { marginTop: Spacing.four, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   sectionTitle: { marginTop: Spacing.one },

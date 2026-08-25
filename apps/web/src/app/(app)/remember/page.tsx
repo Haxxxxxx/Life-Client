@@ -99,7 +99,7 @@ export default function RememberPage() {
             type="datetime-local"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
-            className="flex-1 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none focus:shadow-[2px_2px_0_0_var(--primary)]"
+            className="min-w-0 flex-1 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none focus:shadow-[2px_2px_0_0_var(--primary)]"
           />
           <button
             type="submit"

@@ -33,12 +33,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-1 flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col justify-between border-b-2 border-foreground bg-surface p-4 md:w-56 md:border-b-0 md:border-r-2 md:p-6">
+      <aside className="sticky top-0 z-10 flex max-h-screen shrink-0 flex-col justify-between overflow-y-auto border-b-2 border-foreground bg-surface p-4 md:h-screen md:w-56 md:border-b-0 md:border-r-2 md:p-6">
         <div>
           <p className="mb-6 text-lg font-bold tracking-tight">
             Life <span className="text-primary">Client</span>
           </p>
-          <nav className="flex gap-2 md:flex-col">
+          <nav className="flex flex-wrap gap-2 md:flex-col">
             {NAV_ITEMS.map((item) => {
               const active = pathname?.startsWith(item.href);
               return (
@@ -63,7 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <img
               src={user.photoURL}
               alt=""
-              className="h-8 w-8 rounded-full border-2 border-foreground"
+              className="h-8 w-8 shrink-0 rounded-full border-2 border-foreground"
             />
           )}
           <div className="min-w-0 flex-1">

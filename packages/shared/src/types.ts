@@ -2,12 +2,58 @@ export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";
 export type TaskSource = "manual" | "github" | "gitlab" | "google_calendar";
 
+export type TaskDifficulty = "easy" | "medium" | "hard" | "harder" | "hardest";
+
+export const TASK_DIFFICULTIES: { id: TaskDifficulty; label: string }[] = [
+  { id: "easy", label: "Easy" },
+  { id: "medium", label: "Medium" },
+  { id: "hard", label: "Hard" },
+  { id: "harder", label: "Harder" },
+  { id: "hardest", label: "Hardest" },
+];
+
+/** XP a completed task of this difficulty contributes to Discipline and its category stat. */
+export const TASK_DIFFICULTY_XP: Record<TaskDifficulty, number> = {
+  easy: 10,
+  medium: 20,
+  hard: 35,
+  harder: 55,
+  hardest: 80,
+};
+
+export type TaskCategory =
+  | "work"
+  | "personal"
+  | "health"
+  | "learning"
+  | "sport"
+  | "creativity"
+  | "endurance"
+  | "self_work"
+  | "code"
+  | "reading";
+
+export const TASK_CATEGORIES: { id: TaskCategory; label: string }[] = [
+  { id: "work", label: "Work" },
+  { id: "personal", label: "Personal" },
+  { id: "health", label: "Health" },
+  { id: "learning", label: "Learning" },
+  { id: "sport", label: "Sport" },
+  { id: "creativity", label: "Creativity" },
+  { id: "endurance", label: "Endurance" },
+  { id: "self_work", label: "Self-work" },
+  { id: "code", label: "Code" },
+  { id: "reading", label: "Reading" },
+];
+
 export interface Task {
   id: string;
   title: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
+  difficulty: TaskDifficulty;
+  category: TaskCategory;
   dueDate?: string; // ISO date
   source: TaskSource;
   sourceRef?: string; // e.g. "owner/repo#123" or calendar event id
@@ -19,22 +65,32 @@ export interface Task {
 
 export type NewTask = Omit<Task, "id" | "createdAt" | "updatedAt">;
 
-export type SportProvider = "strava";
+export type SportProvider = "strava" | "manual";
+export type SportActivityKind = "endurance" | "strength";
 
 export interface SportActivity {
   id: string;
   provider: SportProvider;
-  externalId: string;
-  type: string; // "Run" | "Ride" | "Swim" | ...
+  kind: SportActivityKind;
+  externalId?: string;
+  type: string; // "Run" | "Ride" | "Swim" | "Squats" | "Push-ups" | ...
   name: string;
   startDate: string; // ISO datetime
+  // endurance metrics
   distanceMeters?: number;
   movingTimeSec?: number;
   elevationGainMeters?: number;
   avgHeartRate?: number;
   avgPaceSecPerKm?: number;
+  // strength metrics
+  reps?: number;
+  sets?: number;
+  weightKg?: number;
   externalUrl?: string;
 }
+
+export const ENDURANCE_EXERCISE_PRESETS = ["Running", "Cycling", "Swimming"];
+export const STRENGTH_EXERCISE_PRESETS = ["Squats", "Push-ups", "Pull-ups", "Dips"];
 
 export type IntegrationProvider =
   | "github"
@@ -96,47 +152,64 @@ export interface Reminder {
 
 export type NewReminder = Omit<Reminder, "id" | "createdAt" | "updatedAt">;
 
-export type CharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social";
+export type CoreCharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social";
+export type CharacteristicId = CoreCharacteristicId | TaskCategory;
 export type CharacteristicSource = "computed" | "manual";
+export type CharacteristicGroup = "core" | "category";
 
 export interface CharacteristicDefinition {
   id: CharacteristicId;
   label: string;
   description: string;
   source: CharacteristicSource;
+  group: CharacteristicGroup;
 }
 
 export const CHARACTERISTICS: CharacteristicDefinition[] = [
   {
     id: "discipline",
     label: "Discipline",
-    description: "Grows as you complete tasks.",
+    description: "Grows as you complete tasks — harder tasks count for more.",
     source: "computed",
+    group: "core",
   },
   {
     id: "fitness",
     label: "Fitness",
-    description: "Grows with distance and sessions logged on Strava.",
+    description: "Grows with distance and sessions logged on Strava or manually.",
     source: "computed",
+    group: "core",
   },
   {
     id: "craft",
     label: "Craft",
     description: "Grows with merged PRs and open work on GitHub/GitLab.",
     source: "computed",
+    group: "core",
   },
   {
     id: "focus",
     label: "Focus",
     description: "Log a deep-work session to grow this.",
     source: "manual",
+    group: "core",
   },
   {
     id: "social",
     label: "Social",
     description: "Log time well spent with people to grow this.",
     source: "manual",
+    group: "core",
   },
+  ...TASK_CATEGORIES.map(
+    (category): CharacteristicDefinition => ({
+      id: category.id,
+      label: category.label,
+      description: `Grows as you complete tasks tagged "${category.label}".`,
+      source: "computed",
+      group: "category",
+    }),
+  ),
 ];
 
 export type ManualEventType = "pro" | "sport" | "bar" | "restaurant" | "other";

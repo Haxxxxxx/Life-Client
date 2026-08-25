@@ -1,11 +1,15 @@
 "use client";
 
 import {
+  TASK_CATEGORIES,
+  TASK_DIFFICULTIES,
   createTask,
   deleteTask,
   setTaskStatus,
   subscribeTasks,
   type Task,
+  type TaskCategory,
+  type TaskDifficulty,
   type TaskStatus,
 } from "@life-client/shared";
 import { useEffect, useState } from "react";
@@ -19,10 +23,21 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
   done: "Done",
 };
 
+const CATEGORY_LABEL = Object.fromEntries(TASK_CATEGORIES.map((c) => [c.id, c.label])) as Record<
+  TaskCategory,
+  string
+>;
+const DIFFICULTY_LABEL = Object.fromEntries(TASK_DIFFICULTIES.map((d) => [d.id, d.label])) as Record<
+  TaskDifficulty,
+  string
+>;
+
 export default function TasksPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
+  const [difficulty, setDifficulty] = useState<TaskDifficulty>("medium");
+  const [category, setCategory] = useState<TaskCategory>("work");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +56,8 @@ export default function TasksPage() {
         title: title.trim(),
         status: "todo",
         priority: "medium",
+        difficulty,
+        category,
         source: "manual",
         tags: [],
       });
@@ -68,20 +85,44 @@ export default function TasksPage() {
         </p>
       </div>
 
-      <form onSubmit={handleAddTask} className="flex gap-2">
+      <form onSubmit={handleAddTask} className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-3">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Add a task…"
-          className="flex-1 rounded-md border-2 border-foreground bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
         />
-        <button
-          type="submit"
-          disabled={submitting || !title.trim()}
-          className="rounded-md border-2 border-foreground bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-        >
-          Add
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as TaskCategory)}
+            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-xs"
+          >
+            {TASK_CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
+            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-xs"
+          >
+            {TASK_DIFFICULTIES.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={submitting || !title.trim()}
+            className="ml-auto rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
+          >
+            Add
+          </button>
+        </div>
       </form>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -98,6 +139,8 @@ export default function TasksPage() {
               </p>
               <p className="font-mono text-xs tracking-wide text-muted uppercase">
                 {STATUS_LABEL[task.status]} · {task.source}
+                {task.category && ` · ${CATEGORY_LABEL[task.category]}`}
+                {task.difficulty && ` · ${DIFFICULTY_LABEL[task.difficulty]}`}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">

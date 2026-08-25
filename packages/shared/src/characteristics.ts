@@ -6,21 +6,28 @@ import {
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
-import type {
-  CharacteristicId,
-  CharacteristicLevel,
-  DevActivitySummary,
-  ManualEventType,
-  ManualProgress,
-  SportActivity,
-  Task,
+import {
+  TASK_DIFFICULTY_XP,
+  type CharacteristicId,
+  type CharacteristicLevel,
+  type DevActivitySummary,
+  type ManualEventType,
+  type ManualProgress,
+  type SportActivity,
+  type Task,
+  type TaskCategory,
 } from "./types";
 
-const XP_PER_TASK_DONE = 15;
 const XP_PER_KM = 10;
-const XP_PER_SPORT_SESSION = 5;
+const XP_PER_ENDURANCE_SESSION = 5;
+const XP_PER_REP = 1;
+const XP_PER_SET_BONUS = 5;
 const XP_PER_MERGED_PR = 25;
 const XP_PER_OPEN_PR = 5;
+
+function completedTaskXp(task: Task): number {
+  return TASK_DIFFICULTY_XP[task.difficulty ?? "medium"];
+}
 
 /** Linear level curve: level N -> N+1 costs 100*N xp. */
 export function levelFromXp(totalXp: number): CharacteristicLevel {
@@ -44,12 +51,24 @@ export function levelFromXp(totalXp: number): CharacteristicLevel {
 }
 
 export function computeDisciplineXp(tasks: Task[]): number {
-  return tasks.filter((t) => t.status === "done").length * XP_PER_TASK_DONE;
+  return tasks.filter((t) => t.status === "done").reduce((sum, t) => sum + completedTaskXp(t), 0);
+}
+
+export function computeCategoryXp(tasks: Task[], category: TaskCategory): number {
+  return tasks
+    .filter((t) => t.status === "done" && t.category === category)
+    .reduce((sum, t) => sum + completedTaskXp(t), 0);
 }
 
 export function computeFitnessXp(activities: SportActivity[]): number {
-  const totalKm = activities.reduce((sum, a) => sum + (a.distanceMeters ?? 0), 0) / 1000;
-  return Math.round(totalKm * XP_PER_KM) + activities.length * XP_PER_SPORT_SESSION;
+  return activities.reduce((sum, activity) => {
+    if (activity.kind === "strength") {
+      const reps = (activity.reps ?? 0) * (activity.sets ?? 1);
+      return sum + reps * XP_PER_REP + (activity.sets ?? 1) * XP_PER_SET_BONUS;
+    }
+    const km = (activity.distanceMeters ?? 0) / 1000;
+    return sum + Math.round(km * XP_PER_KM) + XP_PER_ENDURANCE_SESSION;
+  }, 0);
 }
 
 export function computeCraftXp(

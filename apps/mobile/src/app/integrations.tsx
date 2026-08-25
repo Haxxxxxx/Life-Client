@@ -90,7 +90,11 @@ export default function IntegrationsScreen() {
                     </View>
                   </View>
                   <View style={styles.cardFooter}>
-                    <ThemedText type="small" themeColor={connected ? 'primary' : 'textSecondary'}>
+                    <ThemedText
+                      type="small"
+                      numberOfLines={1}
+                      themeColor={connected ? 'primary' : 'textSecondary'}
+                      style={styles.connectionStatus}>
                       {connected
                         ? `Connected${connection?.externalAccountLabel ? ` · ${connection.externalAccountLabel}` : ''}`
                         : 'Not connected'}
@@ -126,7 +130,7 @@ export default function IntegrationsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
-  content: { paddingBottom: Spacing.six, gap: Spacing.four },
+  content: { gap: Spacing.four },
   header: { marginTop: Spacing.four, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   notice: { borderWidth: 2, borderStyle: 'dashed', borderRadius: Spacing.three, padding: Spacing.three },
@@ -136,6 +140,13 @@ const styles = StyleSheet.create({
   badge: { borderWidth: 2, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
   cardText: { flex: 1, gap: 2 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  actionButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
+  connectionStatus: { flex: 1 },
+  actionButton: {
+    flexShrink: 0,
+    borderWidth: 2,
+    borderRadius: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+  },
 });

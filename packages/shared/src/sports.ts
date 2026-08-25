@@ -1,5 +1,33 @@
-import { type Firestore, collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+  type Firestore,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 import type { SportActivity } from "./types";
+
+export type NewManualSportActivity = Omit<SportActivity, "id" | "provider" | "externalId" | "externalUrl">;
+
+export async function createManualSportActivity(
+  db: Firestore,
+  uid: string,
+  activity: NewManualSportActivity,
+): Promise<string> {
+  const ref = await addDoc(collection(db, "users", uid, "sportActivities"), {
+    ...activity,
+    provider: "manual",
+  });
+  return ref.id;
+}
+
+export async function deleteSportActivity(db: Firestore, uid: string, activityId: string): Promise<void> {
+  await deleteDoc(doc(db, "users", uid, "sportActivities", activityId));
+}
 
 export function subscribeSportActivities(
   db: Firestore,

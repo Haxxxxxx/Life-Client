@@ -9,6 +9,8 @@ import {
   type ManualProgress,
   type SportActivity,
   type Task,
+  type TaskCategory,
+  computeCategoryXp,
   computeCraftXp,
   computeDisciplineXp,
   computeFitnessXp,
@@ -64,24 +66,24 @@ function LogEventForm({ onSubmit }: { onSubmit: (input: { eventType: ManualEvent
         </select>
       </div>
       <div className="flex gap-2">
-        <label className="flex flex-1 flex-col gap-1 text-xs text-muted">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
           Minutes
           <input
             type="number"
             min={1}
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(Number(e.target.value))}
-            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
           />
         </label>
-        <label className="flex flex-1 flex-col gap-1 text-xs text-muted">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
           People
           <input
             type="number"
             min={1}
             value={peopleCount}
             onChange={(e) => setPeopleCount(Number(e.target.value))}
-            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
           />
         </label>
       </div>
@@ -180,13 +182,23 @@ export default function ProfilePage() {
     social: socialProgress,
   };
 
-  const xpByCharacteristic: Record<string, number> = {
+  const coreXp: Record<string, number> = {
     discipline: computeDisciplineXp(tasks),
     fitness: computeFitnessXp(activities),
     craft: computeCraftXp(github, gitlab),
     focus: focusProgress?.xp ?? 0,
     social: socialProgress?.xp ?? 0,
   };
+
+  const xpByCharacteristic: Record<string, number> = Object.fromEntries(
+    CHARACTERISTICS.map((def) => [
+      def.id,
+      def.group === "core" ? (coreXp[def.id] ?? 0) : computeCategoryXp(tasks, def.id as TaskCategory),
+    ]),
+  );
+
+  const coreCharacteristics = CHARACTERISTICS.filter((c) => c.group === "core");
+  const categoryCharacteristics = CHARACTERISTICS.filter((c) => c.group === "category");
 
   const memberSince = user?.metadata.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString(undefined, {
@@ -208,7 +220,7 @@ export default function ProfilePage() {
           <img
             src={user.photoURL}
             alt=""
-            className="h-16 w-16 rounded-full border-2 border-foreground"
+            className="h-16 w-16 shrink-0 rounded-full border-2 border-foreground"
           />
         )}
         <div className="min-w-0">
@@ -222,10 +234,10 @@ export default function ProfilePage() {
 
       <div>
         <p className="mb-3 font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
-          Life Stats
+          Core Stats
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {CHARACTERISTICS.map((def) => (
+          {coreCharacteristics.map((def) => (
             <CharacteristicCard
               key={def.id}
               def={def}
@@ -237,6 +249,17 @@ export default function ProfilePage() {
                   : undefined
               }
             />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-3 font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
+          Task Categories
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {categoryCharacteristics.map((def) => (
+            <CharacteristicCard key={def.id} def={def} totalXp={xpByCharacteristic[def.id] ?? 0} />
           ))}
         </div>
       </div>

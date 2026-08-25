@@ -20,9 +20,11 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Written by the server for Strava-synced entries (firebase-admin
+      // bypasses these rules regardless), but also directly by the owning
+      // client for manually-logged activities.
       match /sportActivities/{activityId} {
-        allow read: if isOwner(uid);
-        allow write: if false;
+        allow read, write: if isOwner(uid);
       }
 
       match /devActivity/{provider} {
