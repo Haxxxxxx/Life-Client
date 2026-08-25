@@ -56,6 +56,16 @@ async function fetchGithubPRs(accessToken: string): Promise<DevPullRequest[]> {
   return [...byNumberUrl.values()];
 }
 
+async function fetchGithubMergedCount(accessToken: string): Promise<number> {
+  const response = await fetch(
+    "https://api.github.com/search/issues?q=is:pr+is:merged+author:@me&per_page=1",
+    { headers: { Authorization: `token ${accessToken}`, Accept: "application/vnd.github+json" } },
+  );
+  if (!response.ok) throw new Error(`GitHub merged-PR count failed: ${response.status}`);
+  const data = (await response.json()) as { total_count: number };
+  return data.total_count;
+}
+
 function toGithubPR(item: GithubSearchItem, isAuthor: boolean, isReviewRequested: boolean): DevPullRequest {
   const repo = item.repository_url.replace("https://api.github.com/repos/", "");
   return {
@@ -116,15 +126,27 @@ async function fetchGitlabMRs(accessToken: string): Promise<DevPullRequest[]> {
   }));
 }
 
+async function fetchGitlabMergedCount(accessToken: string): Promise<number> {
+  const response = await fetch(
+    "https://gitlab.com/api/v4/merge_requests?scope=authored_by_me&state=merged&per_page=1",
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) throw new Error(`GitLab merged-MR count failed: ${response.status}`);
+  return Number(response.headers.get("x-total") ?? "0");
+}
+
 async function syncFor(uid: string, provider: Extract<IntegrationProvider, "github" | "gitlab">): Promise<void> {
   const tokens = await getTokens(uid, provider);
   if (!tokens) return;
 
   try {
-    const pullRequests =
+    const freshAccessToken =
+      provider === "github" ? tokens.accessToken : (await ensureFreshGitlabToken(uid, tokens)).accessToken;
+
+    const [pullRequests, totalMergedCount] =
       provider === "github"
-        ? await fetchGithubPRs(tokens.accessToken)
-        : await fetchGitlabMRs((await ensureFreshGitlabToken(uid, tokens)).accessToken);
+        ? await Promise.all([fetchGithubPRs(freshAccessToken), fetchGithubMergedCount(freshAccessToken)])
+        : await Promise.all([fetchGitlabMRs(freshAccessToken), fetchGitlabMergedCount(freshAccessToken)]);
 
     await db
       .collection("users")
@@ -132,7 +154,12 @@ async function syncFor(uid: string, provider: Extract<IntegrationProvider, "gith
       .collection("devActivity")
       .doc(provider)
       .set(
-        { provider, openPullRequests: pullRequests, lastSyncAt: new Date().toISOString() },
+        {
+          provider,
+          openPullRequests: pullRequests,
+          totalMergedCount,
+          lastSyncAt: new Date().toISOString(),
+        },
         { merge: true },
       );
     await setIntegrationStatus(uid, provider, { status: "connected", lastSyncAt: new Date().toISOString() });

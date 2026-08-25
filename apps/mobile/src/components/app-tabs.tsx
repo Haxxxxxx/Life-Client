@@ -32,6 +32,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>Integrations</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="link" md="link" />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="profile">
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="person.circle" md="account_circle" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

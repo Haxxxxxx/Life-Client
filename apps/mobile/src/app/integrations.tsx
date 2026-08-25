@@ -27,7 +27,7 @@ const PROVIDER_META: Record<IntegrationProvider, { label: string; description: s
 const PROVIDER_ORDER: IntegrationProvider[] = ['github', 'gitlab', 'google_calendar', 'strava'];
 
 export default function IntegrationsScreen() {
-  const { user, signOutUser } = useAuth();
+  const { user } = useAuth();
   const theme = useTheme();
   const [connections, setConnections] = useState<Record<IntegrationProvider, IntegrationConnection> | null>(null);
 
@@ -117,12 +117,6 @@ export default function IntegrationsScreen() {
               );
             })}
           </View>
-
-          <Pressable onPress={() => signOutUser()} style={styles.signOut}>
-            <ThemedText type="small" themeColor="primary">
-              Sign out
-            </ThemedText>
-          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -144,5 +138,4 @@ const styles = StyleSheet.create({
   cardText: { flex: 1, gap: 2 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   actionButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
-  signOut: { alignSelf: 'center', marginTop: Spacing.two, padding: Spacing.two },
 });

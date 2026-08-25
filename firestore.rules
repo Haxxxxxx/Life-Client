@@ -34,6 +34,12 @@ service cloud.firestore {
         allow read: if isOwner(uid);
         allow write: if false;
       }
+
+      // Manual "+1 session" logs for characteristics with no integration
+      // source yet (e.g. Focus, Social) — the client owns this data directly.
+      match /manualProgress/{characteristicId} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     // Short-lived OAuth CSRF state and long-lived provider tokens.

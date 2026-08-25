@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/tasks", label: "Tasks" },
   { href: "/sports", label: "Sports" },
   { href: "/integrations", label: "Integrations" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

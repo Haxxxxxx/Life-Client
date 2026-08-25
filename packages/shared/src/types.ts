@@ -68,6 +68,7 @@ export interface DevPullRequest {
 export interface DevActivitySummary {
   provider: "github" | "gitlab";
   openPullRequests: DevPullRequest[];
+  totalMergedCount: number;
   lastSyncAt: string;
 }
 
@@ -78,4 +79,62 @@ export interface CalendarEvent {
   end: string; // ISO datetime
   location?: string;
   url?: string;
+}
+
+export type CharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social";
+export type CharacteristicSource = "computed" | "manual";
+
+export interface CharacteristicDefinition {
+  id: CharacteristicId;
+  label: string;
+  description: string;
+  source: CharacteristicSource;
+}
+
+export const CHARACTERISTICS: CharacteristicDefinition[] = [
+  {
+    id: "discipline",
+    label: "Discipline",
+    description: "Grows as you complete tasks.",
+    source: "computed",
+  },
+  {
+    id: "fitness",
+    label: "Fitness",
+    description: "Grows with distance and sessions logged on Strava.",
+    source: "computed",
+  },
+  {
+    id: "craft",
+    label: "Craft",
+    description: "Grows with merged PRs and open work on GitHub/GitLab.",
+    source: "computed",
+  },
+  {
+    id: "focus",
+    label: "Focus",
+    description: "Log a deep-work session to grow this.",
+    source: "manual",
+  },
+  {
+    id: "social",
+    label: "Social",
+    description: "Log time well spent with people to grow this.",
+    source: "manual",
+  },
+];
+
+export interface ManualProgress {
+  characteristicId: CharacteristicId;
+  sessionCount: number;
+  xp: number;
+  updatedAt: string;
+}
+
+export interface CharacteristicLevel {
+  level: number;
+  totalXp: number;
+  xpIntoLevel: number;
+  xpForNextLevel: number;
+  progress: number; // 0-1, how far into the current level
 }
