@@ -11,21 +11,26 @@ export default function AppTabs() {
     <NativeTabs
       backgroundColor={colors.background}
       indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
+      tintColor={colors.primary}
+      labelStyle={{ selected: { color: colors.primary } }}>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
-        />
+        <NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="house" md="home" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
-        />
+      <NativeTabs.Trigger name="tasks">
+        <NativeTabs.Trigger.Label>Tasks</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="checklist" md="checklist" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="sports">
+        <NativeTabs.Trigger.Label>Sports</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="figure.run" md="directions_run" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="integrations">
+        <NativeTabs.Trigger.Label>Integrations</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="link" md="link" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

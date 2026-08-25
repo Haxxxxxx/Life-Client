@@ -1,0 +1,14 @@
+{
+  "name": "life-client",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=web",
+    "dev:mobile": "npm run start --workspace=mobile",
+    "build:web": "npm run build --workspace=web",
+    "lint": "npm run lint --workspace=web"
+  }
+}

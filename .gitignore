@@ -1,0 +1,15 @@
+node_modules/
+.DS_Store
+*.log
+
+# env
+.env
+.env.local
+.env.*.local
+
+# firebase
+functions/lib/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
