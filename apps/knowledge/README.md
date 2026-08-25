@@ -23,7 +23,7 @@ Env vars (see `.env.example`):
   the root README's "Firebase project" setup step).
 - `GOOGLE_GENERATIVE_AI_API_KEY` — a free key from
   [aistudio.google.com/apikey](https://aistudio.google.com/apikey), no credit card required.
-  Generation is pinned to `gemini-2.5-flash-lite` (see `src/lib/server/aiModel.ts`), the
+  Generation is pinned to `gemini-3.5-flash-lite` (see `src/lib/server/aiModel.ts`), the
   cheapest/fastest free-tier model, since these are short, low-stakes generations. Deliberately
   not routed through Vercel's AI Gateway, which requires a card on file to serve any request
   regardless of model.

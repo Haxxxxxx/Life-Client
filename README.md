@@ -152,7 +152,7 @@ Knowledge (daily AI lesson, code drills, vocabulary, reading-list summaries) is 
 Next.js app and its own Vercel deployment — a separate project/domain from apps/web, sharing
 only the same Firebase project and `packages/shared`.
 
-It calls Google's Gemini API directly (`gemini-2.5-flash-lite` — see
+It calls Google's Gemini API directly (`gemini-3.5-flash-lite` — see
 `apps/knowledge/src/lib/server/aiModel.ts`), not through Vercel's AI Gateway — the Gateway
 requires a credit card on file to serve *any* request, even against free-tier models, whereas
 Google AI Studio's free tier for Flash/Flash-Lite models needs no card at all. Get a free key
