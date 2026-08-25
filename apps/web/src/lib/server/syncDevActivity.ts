@@ -135,6 +135,61 @@ async function fetchGitlabMergedCount(accessToken: string): Promise<number> {
   return Number(response.headers.get("x-total") ?? "0");
 }
 
+function taskDocId(provider: "github" | "gitlab", pr: DevPullRequest): string {
+  return `${provider}_${pr.repo.replace(/[^a-zA-Z0-9_-]/g, "-")}_${pr.number}`;
+}
+
+/**
+ * Mirrors currently-open PRs/MRs into `users/{uid}/tasks` (source: "github"/"gitlab"),
+ * using a deterministic doc ID per PR so re-syncing updates the same task rather than
+ * duplicating it. A synced task that's no longer in the open set (merged/closed
+ * elsewhere) is marked "done" here rather than deleted, so its category XP still
+ * counts and any user edits (priority/category/difficulty) aren't touched — only
+ * title/sourceUrl are kept in sync on existing tasks.
+ */
+async function syncTasksFromPullRequests(
+  uid: string,
+  provider: "github" | "gitlab",
+  pullRequests: DevPullRequest[],
+): Promise<void> {
+  const tasksRef = adminDb.collection("users").doc(uid).collection("tasks");
+  const existingSnap = await tasksRef.where("source", "==", provider).get();
+  const desiredIds = new Set(pullRequests.map((pr) => taskDocId(provider, pr)));
+  const nowIso = new Date().toISOString();
+  const batch = adminDb.batch();
+
+  for (const doc of existingSnap.docs) {
+    if (!desiredIds.has(doc.id) && doc.data().status !== "done") {
+      batch.update(doc.ref, { status: "done", updatedAt: nowIso });
+    }
+  }
+
+  const existingIds = new Set(existingSnap.docs.map((d) => d.id));
+  for (const pr of pullRequests) {
+    const id = taskDocId(provider, pr);
+    const ref = tasksRef.doc(id);
+    if (existingIds.has(id)) {
+      batch.set(ref, { title: pr.title, sourceUrl: pr.url, updatedAt: nowIso }, { merge: true });
+    } else {
+      batch.set(ref, {
+        title: pr.title,
+        status: "todo",
+        priority: pr.isReviewRequested ? "high" : "medium",
+        difficulty: "medium",
+        category: "code",
+        source: provider,
+        sourceRef: `${pr.repo}#${pr.number}`,
+        sourceUrl: pr.url,
+        tags: [],
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+    }
+  }
+
+  await batch.commit();
+}
+
 async function syncFor(uid: string, provider: Extract<IntegrationProvider, "github" | "gitlab">): Promise<void> {
   const tokens = await getTokens(uid, provider);
   if (!tokens) return;
@@ -147,6 +202,8 @@ async function syncFor(uid: string, provider: Extract<IntegrationProvider, "gith
       provider === "github"
         ? await Promise.all([fetchGithubPRs(freshAccessToken), fetchGithubMergedCount(freshAccessToken)])
         : await Promise.all([fetchGitlabMRs(freshAccessToken), fetchGitlabMergedCount(freshAccessToken)]);
+
+    await syncTasksFromPullRequests(uid, provider, pullRequests);
 
     await adminDb
       .collection("users")
