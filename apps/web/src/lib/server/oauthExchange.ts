@@ -36,6 +36,13 @@ async function fetchGoogleEmail(accessToken: string): Promise<string | undefined
   return data.email;
 }
 
+function requireAccessToken(provider: IntegrationProvider, raw: Record<string, unknown>): string {
+  if (typeof raw.access_token !== "string" || !raw.access_token) {
+    throw new Error(`${provider} token exchange response had no access_token: ${JSON.stringify(raw)}`);
+  }
+  return raw.access_token;
+}
+
 export async function handleOAuthExchange(
   provider: IntegrationProvider,
   code: string,
@@ -49,7 +56,7 @@ export async function handleOAuthExchange(
         code,
         redirectUri,
       });
-      const accessToken = raw.access_token as string;
+      const accessToken = requireAccessToken(provider, raw);
       return {
         accessToken,
         scope: raw.scope as string | undefined,
@@ -63,7 +70,7 @@ export async function handleOAuthExchange(
         code,
         redirectUri,
       });
-      const accessToken = raw.access_token as string;
+      const accessToken = requireAccessToken(provider, raw);
       return {
         accessToken,
         refreshToken: raw.refresh_token as string | undefined,
@@ -81,7 +88,7 @@ export async function handleOAuthExchange(
         code,
         redirectUri,
       });
-      const accessToken = raw.access_token as string;
+      const accessToken = requireAccessToken(provider, raw);
       return {
         accessToken,
         refreshToken: raw.refresh_token as string | undefined,
@@ -99,7 +106,7 @@ export async function handleOAuthExchange(
       });
       const athlete = raw.athlete as { username?: string; firstname?: string; lastname?: string } | undefined;
       return {
-        accessToken: raw.access_token as string,
+        accessToken: requireAccessToken(provider, raw),
         refreshToken: raw.refresh_token as string | undefined,
         expiresAt: raw.expires_at ? (raw.expires_at as number) * 1000 : undefined,
         externalAccountLabel:

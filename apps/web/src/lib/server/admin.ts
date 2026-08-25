@@ -41,5 +41,19 @@ function lazyProxy<T extends object>(getReal: () => T): T {
   });
 }
 
-export const adminDb: Firestore = lazyProxy(() => getFirestore(getAdminApp()));
+// Optional fields (e.g. an OAuth response missing `refresh_token`/`scope`)
+// naturally end up `undefined` in a patch object — Firestore's admin SDK
+// otherwise throws on any `undefined` field value instead of just omitting it.
+let settingsApplied = false;
+
+function getAdminDb(): Firestore {
+  const db = getFirestore(getAdminApp());
+  if (!settingsApplied) {
+    db.settings({ ignoreUndefinedProperties: true });
+    settingsApplied = true;
+  }
+  return db;
+}
+
+export const adminDb: Firestore = lazyProxy(getAdminDb);
 export const adminAuth: Auth = lazyProxy(() => getAuth(getAdminApp()));

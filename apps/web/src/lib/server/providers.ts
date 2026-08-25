@@ -88,11 +88,22 @@ export async function exchangeCodeForToken(
     body: body.toString(),
   });
 
-  if (!response.ok) {
-    throw new Error(`${provider} token exchange failed: ${response.status} ${await response.text()}`);
+  const text = await response.text();
+  let json: Record<string, unknown>;
+  try {
+    json = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error(`${provider} token exchange returned a non-JSON response: ${response.status} ${text}`);
   }
 
-  return (await response.json()) as Record<string, unknown>;
+  // GitHub in particular returns HTTP 200 with an `error` field in the body
+  // (e.g. "bad_verification_code") instead of a non-2xx status.
+  if (!response.ok || typeof json.error === "string") {
+    const detail = typeof json.error_description === "string" ? json.error_description : text;
+    throw new Error(`${provider} token exchange failed: ${response.status} ${detail}`);
+  }
+
+  return json;
 }
 
 interface RefreshParams {
