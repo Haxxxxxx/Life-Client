@@ -7,3 +7,5 @@ export * from "./devActivity";
 export * from "./calendar";
 export * from "./characteristics";
 export * from "./reminders";
+export * from "./knowledge";
+export * from "./knowledgeApi";

@@ -239,3 +239,59 @@ export interface CharacteristicLevel {
   xpForNextLevel: number;
   progress: number; // 0-1, how far into the current level
 }
+
+// ---- Knowledge ----
+// A self-built "third-party" learning feature: a daily AI-generated lesson,
+// on-demand code-logic drills, a personal vocabulary list, and a reading list
+// with AI-generated summaries. Lessons/drills/summaries are generated
+// server-side (Vercel AI SDK) and written to Firestore by the server; the
+// client only reads them plus writes its own vocab-mastery/reading-list state.
+
+export interface DailyLesson {
+  id: string; // the ISO date (YYYY-MM-DD) it was generated for, one per day
+  codeConcept: string;
+  codeExplanation: string;
+  word: string;
+  wordDefinition: string;
+  wordExample: string;
+  articleTopic: string;
+  articleReason: string; // why this topic was suggested
+  createdAt: string;
+}
+
+export type CodeDrillDifficulty = "beginner" | "intermediate" | "advanced";
+
+export interface CodeDrill {
+  id: string;
+  topic: string; // user-requested topic, or "random" if left blank
+  difficulty: CodeDrillDifficulty;
+  prompt: string; // the problem/question posed to the user
+  explanation: string; // the concept explanation / model answer
+  createdAt: string;
+}
+
+export type VocabMastery = "new" | "learning" | "known";
+
+export interface VocabWord {
+  id: string;
+  word: string;
+  definition: string;
+  example: string;
+  mastery: VocabMastery;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReadingListItem {
+  id: string;
+  url: string;
+  title?: string;
+  summary?: string; // filled in by the server once AI summarization completes
+  keyTakeaways?: string[];
+  status: "pending" | "summarized" | "read" | "error";
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NewReadingListItem = Pick<ReadingListItem, "url">;

@@ -46,6 +46,30 @@ service cloud.firestore {
       match /reminders/{reminderId} {
         allow read, write: if isOwner(uid);
       }
+
+      // Knowledge feature: lessons/drills are generated and written entirely
+      // server-side (firebase-admin bypasses these rules); the client only reads.
+      match /dailyLessons/{lessonId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      match /codeDrills/{drillId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // The server creates each word; the client only updates its own
+      // mastery state (create/delete stay server/admin-only).
+      match /vocabWords/{wordId} {
+        allow read, update: if isOwner(uid);
+      }
+
+      // The client adds a url and can mark it read / delete it; the server
+      // fills in the summary afterwards (bypasses these rules).
+      match /readingList/{itemId} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     // Short-lived OAuth CSRF state and long-lived provider tokens.
