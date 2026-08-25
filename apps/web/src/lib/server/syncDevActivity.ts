@@ -124,8 +124,11 @@ async function fetchGitlabMRs(accessToken: string): Promise<DevPullRequest[]> {
 }
 
 async function fetchGitlabMergedCount(accessToken: string): Promise<number> {
+  // GitLab's merge_requests `scope` only accepts created_by_me/assigned_to_me/all
+  // — there's no "authored_by_me" (that's a GitHub-ism), which is why this was
+  // failing with a 400.
   const response = await fetch(
-    "https://gitlab.com/api/v4/merge_requests?scope=authored_by_me&state=merged&per_page=1",
+    "https://gitlab.com/api/v4/merge_requests?scope=created_by_me&state=merged&per_page=1",
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
   if (!response.ok) throw new Error(`GitLab merged-MR count failed: ${response.status}`);
