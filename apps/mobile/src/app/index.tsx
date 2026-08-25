@@ -26,16 +26,27 @@ import { db } from '@/lib/firebase';
 function Card({ title, href, children }: { title: string; href: Href; children: React.ReactNode }) {
   const theme = useTheme();
   return (
-    <Link href={href} asChild>
-      <Pressable style={({ pressed }) => [styles.cardSlot, pressed && styles.cardPressed]}>
-        <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
-          <ThemedText type="code" themeColor="primary" style={styles.cardEyebrow}>
-            {title}
-          </ThemedText>
-          {children}
-        </ThemedView>
-      </Pressable>
-    </Link>
+    <View style={styles.cardSlot}>
+      <Link href={href} asChild>
+        {/* Link's `asChild` merges props onto this single child via a Slot; passing a
+            function to its `style` prop breaks that merge (Slot only handles plain
+            style objects), so sizing lives on the wrapping View above, and this
+            Pressable gets a plain object style plus the pressed state via
+            function-as-children instead of function-as-style. */}
+        <Pressable style={styles.cardFill}>
+          {({ pressed }) => (
+            <ThemedView
+              type="backgroundElement"
+              style={[styles.card, { borderColor: theme.border }, pressed && styles.cardPressed]}>
+              <ThemedText type="code" themeColor="primary" style={styles.cardEyebrow}>
+                {title}
+              </ThemedText>
+              {children}
+            </ThemedView>
+          )}
+        </Pressable>
+      </Link>
+    </View>
   );
 }
 
@@ -165,6 +176,7 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   cardSlot: { flexGrow: 1, flexBasis: 160 },
+  cardFill: { flex: 1 },
   cardPressed: { opacity: 0.7 },
   card: {
     borderWidth: 2,
