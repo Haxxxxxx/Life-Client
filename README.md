@@ -152,21 +152,19 @@ Knowledge (daily AI lesson, code drills, vocabulary, reading-list summaries) is 
 Next.js app and its own Vercel deployment — a separate project/domain from apps/web, sharing
 only the same Firebase project and `packages/shared`.
 
-It calls Anthropic's Claude through the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway),
-deliberately pinned to the cheapest available model (`anthropic/claude-3-haiku` — see
-`apps/knowledge/src/lib/server/aiModel.ts`) since these generations are short and low-stakes.
-Get an API key from your Vercel dashboard → **AI Gateway → API Keys**.
+It calls Google's Gemini API directly (`gemini-2.5-flash-lite` — see
+`apps/knowledge/src/lib/server/aiModel.ts`), not through Vercel's AI Gateway — the Gateway
+requires a credit card on file to serve *any* request, even against free-tier models, whereas
+Google AI Studio's free tier for Flash/Flash-Lite models needs no card at all. Get a free key
+from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (note: free-tier prompts
+may be used by Google to improve their products — see AI Studio's terms).
 
 ```
 cp apps/knowledge/.env.example apps/knowledge/.env.local   # fill in Firebase config (step 1),
                                                             # FIREBASE_SERVICE_ACCOUNT_BASE64,
-                                                            # and AI_GATEWAY_API_KEY
+                                                            # and GOOGLE_GENERATIVE_AI_API_KEY
 npm run dev:knowledge
 ```
-
-(When deployed on Vercel with the AI Gateway enabled for the project, `AI_GATEWAY_API_KEY` can
-also be skipped in favor of Vercel's OIDC token — the env var is the simplest path for local
-dev.)
 
 Deploy to Vercel as its own project: link `apps/knowledge` as the project root (`vercel link`,
 set root directory to `apps/knowledge`), push the same env vars with `vercel env add`. Once you
@@ -212,7 +210,7 @@ Firebase Console apps you create for each platform, placed per that package's in
   not part of the periodic sync, so it reflects playback in near-real-time.
 - **Knowledge** (daily lesson, code drills, vocabulary, reading-list summaries) lives in its own
   app (`apps/knowledge`) and is fully implemented end to end — it just needs its own deployment
-  plus `AI_GATEWAY_API_KEY` (step 5) to actually generate anything. Life Client (`apps/web`)
+  plus `GOOGLE_GENERATIVE_AI_API_KEY` (step 5) to actually generate anything. Life Client (`apps/web`)
   links out to it once `NEXT_PUBLIC_KNOWLEDGE_APP_URL` is set; the mobile app has its own
   Knowledge tab pointed at the same backend via `EXPO_PUBLIC_KNOWLEDGE_APP_URL`.
 - **Integrations**: connecting is fully implemented (OAuth exchange, token storage, initial +
