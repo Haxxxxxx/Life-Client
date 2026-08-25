@@ -68,6 +68,7 @@ export default function IntegrationsPage() {
           const meta = PROVIDER_META[provider];
           const connection = connections?.[provider];
           const connected = connection?.status === "connected";
+          const errored = connection?.status === "error";
           return (
             <div
               key={provider}
@@ -87,12 +88,14 @@ export default function IntegrationsPage() {
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <span
                   className={`min-w-0 flex-1 truncate font-mono text-[10px] font-bold tracking-wide uppercase ${
-                    connected ? "text-primary" : "text-muted"
+                    connected ? "text-primary" : errored ? "text-red-600" : "text-muted"
                   }`}
                 >
                   {connected
                     ? `Connected${connection?.externalAccountLabel ? ` · ${connection.externalAccountLabel}` : ""}`
-                    : "Not connected"}
+                    : errored
+                      ? "Connection failed"
+                      : "Not connected"}
                 </span>
                 <a
                   href={
@@ -111,9 +114,14 @@ export default function IntegrationsPage() {
                         : "bg-primary text-primary-foreground hover:-translate-y-0.5"
                   }`}
                 >
-                  {connected ? "Disconnect" : "Connect"}
+                  {connected ? "Disconnect" : errored ? "Retry" : "Connect"}
                 </a>
               </div>
+              {errored && connection?.lastError && (
+                <p className="truncate text-[10px] text-red-600" title={connection.lastError}>
+                  {connection.lastError}
+                </p>
+              )}
             </div>
           );
         })}
