@@ -27,13 +27,13 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
     return subscribeTasks(db, user.uid, setTasks, (err) => setError(err.message));
   }, [user]);
 
   async function handleAddTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !title.trim()) return;
+    if (!user || !db || !title.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -103,14 +103,14 @@ export default function TasksPage() {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
-                onClick={() => setTaskStatus(db, user!.uid, task.id, nextStatus(task.status))}
+                onClick={() => setTaskStatus(db!, user!.uid, task.id, nextStatus(task.status))}
                 className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
               >
                 Mark {STATUS_LABEL[nextStatus(task.status)]}
               </button>
               <button
                 type="button"
-                onClick={() => deleteTask(db, user!.uid, task.id)}
+                onClick={() => deleteTask(db!, user!.uid, task.id)}
                 className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
               >
                 Delete

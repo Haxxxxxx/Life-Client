@@ -18,8 +18,15 @@ const firebaseConfig = {
 // production build from failing before NEXT_PUBLIC_FIREBASE_* env vars exist.
 const isBrowser = typeof window !== "undefined";
 
-export const firebaseApp: FirebaseApp | null = isBrowser ? initFirebaseApp(firebaseConfig) : null;
-export const auth: Auth = isBrowser ? getAuth(firebaseApp!) : (null as unknown as Auth);
-export const db: Firestore = isBrowser ? getFirestore(firebaseApp!) : (null as unknown as Firestore);
+// `getAuth`/`getFirestore` throw immediately if the config is missing/invalid
+// (e.g. NEXT_PUBLIC_FIREBASE_API_KEY not set yet), which would otherwise crash
+// the whole app before the login page even has a chance to render. Treat that
+// as an explicit "not configured" state instead.
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey);
+const shouldInit = isBrowser && isFirebaseConfigured;
+
+export const firebaseApp: FirebaseApp | null = shouldInit ? initFirebaseApp(firebaseConfig) : null;
+export const auth: Auth | null = shouldInit ? getAuth(firebaseApp!) : null;
+export const db: Firestore | null = shouldInit ? getFirestore(firebaseApp!) : null;
 
 export const FUNCTIONS_BASE_URL = process.env.NEXT_PUBLIC_FUNCTIONS_BASE_URL ?? "";

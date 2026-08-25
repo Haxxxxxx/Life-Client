@@ -32,7 +32,7 @@ export default function IntegrationsScreen() {
   const [connections, setConnections] = useState<Record<IntegrationProvider, IntegrationConnection> | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
     return subscribeIntegrations(db, user.uid, setConnections);
   }, [user]);
 

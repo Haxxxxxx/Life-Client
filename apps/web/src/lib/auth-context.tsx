@@ -19,11 +19,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const NOT_CONFIGURED_ERROR =
+  "Firebase isn't configured yet — add your project's NEXT_PUBLIC_FIREBASE_* values to apps/web/.env.local (see README.md).";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => auth !== null);
 
   useEffect(() => {
+    if (!auth) return;
     return onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setLoading(false);
@@ -31,11 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signInWithGoogle() {
+    if (!auth) throw new Error(NOT_CONFIGURED_ERROR);
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
   }
 
   async function signOutUser() {
+    if (!auth) return;
     await signOut(auth);
   }
 

@@ -24,7 +24,7 @@ export default function SportsPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
     return subscribeSportActivities(db, user.uid, (a) => {
       setActivities(a);
       setLoaded(true);

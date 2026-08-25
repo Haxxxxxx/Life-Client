@@ -28,7 +28,7 @@ export default function SportsScreen() {
   const [activities, setActivities] = useState<SportActivity[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
     return subscribeSportActivities(db, user.uid, setActivities);
   }, [user]);
 

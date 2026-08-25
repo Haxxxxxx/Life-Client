@@ -17,11 +17,17 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const firebaseApp = initFirebaseApp(firebaseConfig);
-export const auth = initializeAuth(firebaseApp, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
-export const db = getFirestore(firebaseApp);
+// `initializeAuth`/`getFirestore` throw immediately if the config is
+// missing/invalid (e.g. EXPO_PUBLIC_FIREBASE_API_KEY not set yet), which would
+// otherwise crash the app before the login screen even has a chance to render.
+// Treat that as an explicit "not configured" state instead.
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey);
+
+export const firebaseApp = isFirebaseConfigured ? initFirebaseApp(firebaseConfig) : null;
+export const auth = firebaseApp
+  ? initializeAuth(firebaseApp, { persistence: getReactNativePersistence(AsyncStorage) })
+  : null;
+export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
 export const FUNCTIONS_BASE_URL = process.env.EXPO_PUBLIC_FUNCTIONS_BASE_URL ?? "";

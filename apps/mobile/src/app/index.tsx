@@ -38,7 +38,7 @@ export default function DashboardScreen() {
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
     const unsubs = [
       subscribeTasks(db, user.uid, setTasks),
       subscribeSportActivities(db, user.uid, setActivities, undefined, 1),

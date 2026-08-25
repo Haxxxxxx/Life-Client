@@ -37,12 +37,12 @@ export default function TasksScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
     return subscribeTasks(db, user.uid, setTasks, (err) => setError(err.message));
   }, [user]);
 
   async function handleAdd() {
-    if (!user || !title.trim()) return;
+    if (!user || !db || !title.trim()) return;
     setError(null);
     try {
       await createTask(db, user.uid, {
@@ -115,11 +115,11 @@ export default function TasksScreen() {
               </View>
               <View style={styles.taskActions}>
                 <Pressable
-                  onPress={() => setTaskStatus(db, user!.uid, item.id, nextStatus(item.status))}
+                  onPress={() => setTaskStatus(db!, user!.uid, item.id, nextStatus(item.status))}
                   style={[styles.pillButton, { borderColor: theme.border }]}>
                   <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
                 </Pressable>
-                <Pressable onPress={() => deleteTask(db, user!.uid, item.id)} style={styles.deleteButton}>
+                <Pressable onPress={() => deleteTask(db!, user!.uid, item.id)} style={styles.deleteButton}>
                   <ThemedText type="small" style={styles.deleteText}>
                     Delete
                   </ThemedText>

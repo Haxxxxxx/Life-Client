@@ -18,13 +18,19 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+const NOT_CONFIGURED_ERROR =
+  "Firebase isn't configured yet — add your project's EXPO_PUBLIC_FIREBASE_* values to apps/mobile/.env (see README.md).";
+
+if (GOOGLE_WEB_CLIENT_ID) {
+  GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => auth !== null);
 
   useEffect(() => {
+    if (!auth) return;
     return onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setLoading(false);
@@ -32,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signInWithGoogle() {
+    if (!auth) throw new Error(NOT_CONFIGURED_ERROR);
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();
     if (response.type !== "success" || !response.data.idToken) {
@@ -42,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOutUser() {
+    if (!auth) return;
     await signOut(auth);
     await GoogleSignin.signOut();
   }
