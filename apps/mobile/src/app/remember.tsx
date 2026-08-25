@@ -1,12 +1,13 @@
 import {
   createReminder,
   daysUntil,
-  deleteReminder,
+  deleteReminderEverywhere,
   isDueSoon,
   type Reminder,
   type ReminderUrgency,
   reminderUrgency,
   subscribeReminders,
+  syncReminderToCalendar,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -18,6 +19,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
+import { webApiClient } from '@/lib/webApiClient';
 
 const QUICK_OFFSETS = [
   { label: '1d', days: 1 },
@@ -60,15 +62,27 @@ export default function RememberScreen() {
     setError(null);
     try {
       const deadline = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
-      await createReminder(db, user.uid, {
+      const reminderId = await createReminder(db, user.uid, {
         title: title.trim(),
         note: note.trim() || undefined,
         deadline: deadline.toISOString(),
       });
       setTitle('');
       setNote('');
+      // Best-effort — a no-op server-side if Google Calendar isn't connected.
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error('Could not sync reminder to Google Calendar', err),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create reminder');
+    }
+  }
+
+  async function handleDelete(reminderId: string) {
+    try {
+      await deleteReminderEverywhere(webApiClient, reminderId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete reminder');
     }
   }
 
@@ -171,7 +185,7 @@ export default function RememberScreen() {
                       {urgencyLabel(urgency, days)}
                     </ThemedText>
                   </View>
-                  <Pressable onPress={() => user && db && deleteReminder(db, user.uid, item.id)}>
+                  <Pressable onPress={() => handleDelete(item.id)}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>

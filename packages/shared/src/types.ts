@@ -146,11 +146,12 @@ export interface Reminder {
   title: string;
   note?: string; // e.g. "Referral code from a friend", linked account, or any other context
   deadline: string; // ISO datetime
+  calendarEventId?: string; // set by the server once mirrored to Google Calendar
   createdAt: string;
   updatedAt: string;
 }
 
-export type NewReminder = Omit<Reminder, "id" | "createdAt" | "updatedAt">;
+export type NewReminder = Omit<Reminder, "id" | "createdAt" | "updatedAt" | "calendarEventId">;
 
 export type CoreCharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social";
 export type CharacteristicId = CoreCharacteristicId | TaskCategory;

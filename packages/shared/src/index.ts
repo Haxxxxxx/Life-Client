@@ -9,3 +9,4 @@ export * from "./characteristics";
 export * from "./reminders";
 export * from "./knowledge";
 export * from "./knowledgeApi";
+export * from "./remindersApi";

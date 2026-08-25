@@ -2,16 +2,18 @@
 
 import {
   createReminder,
-  deleteReminder,
+  deleteReminderEverywhere,
   type Reminder,
   type ReminderUrgency,
   daysUntil,
   reminderUrgency,
   subscribeReminders,
+  syncReminderToCalendar,
 } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
+import { webApiClient } from "@/lib/webApiClient";
 
 const URGENCY_STYLE: Record<ReminderUrgency, string> = {
   overdue: "border-red-600 bg-red-600/10",
@@ -56,17 +58,30 @@ export default function RememberPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createReminder(db, user.uid, {
+      const reminderId = await createReminder(db, user.uid, {
         title: title.trim(),
         note: note.trim() || undefined,
         deadline: new Date(deadline).toISOString(),
       });
       setTitle("");
       setNote("");
+      // Best-effort — a no-op server-side if Google Calendar isn't connected,
+      // and shouldn't block the reminder itself from existing if it fails.
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error("Could not sync reminder to Google Calendar", err),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create reminder");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(reminderId: string) {
+    try {
+      await deleteReminderEverywhere(webApiClient, reminderId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete reminder");
     }
   }
 
@@ -138,7 +153,7 @@ export default function RememberPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => user && db && deleteReminder(db, user.uid, reminder.id)}
+                  onClick={() => handleDelete(reminder.id)}
                   className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
                 >
                   Delete
