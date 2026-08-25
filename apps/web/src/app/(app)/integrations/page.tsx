@@ -9,7 +9,7 @@ import {
 } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { FUNCTIONS_BASE_URL, db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 
 const PROVIDER_META: Record<
   IntegrationProvider,
@@ -51,7 +51,7 @@ export default function IntegrationsPage() {
     return subscribeIntegrations(db, user.uid, setConnections);
   }, [user]);
 
-  const missingFunctionsUrl = !FUNCTIONS_BASE_URL;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -62,13 +62,6 @@ export default function IntegrationsPage() {
           Link the tools you already use so Life Client stays up to date on its own.
         </p>
       </div>
-
-      {missingFunctionsUrl && (
-        <p className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-3 font-mono text-xs text-muted">
-          NEXT_PUBLIC_FUNCTIONS_BASE_URL isn&apos;t set — connect buttons will be disabled until
-          the Cloud Functions backend is deployed. See README.md.
-        </p>
-      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {PROVIDER_ORDER.map((provider) => {
@@ -103,15 +96,15 @@ export default function IntegrationsPage() {
                 </span>
                 <a
                   href={
-                    missingFunctionsUrl || !user
+                    !user
                       ? undefined
                       : connected
-                        ? buildDisconnectUrl(FUNCTIONS_BASE_URL, provider, user.uid, "/integrations")
-                        : buildConnectUrl(FUNCTIONS_BASE_URL, provider, user.uid, "/integrations")
+                        ? buildDisconnectUrl(origin, provider, user.uid, "/integrations")
+                        : buildConnectUrl(origin, provider, user.uid, "/integrations")
                   }
-                  aria-disabled={missingFunctionsUrl}
+                  aria-disabled={!user}
                   className={`rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition ${
-                    missingFunctionsUrl
+                    !user
                       ? "pointer-events-none opacity-40"
                       : connected
                         ? "bg-surface hover:bg-red-600/10"

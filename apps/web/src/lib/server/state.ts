@@ -1,5 +1,5 @@
 import * as crypto from "node:crypto";
-import { db } from "./admin";
+import { adminDb } from "./admin";
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -16,7 +16,7 @@ export async function createOAuthState(
   returnTo: string,
 ): Promise<string> {
   const token = crypto.randomBytes(24).toString("hex");
-  await db
+  await adminDb
     .collection("oauthState")
     .doc(token)
     .set({ uid, provider, returnTo, createdAt: Date.now() } satisfies OAuthState);
@@ -24,7 +24,7 @@ export async function createOAuthState(
 }
 
 export async function consumeOAuthState(token: string): Promise<OAuthState | null> {
-  const ref = db.collection("oauthState").doc(token);
+  const ref = adminDb.collection("oauthState").doc(token);
   const snap = await ref.get();
   if (!snap.exists) return null;
   await ref.delete();

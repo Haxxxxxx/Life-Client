@@ -15,7 +15,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db, FUNCTIONS_BASE_URL } from '@/lib/firebase';
+import { db, WEB_APP_URL } from '@/lib/firebase';
 
 const PROVIDER_META: Record<IntegrationProvider, { label: string; description: string; badge: string }> = {
   github: { label: 'GitHub', description: 'Open PRs/issues assigned to you, in Tasks.', badge: 'GH' },
@@ -36,13 +36,13 @@ export default function IntegrationsScreen() {
     return subscribeIntegrations(db, user.uid, setConnections);
   }, [user]);
 
-  const missingFunctionsUrl = !FUNCTIONS_BASE_URL;
+  const missingWebAppUrl = !WEB_APP_URL;
 
   async function handleToggle(provider: IntegrationProvider, connected: boolean) {
-    if (missingFunctionsUrl || !user) return;
+    if (missingWebAppUrl || !user) return;
     const url = connected
-      ? buildDisconnectUrl(FUNCTIONS_BASE_URL, provider, user.uid, '/integrations')
-      : buildConnectUrl(FUNCTIONS_BASE_URL, provider, user.uid, '/integrations');
+      ? buildDisconnectUrl(WEB_APP_URL, provider, user.uid, '/integrations')
+      : buildConnectUrl(WEB_APP_URL, provider, user.uid, '/integrations');
     await WebBrowser.openBrowserAsync(url);
   }
 
@@ -60,11 +60,11 @@ export default function IntegrationsScreen() {
             </ThemedText>
           </View>
 
-          {missingFunctionsUrl && (
+          {missingWebAppUrl && (
             <ThemedView type="backgroundElement" style={[styles.notice, { borderColor: theme.border }]}>
               <ThemedText type="small" themeColor="textSecondary">
-                EXPO_PUBLIC_FUNCTIONS_BASE_URL isn&apos;t set — connect actions are disabled until
-                the Cloud Functions backend is deployed.
+                EXPO_PUBLIC_WEB_APP_URL isn&apos;t set — connect actions are disabled until
+                the web app is deployed.
               </ThemedText>
             </ThemedView>
           )}
@@ -97,13 +97,13 @@ export default function IntegrationsScreen() {
                     </ThemedText>
                     <Pressable
                       onPress={() => handleToggle(provider, connected)}
-                      disabled={missingFunctionsUrl}
+                      disabled={missingWebAppUrl}
                       style={[
                         styles.actionButton,
                         {
                           borderColor: theme.border,
                           backgroundColor: connected ? 'transparent' : theme.primary,
-                          opacity: missingFunctionsUrl ? 0.4 : 1,
+                          opacity: missingWebAppUrl ? 0.4 : 1,
                         },
                       ]}>
                       <ThemedText

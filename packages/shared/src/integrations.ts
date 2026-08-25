@@ -32,16 +32,16 @@ export function integrationDocRef(db: Firestore, uid: string, provider: Integrat
 
 /**
  * Builds the URL that kicks off the server-side OAuth flow for a provider.
- * `functionsBaseUrl` is the deployed Cloud Functions HTTP base, e.g.
- * https://us-central1-<project-id>.cloudfunctions.net
+ * `webAppBaseUrl` is the deployed web app's origin, e.g. https://life-client.vercel.app
+ * (its /api/oauth/* routes handle the exchange — see apps/web/src/app/api/oauth).
  */
 export function buildConnectUrl(
-  functionsBaseUrl: string,
+  webAppBaseUrl: string,
   provider: IntegrationProvider,
   uid: string,
   returnTo: string,
 ): string {
-  const url = new URL(`${functionsBaseUrl}/oauthStart`);
+  const url = new URL(`${webAppBaseUrl}/api/oauth/start`);
   url.searchParams.set("provider", provider);
   url.searchParams.set("uid", uid);
   url.searchParams.set("returnTo", returnTo);
@@ -49,12 +49,12 @@ export function buildConnectUrl(
 }
 
 export function buildDisconnectUrl(
-  functionsBaseUrl: string,
+  webAppBaseUrl: string,
   provider: IntegrationProvider,
   uid: string,
   returnTo: string,
 ): string {
-  const url = new URL(`${functionsBaseUrl}/oauthDisconnect`);
+  const url = new URL(`${webAppBaseUrl}/api/oauth/disconnect`);
   url.searchParams.set("provider", provider);
   url.searchParams.set("uid", uid);
   url.searchParams.set("returnTo", returnTo);

@@ -1,10 +1,7 @@
-import { logger } from "firebase-functions";
-import { onSchedule } from "firebase-functions/v2/scheduler";
-import { db } from "../lib/admin";
-import { setIntegrationStatus } from "../lib/integrations";
-import { refreshAccessToken } from "../lib/providers";
-import { STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET } from "../lib/secrets";
-import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "../lib/tokens";
+import { adminDb } from "./admin";
+import { setIntegrationStatus } from "./integrationStatus";
+import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
+import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
 
 interface StravaActivity {
   id: number;
@@ -22,8 +19,8 @@ async function ensureFreshToken(uid: string, tokens: StoredTokens): Promise<Stor
   if (!isExpired || !tokens.refreshToken) return tokens;
 
   const refreshed = await refreshAccessToken("strava", {
-    clientId: STRAVA_CLIENT_ID.value(),
-    clientSecret: STRAVA_CLIENT_SECRET.value(),
+    clientId: clientIdFor("strava"),
+    clientSecret: clientSecretFor("strava"),
     refreshToken: tokens.refreshToken,
   });
 
@@ -51,8 +48,8 @@ export async function syncStravaForUser(uid: string): Promise<void> {
     }
     const activities = (await response.json()) as StravaActivity[];
 
-    const batch = db.batch();
-    const collection = db.collection("users").doc(uid).collection("sportActivities");
+    const batch = adminDb.batch();
+    const collection = adminDb.collection("users").doc(uid).collection("sportActivities");
     for (const activity of activities) {
       batch.set(
         collection.doc(String(activity.id)),
@@ -78,7 +75,7 @@ export async function syncStravaForUser(uid: string): Promise<void> {
       lastSyncAt: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error(`syncStravaForUser(${uid}) failed`, error);
+    console.error(`syncStravaForUser(${uid}) failed`, error);
     await setIntegrationStatus(uid, "strava", {
       status: "error",
       lastError: error instanceof Error ? error.message : String(error),
@@ -86,10 +83,7 @@ export async function syncStravaForUser(uid: string): Promise<void> {
   }
 }
 
-export const syncStravaActivities = onSchedule(
-  { schedule: "every 60 minutes", secrets: [STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET] },
-  async () => {
-    const uids = await allConnectedUids("strava");
-    await Promise.all(uids.map((uid) => syncStravaForUser(uid)));
-  },
-);
+export async function syncAllStrava(): Promise<void> {
+  const uids = await allConnectedUids("strava");
+  await Promise.all(uids.map((uid) => syncStravaForUser(uid)));
+}

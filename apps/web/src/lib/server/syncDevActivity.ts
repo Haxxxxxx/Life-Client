@@ -1,11 +1,8 @@
-import { logger } from "firebase-functions";
-import { onSchedule } from "firebase-functions/v2/scheduler";
-import { db } from "../lib/admin";
-import { setIntegrationStatus } from "../lib/integrations";
-import { refreshAccessToken } from "../lib/providers";
-import { GITLAB_CLIENT_ID, GITLAB_CLIENT_SECRET } from "../lib/secrets";
-import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "../lib/tokens";
-import type { IntegrationProvider } from "../lib/types";
+import type { IntegrationProvider } from "@life-client/shared";
+import { adminDb } from "./admin";
+import { setIntegrationStatus } from "./integrationStatus";
+import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
+import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
 
 interface DevPullRequest {
   provider: "github" | "gitlab";
@@ -94,8 +91,8 @@ async function ensureFreshGitlabToken(uid: string, tokens: StoredTokens): Promis
   if (!isExpired || !tokens.refreshToken) return tokens;
 
   const refreshed = await refreshAccessToken("gitlab", {
-    clientId: GITLAB_CLIENT_ID.value(),
-    clientSecret: GITLAB_CLIENT_SECRET.value(),
+    clientId: clientIdFor("gitlab"),
+    clientSecret: clientSecretFor("gitlab"),
     refreshToken: tokens.refreshToken,
   });
   const next: StoredTokens = {
@@ -148,7 +145,7 @@ async function syncFor(uid: string, provider: Extract<IntegrationProvider, "gith
         ? await Promise.all([fetchGithubPRs(freshAccessToken), fetchGithubMergedCount(freshAccessToken)])
         : await Promise.all([fetchGitlabMRs(freshAccessToken), fetchGitlabMergedCount(freshAccessToken)]);
 
-    await db
+    await adminDb
       .collection("users")
       .doc(uid)
       .collection("devActivity")
@@ -164,7 +161,7 @@ async function syncFor(uid: string, provider: Extract<IntegrationProvider, "gith
       );
     await setIntegrationStatus(uid, provider, { status: "connected", lastSyncAt: new Date().toISOString() });
   } catch (error) {
-    logger.error(`syncDevActivity(${uid}, ${provider}) failed`, error);
+    console.error(`syncDevActivity(${uid}, ${provider}) failed`, error);
     await setIntegrationStatus(uid, provider, {
       status: "error",
       lastError: error instanceof Error ? error.message : String(error),
@@ -180,16 +177,13 @@ export async function syncGitlabForUser(uid: string): Promise<void> {
   await syncFor(uid, "gitlab");
 }
 
-export const syncDevActivity = onSchedule(
-  { schedule: "every 30 minutes", secrets: [GITLAB_CLIENT_ID, GITLAB_CLIENT_SECRET] },
-  async () => {
-    const [githubUids, gitlabUids] = await Promise.all([
-      allConnectedUids("github"),
-      allConnectedUids("gitlab"),
-    ]);
-    await Promise.all([
-      ...githubUids.map((uid) => syncGithubForUser(uid)),
-      ...gitlabUids.map((uid) => syncGitlabForUser(uid)),
-    ]);
-  },
-);
+export async function syncAllDevActivity(): Promise<void> {
+  const [githubUids, gitlabUids] = await Promise.all([
+    allConnectedUids("github"),
+    allConnectedUids("gitlab"),
+  ]);
+  await Promise.all([
+    ...githubUids.map((uid) => syncGithubForUser(uid)),
+    ...gitlabUids.map((uid) => syncGitlabForUser(uid)),
+  ]);
+}

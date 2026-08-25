@@ -42,6 +42,10 @@ export type IntegrationProvider =
   | "google_calendar"
   | "strava";
 
+export function isIntegrationProvider(value: unknown): value is IntegrationProvider {
+  return value === "github" || value === "gitlab" || value === "google_calendar" || value === "strava";
+}
+
 export type IntegrationStatus = "connected" | "disconnected" | "error";
 
 export interface IntegrationConnection {

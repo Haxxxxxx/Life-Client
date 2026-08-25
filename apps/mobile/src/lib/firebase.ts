@@ -30,4 +30,7 @@ export const auth = firebaseApp
 export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
-export const FUNCTIONS_BASE_URL = process.env.EXPO_PUBLIC_FUNCTIONS_BASE_URL ?? "";
+
+// The deployed web app's origin (e.g. https://life-client.vercel.app) — its
+// /api/oauth/* routes handle the OAuth exchange; there's no separate backend.
+export const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL ?? "";

@@ -1,5 +1,5 @@
-import { db } from "./admin";
-import type { IntegrationProvider } from "./types";
+import type { IntegrationProvider } from "@life-client/shared";
+import { adminDb } from "./admin";
 
 export interface IntegrationStatusPatch {
   status: "connected" | "disconnected" | "error";
@@ -15,7 +15,7 @@ export async function setIntegrationStatus(
   provider: IntegrationProvider,
   patch: IntegrationStatusPatch,
 ): Promise<void> {
-  await db
+  await adminDb
     .collection("users")
     .doc(uid)
     .collection("integrations")

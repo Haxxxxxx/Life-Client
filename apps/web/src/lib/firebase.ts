@@ -28,5 +28,3 @@ const shouldInit = isBrowser && isFirebaseConfigured;
 export const firebaseApp: FirebaseApp | null = shouldInit ? initFirebaseApp(firebaseConfig) : null;
 export const auth: Auth | null = shouldInit ? getAuth(firebaseApp!) : null;
 export const db: Firestore | null = shouldInit ? getFirestore(firebaseApp!) : null;
-
-export const FUNCTIONS_BASE_URL = process.env.NEXT_PUBLIC_FUNCTIONS_BASE_URL ?? "";

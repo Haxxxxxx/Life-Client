@@ -1,10 +1,7 @@
-import { logger } from "firebase-functions";
-import { onSchedule } from "firebase-functions/v2/scheduler";
-import { db } from "../lib/admin";
-import { setIntegrationStatus } from "../lib/integrations";
-import { refreshAccessToken } from "../lib/providers";
-import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from "../lib/secrets";
-import { allConnectedUids, getTokens } from "../lib/tokens";
+import { adminDb } from "./admin";
+import { setIntegrationStatus } from "./integrationStatus";
+import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
+import { allConnectedUids, getTokens } from "./tokens";
 
 interface GoogleCalendarEvent {
   id: string;
@@ -21,8 +18,8 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
 
   try {
     const refreshed = await refreshAccessToken("google_calendar", {
-      clientId: GOOGLE_CLIENT_ID.value(),
-      clientSecret: GOOGLE_CLIENT_SECRET.value(),
+      clientId: clientIdFor("google_calendar"),
+      clientSecret: clientSecretFor("google_calendar"),
       refreshToken: tokens.refreshToken,
     });
     const accessToken = refreshed.access_token as string;
@@ -42,8 +39,8 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
     }
     const data = (await response.json()) as { items: GoogleCalendarEvent[] };
 
-    const batch = db.batch();
-    const collection = db.collection("users").doc(uid).collection("calendarEvents");
+    const batch = adminDb.batch();
+    const collection = adminDb.collection("users").doc(uid).collection("calendarEvents");
     for (const event of data.items ?? []) {
       batch.set(
         collection.doc(event.id),
@@ -64,7 +61,7 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
       lastSyncAt: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error(`syncGoogleCalendarForUser(${uid}) failed`, error);
+    console.error(`syncGoogleCalendarForUser(${uid}) failed`, error);
     await setIntegrationStatus(uid, "google_calendar", {
       status: "error",
       lastError: error instanceof Error ? error.message : String(error),
@@ -72,10 +69,7 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
   }
 }
 
-export const syncGoogleCalendar = onSchedule(
-  { schedule: "every 30 minutes", secrets: [GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET] },
-  async () => {
-    const uids = await allConnectedUids("google_calendar");
-    await Promise.all(uids.map((uid) => syncGoogleCalendarForUser(uid)));
-  },
-);
+export async function syncAllGoogleCalendar(): Promise<void> {
+  const uids = await allConnectedUids("google_calendar");
+  await Promise.all(uids.map((uid) => syncGoogleCalendarForUser(uid)));
+}

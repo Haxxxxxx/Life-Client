@@ -1,5 +1,5 @@
-import { db } from "./admin";
-import type { IntegrationProvider } from "./types";
+import type { IntegrationProvider } from "@life-client/shared";
+import { adminDb } from "./admin";
 
 export interface StoredTokens {
   accessToken: string;
@@ -17,7 +17,7 @@ export async function storeTokens(
   provider: IntegrationProvider,
   tokens: StoredTokens,
 ): Promise<void> {
-  await db
+  await adminDb
     .collection("integrationTokens")
     .doc(tokenDocId(uid, provider))
     .set({ uid, provider, ...tokens, updatedAt: Date.now() });
@@ -27,15 +27,15 @@ export async function getTokens(
   uid: string,
   provider: IntegrationProvider,
 ): Promise<StoredTokens | null> {
-  const snap = await db.collection("integrationTokens").doc(tokenDocId(uid, provider)).get();
+  const snap = await adminDb.collection("integrationTokens").doc(tokenDocId(uid, provider)).get();
   return snap.exists ? (snap.data() as StoredTokens) : null;
 }
 
 export async function deleteTokens(uid: string, provider: IntegrationProvider): Promise<void> {
-  await db.collection("integrationTokens").doc(tokenDocId(uid, provider)).delete();
+  await adminDb.collection("integrationTokens").doc(tokenDocId(uid, provider)).delete();
 }
 
 export async function allConnectedUids(provider: IntegrationProvider): Promise<string[]> {
-  const snap = await db.collection("integrationTokens").where("provider", "==", provider).get();
+  const snap = await adminDb.collection("integrationTokens").where("provider", "==", provider).get();
   return snap.docs.map((d) => (d.data() as { uid: string }).uid);
 }

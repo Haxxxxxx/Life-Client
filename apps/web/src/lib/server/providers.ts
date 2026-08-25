@@ -1,4 +1,4 @@
-import type { IntegrationProvider } from "./types";
+import type { IntegrationProvider } from "@life-client/shared";
 
 export interface ProviderOAuthConfig {
   authorizeUrl: string;
@@ -31,6 +31,32 @@ export const PROVIDER_CONFIG: Record<IntegrationProvider, ProviderOAuthConfig> =
     extraAuthParams: { approval_prompt: "auto" },
   },
 };
+
+export function clientIdFor(provider: IntegrationProvider): string {
+  switch (provider) {
+    case "github":
+      return process.env.GITHUB_CLIENT_ID ?? "";
+    case "gitlab":
+      return process.env.GITLAB_CLIENT_ID ?? "";
+    case "google_calendar":
+      return process.env.GOOGLE_CLIENT_ID ?? "";
+    case "strava":
+      return process.env.STRAVA_CLIENT_ID ?? "";
+  }
+}
+
+export function clientSecretFor(provider: IntegrationProvider): string {
+  switch (provider) {
+    case "github":
+      return process.env.GITHUB_CLIENT_SECRET ?? "";
+    case "gitlab":
+      return process.env.GITLAB_CLIENT_SECRET ?? "";
+    case "google_calendar":
+      return process.env.GOOGLE_CLIENT_SECRET ?? "";
+    case "strava":
+      return process.env.STRAVA_CLIENT_SECRET ?? "";
+  }
+}
 
 interface ExchangeParams {
   clientId: string;
