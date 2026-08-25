@@ -10,8 +10,11 @@ apps/web              Next.js (App Router) — desktop/web client, deploy on Ver
   src/app/api/oauth/   OAuth start/callback/disconnect routes (server-side, Node.js runtime)
   src/app/api/cron/    Scheduled sync endpoint, triggered by Vercel Cron
   src/lib/server/      firebase-admin, OAuth + sync logic — server-only, never bundled to client
+apps/knowledge        Next.js (App Router) — separate app + deployment: daily AI lesson, code
+                      drills, vocabulary, reading-list summaries. Own domain, same Firebase
+                      project as apps/web/apps/mobile.
 apps/mobile           Expo (React Native) — iOS/Android client
-packages/shared       TypeScript package shared by both clients: types, Firebase init,
+packages/shared       TypeScript package shared by all three apps: types, Firebase init,
                       Firestore CRUD/subscribe helpers, life-characteristic leveling logic
 firestore.rules       Firestore security rules (per-user data isolation)
 ```
@@ -50,19 +53,25 @@ firebase use --add              # link this repo to that project (creates .fireb
 In the [Firebase Console](https://console.firebase.google.com) for that project:
 - **Firestore Database** → create in production mode (any region).
 - **Authentication → Sign-in method** → enable **Google**.
+- **Authentication → Settings → Authorized domains** → once deployed, add both the apps/web
+  domain and the apps/knowledge domain (each is a separate origin, so each needs listing
+  separately) — otherwise Google Sign-In will fail with `auth/unauthorized-domain` on
+  whichever one is missing.
 - **Project settings → Your apps** → add a **Web app** → copy the config into
-  `apps/web/.env.local` and `apps/mobile/.env` (see `.env.example` in each — both need the
-  same Firebase web config; the JS SDK is the same on Expo).
+  `apps/web/.env.local`, `apps/knowledge/.env.local`, and `apps/mobile/.env` (see
+  `.env.example` in each — all three need the same Firebase web config; it's the same
+  project and the JS SDK is the same on Expo).
 - **Authentication → Sign-in method → Google → Web SDK configuration** → copy the
   **Web client ID** into `apps/mobile/.env` as `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
   (native Google Sign-In needs it too — see mobile section below).
 - **Project settings → Service accounts → Generate new private key** → downloads a JSON file.
-  Base64-encode it and set the result as `FIREBASE_SERVICE_ACCOUNT_BASE64` in
-  `apps/web/.env.local` (locally) and as a Vercel env var (in production):
+  Base64-encode it and set the result as `FIREBASE_SERVICE_ACCOUNT_BASE64` in both
+  `apps/web/.env.local` and `apps/knowledge/.env.local` (locally), and as a Vercel env var for
+  each app's project (in production):
   ```
   base64 -i path/to/serviceAccountKey.json | pbcopy   # macOS
   ```
-  This lets the web app's API routes use `firebase-admin` to read/write Firestore on behalf of
+  This lets each app's API routes use `firebase-admin` to read/write Firestore on behalf of
   any user — never commit this file or its base64 value.
 
 Deploy the security rules once you've made this change (or any future rules change):
@@ -103,21 +112,7 @@ Also set `CRON_SECRET` to a random string — it authenticates Vercel Cron's cal
 `/api/cron/sync` (Vercel sets this automatically as a header when deployed; for local testing,
 pass `Authorization: Bearer <value>` yourself).
 
-### 4. AI Gateway (for the Knowledge tab)
-
-The Knowledge feature (daily lessons, code drills, vocabulary, reading-list summaries) calls
-Anthropic's Claude through the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway). Get an
-API key from your Vercel dashboard → **AI Gateway → API Keys**, then set it in
-`apps/web/.env.local` and as a Vercel env var for production:
-
-```
-AI_GATEWAY_API_KEY=
-```
-
-(When deployed on Vercel with the AI Gateway enabled for the project, this can also work via
-Vercel's OIDC token with no key needed — the env var is the simplest path for local dev.)
-
-### 5. Run the web app
+### 4. Run the web app
 
 ```
 cp apps/web/.env.example apps/web/.env.local   # fill in the values from steps 1 & 3
@@ -128,6 +123,35 @@ Deploy to Vercel: link `apps/web` as the project root (`vercel link`, set root d
 `apps/web`), then push env vars with `vercel env add` for each key above. The cron schedule in
 `apps/web/vercel.json` (every 30 minutes) takes effect automatically once deployed.
 
+### 5. Run the Knowledge app (apps/knowledge)
+
+Knowledge (daily AI lesson, code drills, vocabulary, reading-list summaries) is its **own**
+Next.js app and its own Vercel deployment — a separate project/domain from apps/web, sharing
+only the same Firebase project and `packages/shared`.
+
+It calls Anthropic's Claude through the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway),
+deliberately pinned to the cheapest available model (`anthropic/claude-3-haiku` — see
+`apps/knowledge/src/lib/server/aiModel.ts`) since these generations are short and low-stakes.
+Get an API key from your Vercel dashboard → **AI Gateway → API Keys**.
+
+```
+cp apps/knowledge/.env.example apps/knowledge/.env.local   # fill in Firebase config (step 1),
+                                                            # FIREBASE_SERVICE_ACCOUNT_BASE64,
+                                                            # and AI_GATEWAY_API_KEY
+npm run dev:knowledge
+```
+
+(When deployed on Vercel with the AI Gateway enabled for the project, `AI_GATEWAY_API_KEY` can
+also be skipped in favor of Vercel's OIDC token — the env var is the simplest path for local
+dev.)
+
+Deploy to Vercel as its own project: link `apps/knowledge` as the project root (`vercel link`,
+set root directory to `apps/knowledge`), push the same env vars with `vercel env add`. Once you
+have its production domain, set it as `NEXT_PUBLIC_KNOWLEDGE_APP_URL` in `apps/web/.env.local`
+(so Life Client's nav can link out to it) and as `EXPO_PUBLIC_KNOWLEDGE_APP_URL` in
+`apps/mobile/.env` (so the mobile Knowledge tab calls the right backend) — and don't forget the
+Authorized domains step above.
+
 ### 6. Run the mobile app
 
 ```
@@ -137,7 +161,9 @@ npm start
 ```
 
 Set `EXPO_PUBLIC_WEB_APP_URL` once the web app is deployed (e.g. `https://life-client.vercel.app`)
-so mobile's Connect buttons can open the right OAuth start URL in the system browser.
+so mobile's Connect buttons can open the right OAuth start URL in the system browser. Set
+`EXPO_PUBLIC_KNOWLEDGE_APP_URL` once the Knowledge app is deployed (step 5) so the mobile
+Knowledge tab can reach its API routes.
 
 Everything works in Expo Go **except Google Sign-In**: `@react-native-google-signin/google-signin`
 is a native module, so it needs a development build:
@@ -159,9 +185,11 @@ Firebase Console apps you create for each platform, placed per that package's in
   an event form: type, duration, headcount).
 - **Sports, Dev Activity, Agenda** read live from Firestore and render correctly, but stay empty
   until an integration is connected and has synced at least once.
-- **Knowledge** (daily lesson, code drills, vocabulary, reading-list summaries) is fully
-  implemented end to end — it just needs `AI_GATEWAY_API_KEY` (step 4) to actually generate
-  anything.
+- **Knowledge** (daily lesson, code drills, vocabulary, reading-list summaries) lives in its own
+  app (`apps/knowledge`) and is fully implemented end to end — it just needs its own deployment
+  plus `AI_GATEWAY_API_KEY` (step 5) to actually generate anything. Life Client (`apps/web`)
+  links out to it once `NEXT_PUBLIC_KNOWLEDGE_APP_URL` is set; the mobile app has its own
+  Knowledge tab pointed at the same backend via `EXPO_PUBLIC_KNOWLEDGE_APP_URL`.
 - **Integrations**: connecting is fully implemented (OAuth exchange, token storage, initial +
   scheduled sync via Vercel Cron) — it just needs the credentials from step 3 to go live.
 - **Remember** tracks anything with a deadline (referral codes, trial expirations, renewal

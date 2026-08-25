@@ -34,3 +34,8 @@ export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
 // The deployed web app's origin (e.g. https://life-client.vercel.app) — its
 // /api/oauth/* routes handle the OAuth exchange; there's no separate backend.
 export const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL ?? "";
+
+// The deployed Knowledge app's origin (e.g. https://life-client-knowledge.vercel.app) —
+// its own separate Next.js deployment (apps/knowledge); its /api/knowledge/* routes
+// handle AI generation.
+export const KNOWLEDGE_APP_URL = process.env.EXPO_PUBLIC_KNOWLEDGE_APP_URL ?? "";

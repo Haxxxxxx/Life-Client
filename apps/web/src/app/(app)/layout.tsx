@@ -11,9 +11,12 @@ const NAV_ITEMS = [
   { href: "/sports", label: "Sports" },
   { href: "/integrations", label: "Integrations" },
   { href: "/remember", label: "Remember" },
-  { href: "/knowledge", label: "Knowledge" },
   { href: "/profile", label: "Profile" },
 ];
+
+// Knowledge lives in its own deployable app (apps/knowledge) — link out to it
+// rather than rendering it as an internal route.
+const KNOWLEDGE_APP_URL = process.env.NEXT_PUBLIC_KNOWLEDGE_APP_URL;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOutUser } = useAuth();
@@ -56,6 +59,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            {KNOWLEDGE_APP_URL && (
+              <a
+                href={KNOWLEDGE_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border-2 border-transparent px-3 py-2 font-mono text-xs font-bold tracking-wide text-muted uppercase transition hover:border-foreground/30 hover:text-foreground"
+              >
+                Knowledge ↗
+              </a>
+            )}
           </nav>
         </div>
         <div className="mt-6 hidden items-center gap-3 md:flex">

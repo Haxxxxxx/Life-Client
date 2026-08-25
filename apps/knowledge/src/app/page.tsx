@@ -20,6 +20,7 @@ import {
   subscribeReadingList,
   subscribeVocabWords,
 } from "@life-client/shared";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -402,20 +403,44 @@ function ReadingListSection() {
   );
 }
 
-export default function KnowledgePage() {
+export default function KnowledgeHomePage() {
+  const { user, loading, signOutUser } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/login");
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-8">
+        <p className="text-sm text-muted">Loading…</p>
+      </main>
+    );
+  }
+
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-10">
-      <div>
-        <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Grow</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Knowledge</h1>
-        <p className="text-sm text-muted">
-          A daily lesson, coding drills, new words, and articles worth reading — all AI-generated for you.
-        </p>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 p-6 sm:p-10">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Grow</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">Knowledge</h1>
+          <p className="text-sm text-muted">
+            A daily lesson, coding drills, new words, and articles worth reading — all AI-generated for you.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => signOutUser()}
+          className="shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+        >
+          Sign out
+        </button>
       </div>
       <DailyLessonSection />
       <CodeDrillsSection />
       <VocabularySection />
       <ReadingListSection />
-    </div>
+    </main>
   );
 }
