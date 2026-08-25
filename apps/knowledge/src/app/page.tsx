@@ -420,7 +420,7 @@ export default function KnowledgeHomePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 p-6 sm:p-10">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 p-6 sm:p-10">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Grow</p>
