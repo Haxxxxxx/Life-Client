@@ -11,11 +11,13 @@ import { useTheme } from '@/hooks/use-theme';
 const TABS = [
   { name: 'index', href: '/', label: 'Dashboard' },
   { name: 'tasks', href: '/tasks', label: 'Tasks' },
+  { name: 'goals', href: '/goals', label: 'Goals' },
   { name: 'sports', href: '/sports', label: 'Sports' },
   { name: 'agenda', href: '/agenda', label: 'Agenda' },
   { name: 'music', href: '/music', label: 'Music' },
   { name: 'integrations', href: '/integrations', label: 'Integrations' },
   { name: 'remember', href: '/remember', label: 'Remember' },
+  { name: 'manage', href: '/manage', label: 'Manage' },
   { name: 'knowledge', href: '/knowledge', label: 'Knowledge' },
   { name: 'profile', href: '/profile', label: 'Profile' },
 ] as const;

@@ -2,6 +2,12 @@ export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";
 export type TaskSource = "manual" | "github" | "gitlab" | "google_calendar";
 
+export const TASK_PRIORITIES: { id: TaskPriority; label: string }[] = [
+  { id: "low", label: "Low" },
+  { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+];
+
 export type TaskDifficulty = "easy" | "medium" | "hard" | "harder" | "hardest";
 
 export const TASK_DIFFICULTIES: { id: TaskDifficulty; label: string }[] = [
@@ -59,11 +65,32 @@ export interface Task {
   sourceRef?: string; // e.g. "owner/repo#123" or calendar event id
   sourceUrl?: string;
   tags: string[];
+  goalId?: string; // links this task to a parent Goal
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }
 
 export type NewTask = Omit<Task, "id" | "createdAt" | "updatedAt">;
+
+export type GoalStatus = "active" | "completed" | "archived";
+
+export interface Goal {
+  id: string;
+  title: string;
+  description?: string;
+  targetDate?: string; // ISO date, optional deadline
+  status: GoalStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NewGoal = Omit<Goal, "id" | "status" | "createdAt" | "updatedAt">;
+
+export interface GoalProgress {
+  linkedTaskCount: number;
+  completedTaskCount: number;
+  percent: number; // 0-1
+}
 
 export type SportProvider = "strava" | "manual";
 export type SportActivityKind = "endurance" | "strength";
@@ -126,6 +153,12 @@ export interface ChallengeProgress {
   completedCount: number;
   totalDaysSoFar: number;
   isFinished: boolean; // today is past startDate + durationDays
+}
+
+export interface ChallengeMilestone {
+  thresholdPercent: number; // 25 | 50 | 75 | 100
+  label: string;
+  achieved: boolean;
 }
 
 export type IntegrationProvider =

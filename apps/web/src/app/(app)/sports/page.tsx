@@ -8,6 +8,7 @@ import {
   type SportActivity,
   type SportActivityKind,
   archiveChallenge,
+  computeChallengeMilestones,
   computeChallengeProgress,
   createChallenge,
   createManualSportActivity,
@@ -15,6 +16,7 @@ import {
   deleteSportActivity,
   subscribeChallenges,
   subscribeSportActivities,
+  updateChallenge,
 } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -294,40 +296,110 @@ function ChallengeCard({
   activities,
   onArchive,
   onDelete,
+  onSave,
 }: {
   challenge: Challenge;
   activities: SportActivity[];
   onArchive: () => void;
   onDelete: () => void;
+  onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
 }) {
   const progress = computeChallengeProgress(challenge, activities);
+  const milestones = computeChallengeMilestones(challenge, progress);
   const unit = METRICS.find((m) => m.id === challenge.metric)!.unit;
+
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(challenge.title);
+  const [dailyTarget, setDailyTarget] = useState(String(challenge.dailyTarget));
+  const [durationDays, setDurationDays] = useState(String(challenge.durationDays));
+
+  function startEdit() {
+    setTitle(challenge.title);
+    setDailyTarget(String(challenge.dailyTarget));
+    setDurationDays(String(challenge.durationDays));
+    setEditing(true);
+  }
+
+  function save() {
+    onSave({
+      title: title.trim() || challenge.title,
+      dailyTarget: Number(dailyTarget) || challenge.dailyTarget,
+      durationDays: Number(durationDays) || challenge.durationDays,
+    });
+    setEditing(false);
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="font-bold">{challenge.title}</p>
-          <p className="text-xs text-muted">
-            {challenge.exerciseType} · {challenge.dailyTarget} {unit}/day
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={onArchive}
-            className="font-mono text-xs font-bold text-muted uppercase hover:underline"
-          >
-            Archive
+        {editing ? (
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm font-bold"
+            />
+            <div className="flex gap-2">
+              <label className="flex flex-col gap-1 text-xs text-muted">
+                Daily target
+                <input
+                  type="number"
+                  min={1}
+                  value={dailyTarget}
+                  onChange={(e) => setDailyTarget(e.target.value)}
+                  className="w-28 rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted">
+                Duration (days)
+                <input
+                  type="number"
+                  min={1}
+                  value={durationDays}
+                  onChange={(e) => setDurationDays(e.target.value)}
+                  className="w-28 rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm"
+                />
+              </label>
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={save} className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="font-mono text-xs font-bold text-muted uppercase hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={startEdit} className="text-left">
+            <p className="font-bold hover:underline">{challenge.title}</p>
+            <p className="text-xs text-muted">
+              {challenge.exerciseType} · {challenge.dailyTarget} {unit}/day
+            </p>
           </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
-          >
-            Delete
-          </button>
-        </div>
+        )}
+        {!editing && (
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={onArchive}
+              className="font-mono text-xs font-bold text-muted uppercase hover:underline"
+            >
+              Archive
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-4">
         <div>
@@ -349,6 +421,18 @@ function ChallengeCard({
             Finished
           </span>
         )}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {milestones.map((m) => (
+          <span
+            key={m.thresholdPercent}
+            className={`rounded-full border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+              m.achieved ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+            }`}
+          >
+            {m.label}
+          </span>
+        ))}
       </div>
       <div className="flex flex-wrap gap-1">
         {progress.days.map((day) => (
@@ -417,6 +501,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               activities={activities}
               onArchive={() => user && db && archiveChallenge(db, user.uid, challenge.id)}
               onDelete={() => user && db && deleteChallenge(db, user.uid, challenge.id)}
+              onSave={(patch) => user && db && updateChallenge(db, user.uid, challenge.id, patch)}
             />
           ))}
         </div>

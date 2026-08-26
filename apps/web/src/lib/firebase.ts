@@ -1,7 +1,7 @@
 import { initFirebaseApp } from "@life-client/shared";
 import type { FirebaseApp } from "firebase/app";
 import { type Auth, getAuth } from "firebase/auth";
-import { type Firestore, getFirestore } from "firebase/firestore";
+import { type Firestore, initializeFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -27,4 +27,9 @@ const shouldInit = isBrowser && isFirebaseConfigured;
 
 export const firebaseApp: FirebaseApp | null = shouldInit ? initFirebaseApp(firebaseConfig) : null;
 export const auth: Auth | null = shouldInit ? getAuth(firebaseApp!) : null;
-export const db: Firestore | null = shouldInit ? getFirestore(firebaseApp!) : null;
+// ignoreUndefinedProperties lets patches omit/clear optional fields (e.g.
+// `dueDate: undefined` to clear it) without Firestore throwing on the
+// literal `undefined` — matches the admin SDK setting used server-side.
+export const db: Firestore | null = shouldInit
+  ? initializeFirestore(firebaseApp!, { ignoreUndefinedProperties: true })
+  : null;

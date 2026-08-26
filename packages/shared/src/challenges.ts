@@ -9,7 +9,14 @@ import {
   query,
   updateDoc,
 } from "firebase/firestore";
-import type { Challenge, ChallengeDayStatus, ChallengeProgress, NewChallenge, SportActivity } from "./types";
+import type {
+  Challenge,
+  ChallengeDayStatus,
+  ChallengeMilestone,
+  ChallengeProgress,
+  NewChallenge,
+  SportActivity,
+} from "./types";
 
 function challengesCollection(db: Firestore, uid: string) {
   return collection(db, "users", uid, "challenges");
@@ -35,6 +42,15 @@ export async function createChallenge(db: Firestore, uid: string, challenge: New
     createdAt: new Date().toISOString(),
   });
   return ref.id;
+}
+
+export async function updateChallenge(
+  db: Firestore,
+  uid: string,
+  challengeId: string,
+  patch: Partial<Pick<Challenge, "title" | "dailyTarget" | "durationDays">>,
+): Promise<void> {
+  await updateDoc(doc(db, "users", uid, "challenges", challengeId), patch);
 }
 
 export async function archiveChallenge(db: Firestore, uid: string, challengeId: string): Promise<void> {
@@ -133,4 +149,19 @@ export function computeChallengeProgress(
     totalDaysSoFar: days.length,
     isFinished,
   };
+}
+
+const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
+
+/** Fixed checkpoints at 25/50/75/100% of the challenge's duration, derived from already-tracked progress. */
+export function computeChallengeMilestones(
+  challenge: Challenge,
+  progress: ChallengeProgress,
+): ChallengeMilestone[] {
+  const percentDone = (progress.completedCount / challenge.durationDays) * 100;
+  return MILESTONE_THRESHOLDS.map((thresholdPercent) => ({
+    thresholdPercent,
+    label: thresholdPercent === 100 ? "Complete" : `${thresholdPercent}%`,
+    achieved: percentDone >= thresholdPercent,
+  }));
 }

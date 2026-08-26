@@ -9,6 +9,7 @@ import {
   reminderUrgency,
   subscribeReminders,
   syncReminderToCalendar,
+  updateReminder,
 } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -34,6 +35,60 @@ function toDatetimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function EditReminderForm({
+  reminder,
+  onSave,
+  onCancel,
+}: {
+  reminder: Reminder;
+  onSave: (patch: { title: string; note?: string; deadline: string }) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(reminder.title);
+  const [note, setNote] = useState(reminder.note ?? "");
+  const [deadline, setDeadline] = useState(toDatetimeLocalValue(new Date(reminder.deadline)));
+
+  return (
+    <div className="flex flex-1 flex-col gap-2">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+      />
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Notes"
+        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+      />
+      <input
+        type="datetime-local"
+        value={deadline}
+        onChange={(e) => setDeadline(e.target.value)}
+        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+      />
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() =>
+            onSave({
+              title: title.trim() || reminder.title,
+              note: note.trim() || undefined,
+              deadline: new Date(deadline).toISOString(),
+            })
+          }
+          className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+        >
+          Save
+        </button>
+        <button type="button" onClick={onCancel} className="font-mono text-xs font-bold text-muted uppercase hover:underline">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function RememberPage() {
   const { user } = useAuth();
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -46,6 +101,7 @@ export default function RememberPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -82,6 +138,19 @@ export default function RememberPage() {
       await deleteReminderEverywhere(webApiClient, reminderId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete reminder");
+    }
+  }
+
+  async function handleSaveEdit(reminderId: string, patch: { title: string; note?: string; deadline: string }) {
+    if (!user || !db) return;
+    try {
+      await updateReminder(db, user.uid, reminderId, patch);
+      setEditingId(null);
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error("Could not sync reminder to Google Calendar", err),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update reminder");
     }
   }
 
@@ -137,28 +206,38 @@ export default function RememberPage() {
               key={reminder.id}
               className={`flex items-center justify-between gap-3 rounded-md border-2 px-4 py-3 ${URGENCY_STYLE[urgency]}`}
             >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold">{reminder.title}</p>
-                {reminder.note && <p className="truncate text-xs text-muted">{reminder.note}</p>}
-                <p className="font-mono text-xs tracking-wide text-muted uppercase">
-                  {new Date(reminder.deadline).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold">
-                  {urgencyLabel(urgency, days)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(reminder.id)}
-                  className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
-                >
-                  Delete
-                </button>
-              </div>
+              {editingId === reminder.id ? (
+                <EditReminderForm
+                  reminder={reminder}
+                  onSave={(patch) => handleSaveEdit(reminder.id, patch)}
+                  onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <>
+                  <button type="button" onClick={() => setEditingId(reminder.id)} className="min-w-0 flex-1 text-left">
+                    <p className="truncate text-sm font-bold hover:underline">{reminder.title}</p>
+                    {reminder.note && <p className="truncate text-xs text-muted">{reminder.note}</p>}
+                    <p className="font-mono text-xs tracking-wide text-muted uppercase">
+                      {new Date(reminder.deadline).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold">
+                      {urgencyLabel(urgency, days)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(reminder.id)}
+                      className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           );
         })}
