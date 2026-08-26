@@ -28,7 +28,9 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / msPerDay);
 }
 
-function GoalForm({ onSubmit }: { onSubmit: (input: NewGoal) => void }) {
+const GOAL_EXAMPLES = ['Ship WeSplit v2', 'Read 12 books this year', 'Run a half marathon'];
+
+function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; onCancel: () => void }) {
   const theme = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -36,10 +38,16 @@ function GoalForm({ onSubmit }: { onSubmit: (input: NewGoal) => void }) {
 
   return (
     <View style={[styles.form, { borderColor: theme.border }]}>
+      <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+        New goal
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        What are you working toward?
+      </ThemedText>
       <TextInput
         value={title}
         onChangeText={setTitle}
-        placeholder="What are you working toward?"
+        placeholder="e.g. Ship WeSplit v2"
         placeholderTextColor={theme.textSecondary}
         style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
       />
@@ -57,18 +65,36 @@ function GoalForm({ onSubmit }: { onSubmit: (input: NewGoal) => void }) {
         placeholderTextColor={theme.textSecondary}
         style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
       />
-      <Pressable
-        disabled={!title.trim()}
-        onPress={() =>
-          onSubmit({
-            title: title.trim(),
-            description: description.trim() || undefined,
-            targetDate: targetDate || undefined,
-          })
-        }
-        style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-        <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Set goal</ThemedText>
-      </Pressable>
+      {!title.trim() && (
+        <View style={styles.chipRowWrap}>
+          {GOAL_EXAMPLES.map((example) => (
+            <Pressable key={example} onPress={() => setTitle(example)} style={[styles.chip, { borderColor: theme.border }]}>
+              <ThemedText type="small" themeColor="textSecondary">
+                {example}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+      )}
+      <View style={styles.goalActions}>
+        <Pressable
+          disabled={!title.trim()}
+          onPress={() =>
+            onSubmit({
+              title: title.trim(),
+              description: description.trim() || undefined,
+              targetDate: targetDate || undefined,
+            })
+          }
+          style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
+          <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Set goal</ThemedText>
+        </Pressable>
+        <Pressable onPress={onCancel}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Cancel
+          </ThemedText>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -161,16 +187,29 @@ function GoalCard({
               </ThemedText>
             )}
             {days !== null && (
-              <ThemedText type="small" themeColor="textSecondary">
-                {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d left`}
+              <ThemedText type="small" themeColor={days < 0 ? undefined : 'textSecondary'} style={days < 0 ? styles.deleteText : undefined}>
+                {days < 0
+                  ? `${Math.abs(days)}d overdue`
+                  : days === 0
+                    ? 'Due today'
+                    : `${days}d left · ${new Date(goal.targetDate!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
               </ThemedText>
             )}
           </Pressable>
         )}
         {!editing && (
           <View style={{ alignItems: 'flex-end', gap: Spacing.one }}>
-            <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
-              <ThemedText type="code" style={styles.badgeText}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: goal.status === 'completed' ? theme.primary : theme.accent,
+                },
+              ]}>
+              <ThemedText
+                type="code"
+                style={[styles.badgeText, goal.status === 'completed' ? { color: theme.primaryForeground } : undefined]}>
                 {goal.status}
               </ThemedText>
             </View>
@@ -206,7 +245,7 @@ function GoalCard({
         </ThemedText>
       </View>
 
-      {linkedTasks.length > 0 && (
+      {linkedTasks.length > 0 ? (
         <View style={{ gap: Spacing.half }}>
           {linkedTasks.map((task) => (
             <View key={task.id} style={styles.linkedTaskRow}>
@@ -224,38 +263,46 @@ function GoalCard({
             </View>
           ))}
         </View>
+      ) : (
+        <ThemedText type="small" themeColor="textSecondary" style={styles.italicText}>
+          No tasks linked yet — link one or add a new one below.
+        </ThemedText>
       )}
 
-      <View style={styles.chipRowWrap}>
-        {unlinkedTasks.map((t) => (
+      <View style={[styles.linkSection, { borderColor: theme.border }]}>
+        <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+          Link tasks to this goal
+        </ThemedText>
+        <View style={styles.chipRowWrap}>
+          {unlinkedTasks.map((t) => (
+            <Pressable
+              key={t.id}
+              onPress={() => onLinkTask(t.id)}
+              style={[styles.chip, { borderColor: theme.border }]}>
+              <ThemedText type="small">+ {t.title}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.newTaskRow}>
+          <TextInput
+            value={newTaskTitle}
+            onChangeText={setNewTaskTitle}
+            placeholder="Or create a new task…"
+            placeholderTextColor={theme.textSecondary}
+            style={[styles.input, { flex: 1, color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          />
           <Pressable
-            key={t.id}
-            onPress={() => onLinkTask(t.id)}
-            style={[styles.chip, { borderColor: theme.border }]}>
-            <ThemedText type="small">+ {t.title}</ThemedText>
+            disabled={!newTaskTitle.trim()}
+            onPress={() => {
+              onNewTask(newTaskTitle.trim());
+              setNewTaskTitle('');
+            }}
+            style={[styles.smallButton, { borderColor: theme.border, opacity: newTaskTitle.trim() ? 1 : 0.5 }]}>
+            <ThemedText type="small" style={{ fontWeight: '700' }}>
+              Add
+            </ThemedText>
           </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.newTaskRow}>
-        <TextInput
-          value={newTaskTitle}
-          onChangeText={setNewTaskTitle}
-          placeholder="New task for this goal…"
-          placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { flex: 1, color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
-        />
-        <Pressable
-          disabled={!newTaskTitle.trim()}
-          onPress={() => {
-            onNewTask(newTaskTitle.trim());
-            setNewTaskTitle('');
-          }}
-          style={[styles.smallButton, { borderColor: theme.border, opacity: newTaskTitle.trim() ? 1 : 0.5 }]}>
-          <ThemedText type="small" style={{ fontWeight: '700' }}>
-            Add
-          </ThemedText>
-        </Pressable>
+        </View>
       </View>
     </ThemedView>
   );
@@ -290,7 +337,45 @@ export default function GoalsScreen() {
     }
   }
 
-  const activeGoals = goals.filter((g) => g.status !== 'archived');
+  const activeGoals = goals.filter((g) => g.status === 'active');
+  const completedGoals = goals.filter((g) => g.status === 'completed');
+  const overallPercent =
+    activeGoals.length > 0
+      ? Math.round(
+          (activeGoals.reduce((sum, g) => sum + computeGoalProgress(g, tasks).percent, 0) / activeGoals.length) * 100,
+        )
+      : 0;
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  function renderGoalCard(goal: Goal) {
+    return (
+      <GoalCard
+        key={goal.id}
+        goal={goal}
+        tasks={tasks}
+        onEdit={(patch) => user && db && updateGoal(db, user.uid, goal.id, patch)}
+        onComplete={() => user && db && setGoalStatus(db, user.uid, goal.id, 'completed')}
+        onArchive={() => user && db && setGoalStatus(db, user.uid, goal.id, 'archived')}
+        onDelete={() => user && db && deleteGoal(db, user.uid, goal.id)}
+        onLinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: goal.id })}
+        onUnlinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: undefined })}
+        onNewTask={(title) =>
+          user &&
+          db &&
+          createTask(db, user.uid, {
+            title,
+            status: 'todo',
+            priority: 'medium',
+            difficulty: 'medium',
+            category: 'personal',
+            source: 'manual',
+            tags: [],
+            goalId: goal.id,
+          })
+        }
+      />
+    );
+  }
 
   return (
     <ThemedView style={styles.screen}>
@@ -314,50 +399,54 @@ export default function GoalsScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {formOpen && <GoalForm onSubmit={handleCreate} />}
+          <View style={styles.statsRow}>
+            <View style={[styles.statTile, { borderColor: theme.border }]}>
+              <ThemedText type="subtitle" themeColor="primary">
+                {activeGoals.length}
+              </ThemedText>
+              <ThemedText type="code" themeColor="textSecondary" style={styles.statLabel}>
+                Active
+              </ThemedText>
+            </View>
+            <View style={[styles.statTile, { borderColor: theme.border }]}>
+              <ThemedText type="subtitle">{completedGoals.length}</ThemedText>
+              <ThemedText type="code" themeColor="textSecondary" style={styles.statLabel}>
+                Completed
+              </ThemedText>
+            </View>
+            <View style={[styles.statTile, { borderColor: theme.border }]}>
+              <ThemedText type="subtitle">{overallPercent}%</ThemedText>
+              <ThemedText type="code" themeColor="textSecondary" style={styles.statLabel}>
+                Avg. progress
+              </ThemedText>
+            </View>
+          </View>
+
+          {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
           {error && (
             <ThemedText themeColor="text" style={styles.error}>
               {error}
             </ThemedText>
           )}
-          {activeGoals.length > 0 ? (
-            <View style={{ gap: Spacing.three }}>
-              {activeGoals.map((goal) => (
-                <GoalCard
-                  key={goal.id}
-                  goal={goal}
-                  tasks={tasks}
-                  onEdit={(patch) => user && db && updateGoal(db, user.uid, goal.id, patch)}
-                  onComplete={() => user && db && setGoalStatus(db, user.uid, goal.id, 'completed')}
-                  onArchive={() => user && db && setGoalStatus(db, user.uid, goal.id, 'archived')}
-                  onDelete={() => user && db && deleteGoal(db, user.uid, goal.id)}
-                  onLinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: goal.id })}
-                  onUnlinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: undefined })}
-                  onNewTask={(title) =>
-                    user &&
-                    db &&
-                    createTask(db, user.uid, {
-                      title,
-                      status: 'todo',
-                      priority: 'medium',
-                      difficulty: 'medium',
-                      category: 'personal',
-                      source: 'manual',
-                      tags: [],
-                      goalId: goal.id,
-                    })
-                  }
-                />
-              ))}
-            </View>
-          ) : (
-            !formOpen && (
-              <ThemedView type="backgroundElement" style={styles.emptyState}>
-                <ThemedText themeColor="textSecondary">
-                  No goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
+          {activeGoals.length > 0 && <View style={{ gap: Spacing.three }}>{activeGoals.map(renderGoalCard)}</View>}
+
+          {activeGoals.length === 0 && !formOpen && (
+            <ThemedView type="backgroundElement" style={styles.emptyState}>
+              <ThemedText themeColor="textSecondary">
+                No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
+              </ThemedText>
+            </ThemedView>
+          )}
+
+          {completedGoals.length > 0 && (
+            <View style={{ gap: Spacing.two }}>
+              <Pressable onPress={() => setShowCompleted((v) => !v)}>
+                <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+                  {showCompleted ? '▾' : '▸'} Completed ({completedGoals.length})
                 </ThemedText>
-              </ThemedView>
-            )
+              </Pressable>
+              {showCompleted && <View style={{ gap: Spacing.three }}>{completedGoals.map(renderGoalCard)}</View>}
+            </View>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -393,4 +482,9 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   newTaskRow: { flexDirection: 'row', gap: Spacing.one, alignItems: 'center' },
   smallButton: { borderWidth: 2, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  statsRow: { flexDirection: 'row', gap: Spacing.two, marginBottom: Spacing.three },
+  statTile: { flex: 1, borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center', gap: 2 },
+  statLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
+  linkSection: { gap: Spacing.one, borderTopWidth: 1, paddingTop: Spacing.two },
+  italicText: { fontStyle: 'italic' },
 });
