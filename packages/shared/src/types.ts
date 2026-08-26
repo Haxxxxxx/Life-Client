@@ -320,9 +320,10 @@ export interface DailyLesson {
   wordLanguage: "en" | "fr";
   wordDefinition: string;
   wordExample: string;
-  articleTopic: string;
-  articleReason: string; // why this topic was suggested
-  articleUrl?: string; // a real Wikipedia article matching articleTopic, when a match was found
+  articleTopic: string; // the real article's headline
+  articleReason: string; // why this article was picked
+  articleSource?: string; // the publication it came from, e.g. "Quanta Magazine"
+  articleUrl?: string; // the real article's URL, picked from a curated set of science/tech RSS feeds
   createdAt: string;
 }
 
