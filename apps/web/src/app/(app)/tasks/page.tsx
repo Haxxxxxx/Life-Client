@@ -274,6 +274,16 @@ export default function TasksPage() {
                   </p>
                 </button>
                 <div className="flex shrink-0 items-center gap-2">
+                  {task.sourceUrl && (
+                    <a
+                      href={task.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+                    >
+                      View on {task.source === "gitlab" ? "GitLab" : "GitHub"} ↗
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => setTaskStatus(db!, user!.uid, task.id, nextStatus(task.status))}

@@ -48,7 +48,7 @@ import {
 } from '@life-client/shared';
 import { Link, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -227,6 +227,13 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
             <ThemedText type="code" themeColor="textSecondary">
               {task.status}
             </ThemedText>
+            {task.sourceUrl && (
+              <Pressable onPress={() => Linking.openURL(task.sourceUrl!)}>
+                <ThemedText type="small" themeColor="primary">
+                  {task.source === 'gitlab' ? 'GitLab' : 'GitHub'} ↗
+                </ThemedText>
+              </Pressable>
+            )}
             <Pressable onPress={() => db && deleteTask(db, uid, task.id)}>
               <ThemedText type="small" style={styles.deleteText}>
                 Delete

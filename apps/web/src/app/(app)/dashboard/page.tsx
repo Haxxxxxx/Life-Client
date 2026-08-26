@@ -212,6 +212,16 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
               className={`min-w-0 flex-1 truncate text-sm ${task.status === "done" ? "text-muted line-through" : ""}`}
             />
             <span className="shrink-0 font-mono text-[10px] text-muted uppercase">{task.status}</span>
+            {task.sourceUrl && (
+              <a
+                href={task.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 font-mono text-xs font-bold text-primary uppercase hover:underline"
+              >
+                {task.source === "gitlab" ? "GitLab" : "GitHub"} ↗
+              </a>
+            )}
             <button
               type="button"
               onClick={() => db && deleteTask(db, uid, task.id)}

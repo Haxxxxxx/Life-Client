@@ -16,7 +16,7 @@ import {
   type TaskStatus,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -317,6 +317,13 @@ export default function TasksScreen() {
                   </ThemedText>
                 </Pressable>
                 <View style={styles.taskActions}>
+                  {item.sourceUrl && (
+                    <Pressable onPress={() => Linking.openURL(item.sourceUrl!)}>
+                      <ThemedText type="small" themeColor="primary">
+                        {item.source === 'gitlab' ? 'GitLab' : 'GitHub'} ↗
+                      </ThemedText>
+                    </Pressable>
+                  )}
                   <Pressable
                     onPress={() => setTaskStatus(db!, user!.uid, item.id, nextStatus(item.status))}
                     style={[styles.pillButton, { borderColor: theme.border }]}>
