@@ -13,3 +13,4 @@ export * from "./remindersApi";
 export * from "./spotify";
 export * from "./spotifyApi";
 export * from "./challenges";
+export * from "./goals";

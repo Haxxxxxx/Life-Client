@@ -3,13 +3,18 @@
 import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
+  TASK_PRIORITIES,
   createTask,
   deleteTask,
   setTaskStatus,
+  subscribeGoals,
   subscribeTasks,
+  updateTask,
+  type Goal,
   type Task,
   type TaskCategory,
   type TaskDifficulty,
+  type TaskPriority,
   type TaskStatus,
 } from "@life-client/shared";
 import { useEffect, useState } from "react";
@@ -32,18 +37,128 @@ const DIFFICULTY_LABEL = Object.fromEntries(TASK_DIFFICULTIES.map((d) => [d.id, 
   string
 >;
 
+function EditTaskForm({
+  task,
+  goals,
+  onSave,
+  onCancel,
+}: {
+  task: Task;
+  goals: Goal[];
+  onSave: (patch: Partial<Task>) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(task.title);
+  const [category, setCategory] = useState<TaskCategory>(task.category);
+  const [difficulty, setDifficulty] = useState<TaskDifficulty>(task.difficulty);
+  const [priority, setPriority] = useState<TaskPriority>(task.priority);
+  const [dueDate, setDueDate] = useState(task.dueDate ?? "");
+  const [goalId, setGoalId] = useState(task.goalId ?? "");
+
+  return (
+    <div className="flex flex-1 flex-col gap-2">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+      />
+      <div className="flex flex-wrap gap-2">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as TaskCategory)}
+          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+        >
+          {TASK_CATEGORIES.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
+          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+        >
+          {TASK_DIFFICULTIES.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as TaskPriority)}
+          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+        >
+          {TASK_PRIORITIES.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label} priority
+            </option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+        />
+        <select
+          value={goalId}
+          onChange={(e) => setGoalId(e.target.value)}
+          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+        >
+          <option value="">No goal</option>
+          {goals.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() =>
+            onSave({
+              title: title.trim() || task.title,
+              category,
+              difficulty,
+              priority,
+              dueDate: dueDate || undefined,
+              goalId: goalId || undefined,
+            })
+          }
+          className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+        >
+          Save
+        </button>
+        <button type="button" onClick={onCancel} className="font-mono text-xs font-bold text-muted uppercase hover:underline">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TasksPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [title, setTitle] = useState("");
   const [difficulty, setDifficulty] = useState<TaskDifficulty>("medium");
   const [category, setCategory] = useState<TaskCategory>("work");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
     return subscribeTasks(db, user.uid, setTasks, (err) => setError(err.message));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    return subscribeGoals(db, user.uid, setGoals);
   }, [user]);
 
   async function handleAddTask(e: React.FormEvent) {
@@ -133,32 +248,49 @@ export default function TasksPage() {
             key={task.id}
             className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-3"
           >
-            <div className="min-w-0">
-              <p className={`truncate text-sm ${task.status === "done" ? "text-muted line-through" : ""}`}>
-                {task.title}
-              </p>
-              <p className="font-mono text-xs tracking-wide text-muted uppercase">
-                {STATUS_LABEL[task.status]} · {task.source}
-                {task.category && ` · ${CATEGORY_LABEL[task.category]}`}
-                {task.difficulty && ` · ${DIFFICULTY_LABEL[task.difficulty]}`}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setTaskStatus(db!, user!.uid, task.id, nextStatus(task.status))}
-                className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
-              >
-                Mark {STATUS_LABEL[nextStatus(task.status)]}
-              </button>
-              <button
-                type="button"
-                onClick={() => deleteTask(db!, user!.uid, task.id)}
-                className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
-              >
-                Delete
-              </button>
-            </div>
+            {editingId === task.id ? (
+              <EditTaskForm
+                task={task}
+                goals={goals}
+                onSave={(patch) => {
+                  updateTask(db!, user!.uid, task.id, patch);
+                  setEditingId(null);
+                }}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <>
+                <button type="button" onClick={() => setEditingId(task.id)} className="min-w-0 flex-1 text-left">
+                  <p
+                    className={`truncate text-sm hover:underline ${task.status === "done" ? "text-muted line-through" : ""}`}
+                  >
+                    {task.title}
+                  </p>
+                  <p className="font-mono text-xs tracking-wide text-muted uppercase">
+                    {STATUS_LABEL[task.status]} · {task.source}
+                    {task.category && ` · ${CATEGORY_LABEL[task.category]}`}
+                    {task.difficulty && ` · ${DIFFICULTY_LABEL[task.difficulty]}`}
+                    {task.goalId && ` · ${goals.find((g) => g.id === task.goalId)?.title ?? "Goal"}`}
+                  </p>
+                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTaskStatus(db!, user!.uid, task.id, nextStatus(task.status))}
+                    className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+                  >
+                    Mark {STATUS_LABEL[nextStatus(task.status)]}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteTask(db!, user!.uid, task.id)}
+                    className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
           </li>
         ))}
         {tasks.length === 0 && (

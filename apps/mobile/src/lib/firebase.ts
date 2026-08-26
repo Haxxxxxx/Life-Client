@@ -6,7 +6,7 @@ import { initFirebaseApp } from "@life-client/shared";
 // Metro resolves the real "react-native" JS bundle correctly at runtime and it's there.
 // @ts-expect-error — see comment above; real implementation exists at runtime.
 import { getReactNativePersistence, initializeAuth } from "@firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -27,7 +27,10 @@ export const firebaseApp = isFirebaseConfigured ? initFirebaseApp(firebaseConfig
 export const auth = firebaseApp
   ? initializeAuth(firebaseApp, { persistence: getReactNativePersistence(AsyncStorage) })
   : null;
-export const db = firebaseApp ? getFirestore(firebaseApp) : null;
+// ignoreUndefinedProperties lets patches omit/clear optional fields (e.g.
+// `dueDate: undefined` to clear it) without Firestore throwing on the
+// literal `undefined` — matches the admin SDK setting used server-side.
+export const db = firebaseApp ? initializeFirestore(firebaseApp, { ignoreUndefinedProperties: true }) : null;
 
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
 

@@ -8,6 +8,7 @@ import {
   reminderUrgency,
   subscribeReminders,
   syncReminderToCalendar,
+  updateReminder,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -43,6 +44,72 @@ function urgencyLabel(urgency: ReminderUrgency, days: number): string {
   return `${days}d`;
 }
 
+function EditReminderForm({
+  reminder,
+  onSave,
+  onCancel,
+}: {
+  reminder: Reminder;
+  onSave: (patch: { title: string; note?: string; deadline: string }) => void;
+  onCancel: () => void;
+}) {
+  const theme = useTheme();
+  const [title, setTitle] = useState(reminder.title);
+  const [note, setNote] = useState(reminder.note ?? '');
+  const [offsetDays, setOffsetDays] = useState(7);
+
+  return (
+    <View style={{ flex: 1, gap: Spacing.one }}>
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder="Notes"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <View style={styles.chipRow}>
+        {QUICK_OFFSETS.map((opt) => {
+          const active = opt.days === offsetDays;
+          return (
+            <Pressable
+              key={opt.days}
+              onPress={() => setOffsetDays(opt.days)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                In {opt.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.cardActions}>
+        <Pressable
+          onPress={() =>
+            onSave({
+              title: title.trim() || reminder.title,
+              note: note.trim() || undefined,
+              deadline: new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000).toISOString(),
+            })
+          }>
+          <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+            Save
+          </ThemedText>
+        </Pressable>
+        <Pressable onPress={onCancel}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Cancel
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function RememberScreen() {
   const { user } = useAuth();
   const theme = useTheme();
@@ -51,6 +118,7 @@ export default function RememberScreen() {
   const [note, setNote] = useState('');
   const [offsetDays, setOffsetDays] = useState(7);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -83,6 +151,19 @@ export default function RememberScreen() {
       await deleteReminderEverywhere(webApiClient, reminderId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete reminder');
+    }
+  }
+
+  async function handleSaveEdit(reminderId: string, patch: { title: string; note?: string; deadline: string }) {
+    if (!user || !db) return;
+    try {
+      await updateReminder(db, user.uid, reminderId, patch);
+      setEditingId(null);
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error('Could not sync reminder to Google Calendar', err),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update reminder');
     }
   }
 
@@ -164,11 +245,22 @@ export default function RememberScreen() {
             const days = daysUntil(item.deadline);
             const borderKey = URGENCY_BORDER[urgency];
             const borderColor = borderKey === 'primary' ? theme.primary : borderKey === 'border' ? theme.border : borderKey;
+            if (editingId === item.id) {
+              return (
+                <ThemedView type="backgroundElement" style={[styles.card, { borderColor }]}>
+                  <EditReminderForm
+                    reminder={item}
+                    onSave={(patch) => handleSaveEdit(item.id, patch)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                </ThemedView>
+              );
+            }
             return (
               <ThemedView
                 type={isDueSoon(item.deadline) ? 'backgroundSelected' : 'backgroundElement'}
                 style={[styles.card, { borderColor }]}>
-                <View style={styles.cardInfo}>
+                <Pressable style={styles.cardInfo} onPress={() => setEditingId(item.id)}>
                   <ThemedText type="smallBold">{item.title}</ThemedText>
                   {item.note && (
                     <ThemedText type="small" themeColor="textSecondary">
@@ -178,7 +270,7 @@ export default function RememberScreen() {
                   <ThemedText type="code" themeColor="textSecondary">
                     {new Date(item.deadline).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                   </ThemedText>
-                </View>
+                </Pressable>
                 <View style={styles.cardActions}>
                   <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
                     <ThemedText type="code" style={styles.badgeText}>

@@ -1,13 +1,18 @@
 import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
+  TASK_PRIORITIES,
   createTask,
   deleteTask,
   setTaskStatus,
+  subscribeGoals,
   subscribeTasks,
+  updateTask,
+  type Goal,
   type Task,
   type TaskCategory,
   type TaskDifficulty,
+  type TaskPriority,
   type TaskStatus,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
@@ -42,18 +47,144 @@ function nextStatus(status: TaskStatus): TaskStatus {
   return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]!;
 }
 
+function EditTaskForm({
+  task,
+  goals,
+  onSave,
+  onCancel,
+}: {
+  task: Task;
+  goals: Goal[];
+  onSave: (patch: Partial<Task>) => void;
+  onCancel: () => void;
+}) {
+  const theme = useTheme();
+  const [title, setTitle] = useState(task.title);
+  const [category, setCategory] = useState<TaskCategory>(task.category);
+  const [difficulty, setDifficulty] = useState<TaskDifficulty>(task.difficulty);
+  const [priority, setPriority] = useState<TaskPriority>(task.priority);
+  const [dueDate, setDueDate] = useState(task.dueDate ?? '');
+  const [goalId, setGoalId] = useState(task.goalId ?? '');
+
+  return (
+    <View style={{ flex: 1, gap: Spacing.one }}>
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <View style={styles.chipRowWrap}>
+        {TASK_CATEGORIES.map((c) => {
+          const active = c.id === category;
+          return (
+            <Pressable
+              key={c.id}
+              onPress={() => setCategory(c.id)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                {c.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.chipRowWrap}>
+        {TASK_DIFFICULTIES.map((d) => {
+          const active = d.id === difficulty;
+          return (
+            <Pressable
+              key={d.id}
+              onPress={() => setDifficulty(d.id)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
+                {d.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.chipRowWrap}>
+        {TASK_PRIORITIES.map((p) => {
+          const active = p.id === priority;
+          return (
+            <Pressable
+              key={p.id}
+              onPress={() => setPriority(p.id)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                {p.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <TextInput
+        value={dueDate}
+        onChangeText={setDueDate}
+        placeholder="Due date YYYY-MM-DD"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <View style={styles.chipRowWrap}>
+        <Pressable
+          onPress={() => setGoalId('')}
+          style={[styles.chip, { borderColor: theme.border, backgroundColor: !goalId ? theme.accent : 'transparent' }]}>
+          <ThemedText type="small">No goal</ThemedText>
+        </Pressable>
+        {goals.map((g) => (
+          <Pressable
+            key={g.id}
+            onPress={() => setGoalId(g.id)}
+            style={[styles.chip, { borderColor: theme.border, backgroundColor: goalId === g.id ? theme.accent : 'transparent' }]}>
+            <ThemedText type="small">{g.title}</ThemedText>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.taskActions}>
+        <Pressable
+          onPress={() =>
+            onSave({
+              title: title.trim() || task.title,
+              category,
+              difficulty,
+              priority,
+              dueDate: dueDate || undefined,
+              goalId: goalId || undefined,
+            })
+          }>
+          <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+            Save
+          </ThemedText>
+        </Pressable>
+        <Pressable onPress={onCancel}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Cancel
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function TasksScreen() {
   const { user } = useAuth();
   const theme = useTheme();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<TaskCategory>('work');
   const [difficulty, setDifficulty] = useState<TaskDifficulty>('medium');
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
     return subscribeTasks(db, user.uid, setTasks, (err) => setError(err.message));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    return subscribeGoals(db, user.uid, setGoals);
   }, [user]);
 
   async function handleAdd() {
@@ -156,35 +287,50 @@ export default function TasksScreen() {
               <ThemedText themeColor="textSecondary">No tasks yet — add your first one above.</ThemedText>
             </ThemedView>
           }
-          renderItem={({ item }) => (
-            <ThemedView type="backgroundElement" style={[styles.taskCard, { borderColor: theme.border }]}>
-              <View style={styles.taskInfo}>
-                <ThemedText
-                  numberOfLines={1}
-                  style={item.status === 'done' ? styles.doneText : undefined}
-                  themeColor={item.status === 'done' ? 'textSecondary' : 'text'}>
-                  {item.title}
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {STATUS_LABEL[item.status]} · {item.source}
-                  {item.category && ` · ${CATEGORY_LABEL[item.category]}`}
-                  {item.difficulty && ` · ${DIFFICULTY_LABEL[item.difficulty]}`}
-                </ThemedText>
-              </View>
-              <View style={styles.taskActions}>
-                <Pressable
-                  onPress={() => setTaskStatus(db!, user!.uid, item.id, nextStatus(item.status))}
-                  style={[styles.pillButton, { borderColor: theme.border }]}>
-                  <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
-                </Pressable>
-                <Pressable onPress={() => deleteTask(db!, user!.uid, item.id)} style={styles.deleteButton}>
-                  <ThemedText type="small" style={styles.deleteText}>
-                    Delete
+          renderItem={({ item }) =>
+            editingId === item.id ? (
+              <ThemedView type="backgroundElement" style={[styles.taskCard, { borderColor: theme.border }]}>
+                <EditTaskForm
+                  task={item}
+                  goals={goals}
+                  onSave={(patch) => {
+                    updateTask(db!, user!.uid, item.id, patch);
+                    setEditingId(null);
+                  }}
+                  onCancel={() => setEditingId(null)}
+                />
+              </ThemedView>
+            ) : (
+              <ThemedView type="backgroundElement" style={[styles.taskCard, { borderColor: theme.border }]}>
+                <Pressable style={styles.taskInfo} onPress={() => setEditingId(item.id)}>
+                  <ThemedText
+                    numberOfLines={1}
+                    style={item.status === 'done' ? styles.doneText : undefined}
+                    themeColor={item.status === 'done' ? 'textSecondary' : 'text'}>
+                    {item.title}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {STATUS_LABEL[item.status]} · {item.source}
+                    {item.category && ` · ${CATEGORY_LABEL[item.category]}`}
+                    {item.difficulty && ` · ${DIFFICULTY_LABEL[item.difficulty]}`}
+                    {item.goalId && ` · ${goals.find((g) => g.id === item.goalId)?.title ?? 'Goal'}`}
                   </ThemedText>
                 </Pressable>
-              </View>
-            </ThemedView>
-          )}
+                <View style={styles.taskActions}>
+                  <Pressable
+                    onPress={() => setTaskStatus(db!, user!.uid, item.id, nextStatus(item.status))}
+                    style={[styles.pillButton, { borderColor: theme.border }]}>
+                    <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
+                  </Pressable>
+                  <Pressable onPress={() => deleteTask(db!, user!.uid, item.id)} style={styles.deleteButton}>
+                    <ThemedText type="small" style={styles.deleteText}>
+                      Delete
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </ThemedView>
+            )
+          }
         />
       </SafeAreaView>
     </ThemedView>

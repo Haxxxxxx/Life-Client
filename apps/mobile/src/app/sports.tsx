@@ -6,6 +6,7 @@ import {
   type SportActivity,
   type SportActivityKind,
   archiveChallenge,
+  computeChallengeMilestones,
   computeChallengeProgress,
   createChallenge,
   createManualSportActivity,
@@ -13,6 +14,7 @@ import {
   deleteSportActivity,
   subscribeChallenges,
   subscribeSportActivities,
+  updateChallenge,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -318,37 +320,109 @@ function ChallengeCard({
   activities,
   onArchive,
   onDelete,
+  onSave,
 }: {
   challenge: Challenge;
   activities: SportActivity[];
   onArchive: () => void;
   onDelete: () => void;
+  onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
 }) {
   const theme = useTheme();
   const progress = computeChallengeProgress(challenge, activities);
+  const milestones = computeChallengeMilestones(challenge, progress);
   const unit = METRICS.find((m) => m.id === challenge.metric)!.unit;
+
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(challenge.title);
+  const [dailyTarget, setDailyTarget] = useState(String(challenge.dailyTarget));
+  const [durationDays, setDurationDays] = useState(String(challenge.durationDays));
+
+  function startEdit() {
+    setTitle(challenge.title);
+    setDailyTarget(String(challenge.dailyTarget));
+    setDurationDays(String(challenge.durationDays));
+    setEditing(true);
+  }
+
+  function save() {
+    onSave({
+      title: title.trim() || challenge.title,
+      dailyTarget: Number(dailyTarget) || challenge.dailyTarget,
+      durationDays: Number(durationDays) || challenge.durationDays,
+    });
+    setEditing(false);
+  }
 
   return (
     <ThemedView type="backgroundElement" style={[styles.challengeCard, { borderColor: theme.border }]}>
       <View style={styles.challengeHeaderRow}>
-        <View style={{ flex: 1 }}>
-          <ThemedText type="smallBold">{challenge.title}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {challenge.exerciseType} · {challenge.dailyTarget} {unit}/day
-          </ThemedText>
-        </View>
-        <View style={styles.challengeActions}>
-          <Pressable onPress={onArchive}>
+        {editing ? (
+          <View style={{ flex: 1, gap: Spacing.one }}>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            />
+            <View style={styles.formRow}>
+              <View style={styles.formField}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Daily target
+                </ThemedText>
+                <TextInput
+                  value={dailyTarget}
+                  onChangeText={setDailyTarget}
+                  keyboardType="number-pad"
+                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                />
+              </View>
+              <View style={styles.formField}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Duration (days)
+                </ThemedText>
+                <TextInput
+                  value={durationDays}
+                  onChangeText={setDurationDays}
+                  keyboardType="number-pad"
+                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                />
+              </View>
+            </View>
+            <View style={styles.challengeActions}>
+              <Pressable onPress={save}>
+                <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+                  Save
+                </ThemedText>
+              </Pressable>
+              <Pressable onPress={() => setEditing(false)}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Cancel
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <Pressable style={{ flex: 1 }} onPress={startEdit}>
+            <ThemedText type="smallBold">{challenge.title}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Archive
+              {challenge.exerciseType} · {challenge.dailyTarget} {unit}/day
             </ThemedText>
           </Pressable>
-          <Pressable onPress={onDelete}>
-            <ThemedText type="small" style={styles.deleteText}>
-              Delete
-            </ThemedText>
-          </Pressable>
-        </View>
+        )}
+        {!editing && (
+          <View style={styles.challengeActions}>
+            <Pressable onPress={onArchive}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Archive
+              </ThemedText>
+            </Pressable>
+            <Pressable onPress={onDelete}>
+              <ThemedText type="small" style={styles.deleteText}>
+                Delete
+              </ThemedText>
+            </Pressable>
+          </View>
+        )}
       </View>
       <View style={styles.challengeStatsRow}>
         <View style={styles.stat}>
@@ -373,6 +447,25 @@ function ChallengeCard({
             days completed
           </ThemedText>
         </View>
+      </View>
+      <View style={styles.milestoneRow}>
+        {milestones.map((m) => (
+          <View
+            key={m.thresholdPercent}
+            style={[
+              styles.milestoneChip,
+              {
+                borderColor: m.achieved ? theme.primary : theme.border,
+                backgroundColor: m.achieved ? theme.primary : 'transparent',
+              },
+            ]}>
+            <ThemedText
+              type="small"
+              style={m.achieved ? { color: theme.primaryForeground, fontWeight: '700' } : { color: theme.textSecondary }}>
+              {m.label}
+            </ThemedText>
+          </View>
+        ))}
       </View>
       <View style={styles.dayGrid}>
         {progress.days.map((day) => (
@@ -451,6 +544,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               activities={activities}
               onArchive={() => user && db && archiveChallenge(db, user.uid, challenge.id)}
               onDelete={() => user && db && deleteChallenge(db, user.uid, challenge.id)}
+              onSave={(patch) => user && db && updateChallenge(db, user.uid, challenge.id, patch)}
             />
           ))}
         </View>
@@ -639,4 +733,6 @@ const styles = StyleSheet.create({
   challengeStatsRow: { flexDirection: 'row', gap: Spacing.four },
   dayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
   daySquare: { width: 10, height: 10, borderRadius: 2, borderWidth: 1 },
+  milestoneRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  milestoneChip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
 });
