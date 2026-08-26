@@ -2,34 +2,57 @@
 
 import {
   type CalendarEvent,
+  type Challenge,
   type CodeDrill,
   type DailyLesson,
   type DevActivitySummary,
+  type Goal,
   type ReadingListItem,
   type Reminder,
+  type ReminderUrgency,
   type SportActivity,
   type SpotifySummary,
   type Task,
+  type TaskStatus,
   type VocabWord,
+  archiveChallenge,
+  computeChallengeProgress,
+  computeGoalProgress,
   computeInsightXp,
-  isDueSoon,
+  createReminder,
+  daysUntil,
+  deleteChallenge,
+  deleteGoal,
+  deleteReminderEverywhere,
+  deleteTask,
   levelFromXp,
+  reminderUrgency,
+  setGoalStatus,
+  setTaskStatus,
   subscribeCalendarEvents,
+  subscribeChallenges,
   subscribeCodeDrills,
   subscribeDailyLessons,
   subscribeDevActivity,
+  subscribeGoals,
   subscribeReadingList,
   subscribeReminders,
   subscribeSportActivities,
   subscribeSpotifySummary,
   subscribeTasks,
   subscribeVocabWords,
+  syncReminderToCalendar,
   todayLessonId,
+  updateChallenge,
+  updateGoal,
+  updateReminder,
+  updateTask,
 } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
+import { webApiClient } from "@/lib/webApiClient";
 
 // Knowledge lives in its own deployable app (apps/knowledge) — same link-out as the sidebar nav.
 const KNOWLEDGE_APP_URL = process.env.NEXT_PUBLIC_KNOWLEDGE_APP_URL;
@@ -37,15 +60,7 @@ const KNOWLEDGE_APP_URL = process.env.NEXT_PUBLIC_KNOWLEDGE_APP_URL;
 const cardClassName =
   "flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-5 shadow-[3px_3px_0_0_var(--foreground)] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--foreground)]";
 
-function Card({
-  title,
-  href,
-  children,
-}: {
-  title: string;
-  href: string;
-  children: React.ReactNode;
-}) {
+function Card({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
   return (
     <Link href={href} className={cardClassName}>
       <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{title}</p>
@@ -54,15 +69,7 @@ function Card({
   );
 }
 
-function ExternalCard({
-  title,
-  href,
-  children,
-}: {
-  title: string;
-  href: string;
-  children: React.ReactNode;
-}) {
+function ExternalCard({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className={cardClassName}>
       <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{title}</p>
@@ -71,9 +78,499 @@ function ExternalCard({
   );
 }
 
+function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div>
+      <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{eyebrow}</p>
+      <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+    </div>
+  );
+}
+
+function RenameField({
+  value,
+  onSave,
+  className,
+}: {
+  value: string;
+  onSave: (next: string) => void;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(value);
+          setEditing(true);
+        }}
+        className={`text-left hover:underline ${className ?? ""}`}
+      >
+        {value}
+      </button>
+    );
+  }
+
+  function commit() {
+    if (draft.trim() && draft.trim() !== value) onSave(draft.trim());
+    setEditing(false);
+  }
+
+  return (
+    <input
+      autoFocus
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+        if (e.key === "Escape") setEditing(false);
+      }}
+      className={`rounded border-2 border-foreground bg-background px-1.5 py-0.5 text-sm ${className ?? ""}`}
+    />
+  );
+}
+
+function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkMarkDone() {
+    if (!db) return;
+    await Promise.all([...selected].map((id) => setTaskStatus(db!, uid, id, "done" as TaskStatus)));
+    setSelected(new Set());
+  }
+
+  async function bulkDelete() {
+    if (!db) return;
+    await Promise.all([...selected].map((id) => deleteTask(db!, uid, id)));
+    setSelected(new Set());
+  }
+
+  async function clearCompleted() {
+    if (!db) return;
+    const done = tasks.filter((t) => t.status === "done");
+    await Promise.all(done.map((t) => deleteTask(db!, uid, t.id)));
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <SectionHeader eyebrow="Today" title="Tasks" />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={clearCompleted}
+            className="rounded-md border-2 border-foreground px-2.5 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+          >
+            Clear completed
+          </button>
+          <Link
+            href="/tasks"
+            className="rounded-md px-2.5 py-1 font-mono text-xs font-bold text-primary uppercase hover:underline"
+          >
+            Open Tasks →
+          </Link>
+        </div>
+      </div>
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 rounded-md border-2 border-primary bg-primary/10 px-3 py-2">
+          <span className="font-mono text-xs font-bold">{selected.size} selected</span>
+          <button type="button" onClick={bulkMarkDone} className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+            Mark done
+          </button>
+          <button type="button" onClick={bulkDelete} className="font-mono text-xs font-bold text-red-600 uppercase hover:underline">
+            Delete selected
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="ml-auto font-mono text-xs font-bold text-muted uppercase hover:underline"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+      <ul className="flex flex-col gap-1">
+        {tasks.map((task) => (
+          <li key={task.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
+            <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggle(task.id)} />
+            <RenameField
+              value={task.title}
+              onSave={(next) => db && updateTask(db, uid, task.id, { title: next })}
+              className={`min-w-0 flex-1 truncate text-sm ${task.status === "done" ? "text-muted line-through" : ""}`}
+            />
+            <span className="shrink-0 font-mono text-[10px] text-muted uppercase">{task.status}</span>
+            <button
+              type="button"
+              onClick={() => db && deleteTask(db, uid, task.id)}
+              className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+        {tasks.length === 0 && <li className="px-3 py-4 text-center text-sm text-muted">No tasks.</li>}
+      </ul>
+    </div>
+  );
+}
+
+function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <SectionHeader eyebrow="Long-term" title="Goals" />
+        <Link href="/goals" className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+          Open Goals →
+        </Link>
+      </div>
+      <ul className="flex flex-col gap-1">
+        {goals.map((goal) => {
+          const progress = computeGoalProgress(goal, tasks);
+          return (
+            <li key={goal.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
+              <RenameField
+                value={goal.title}
+                onSave={(next) => db && updateGoal(db, uid, goal.id, { title: next })}
+                className="min-w-0 flex-1 truncate text-sm"
+              />
+              <span className="shrink-0 font-mono text-[10px] text-muted uppercase">
+                {progress.completedTaskCount}/{progress.linkedTaskCount} · {goal.status}
+              </span>
+              {goal.status === "active" && (
+                <button
+                  type="button"
+                  onClick={() => db && setGoalStatus(db, uid, goal.id, "completed")}
+                  className="shrink-0 font-mono text-xs font-bold text-primary uppercase hover:underline"
+                >
+                  Complete
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => db && setGoalStatus(db, uid, goal.id, "archived")}
+                className="shrink-0 font-mono text-xs font-bold text-muted uppercase hover:underline"
+              >
+                Archive
+              </button>
+              <button
+                type="button"
+                onClick={() => db && deleteGoal(db, uid, goal.id)}
+                className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+              >
+                Delete
+              </button>
+            </li>
+          );
+        })}
+        {goals.length === 0 && <li className="px-3 py-4 text-center text-sm text-muted">No goals yet.</li>}
+      </ul>
+    </div>
+  );
+}
+
+function ChallengesSection({ challenges, activities, uid }: { challenges: Challenge[]; activities: SportActivity[]; uid: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <SectionHeader eyebrow="Streaks" title="Challenges" />
+        <Link href="/sports" className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+          Open Sports →
+        </Link>
+      </div>
+      <ul className="flex flex-col gap-1">
+        {challenges.map((challenge) => {
+          const progress = computeChallengeProgress(challenge, activities);
+          return (
+            <li key={challenge.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
+              <RenameField
+                value={challenge.title}
+                onSave={(next) => db && updateChallenge(db, uid, challenge.id, { title: next })}
+                className="min-w-0 flex-1 truncate text-sm"
+              />
+              <span className="shrink-0 font-mono text-[10px] text-muted uppercase">
+                {progress.currentStreak}d streak{challenge.archived ? " · archived" : ""}
+              </span>
+              {!challenge.archived && (
+                <button
+                  type="button"
+                  onClick={() => db && archiveChallenge(db, uid, challenge.id)}
+                  className="shrink-0 font-mono text-xs font-bold text-muted uppercase hover:underline"
+                >
+                  Archive
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => db && deleteChallenge(db, uid, challenge.id)}
+                className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+              >
+                Delete
+              </button>
+            </li>
+          );
+        })}
+        {challenges.length === 0 && <li className="px-3 py-4 text-center text-sm text-muted">No challenges yet.</li>}
+      </ul>
+    </div>
+  );
+}
+
+const URGENCY_STYLE: Record<ReminderUrgency, string> = {
+  overdue: "border-red-600 bg-red-600/10",
+  "due-today": "border-primary bg-primary/10",
+  "due-soon": "border-primary bg-primary/5",
+  upcoming: "border-foreground bg-surface",
+};
+
+function urgencyLabel(urgency: ReminderUrgency, days: number): string {
+  if (urgency === "overdue") return `Overdue by ${Math.abs(days)}d`;
+  if (urgency === "due-today") return "Due today";
+  if (urgency === "due-soon") return `Due in ${days}d`;
+  return `In ${days}d`;
+}
+
+function toDatetimeLocalValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function EditReminderForm({
+  reminder,
+  onSave,
+  onCancel,
+}: {
+  reminder: Reminder;
+  onSave: (patch: { title: string; note?: string; deadline: string }) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(reminder.title);
+  const [note, setNote] = useState(reminder.note ?? "");
+  const [deadline, setDeadline] = useState(toDatetimeLocalValue(new Date(reminder.deadline)));
+
+  return (
+    <div className="flex flex-1 flex-col gap-2">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+      />
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Notes"
+        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+      />
+      <input
+        type="datetime-local"
+        value={deadline}
+        onChange={(e) => setDeadline(e.target.value)}
+        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+      />
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() =>
+            onSave({
+              title: title.trim() || reminder.title,
+              note: note.trim() || undefined,
+              deadline: new Date(deadline).toISOString(),
+            })
+          }
+          className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+        >
+          Save
+        </button>
+        <button type="button" onClick={onCancel} className="font-mono text-xs font-bold text-muted uppercase hover:underline">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: string }) {
+  const [title, setTitle] = useState("");
+  const [note, setNote] = useState("");
+  const [deadline, setDeadline] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return toDatetimeLocalValue(tomorrow);
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!db || !title.trim() || !deadline) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const reminderId = await createReminder(db, uid, {
+        title: title.trim(),
+        note: note.trim() || undefined,
+        deadline: new Date(deadline).toISOString(),
+      });
+      setTitle("");
+      setNote("");
+      setFormOpen(false);
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error("Could not sync reminder to Google Calendar", err),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create reminder");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(reminderId: string) {
+    try {
+      await deleteReminderEverywhere(webApiClient, reminderId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete reminder");
+    }
+  }
+
+  async function handleSaveEdit(reminderId: string, patch: { title: string; note?: string; deadline: string }) {
+    if (!db) return;
+    try {
+      await updateReminder(db, uid, reminderId, patch);
+      setEditingId(null);
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error("Could not sync reminder to Google Calendar", err),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update reminder");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <SectionHeader eyebrow="Deadlines" title="Remember" />
+        {!formOpen && (
+          <button
+            type="button"
+            onClick={() => setFormOpen(true)}
+            className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+          >
+            New reminder
+          </button>
+        )}
+      </div>
+
+      {formOpen && (
+        <form onSubmit={handleAdd} className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-4">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="What do you need to remember?"
+            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          />
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Notes (e.g. account it's linked to)"
+            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          />
+          <div className="flex gap-2">
+            <input
+              type="datetime-local"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              className="min-w-0 flex-1 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none focus:shadow-[2px_2px_0_0_var(--primary)]"
+            />
+            <button
+              type="submit"
+              disabled={submitting || !title.trim() || !deadline}
+              className="rounded-md border-2 border-foreground bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              className="rounded-md px-3 py-2 font-mono text-xs font-bold text-muted uppercase hover:bg-foreground/5"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <ul className="flex flex-col gap-2">
+        {reminders.map((reminder) => {
+          const urgency = reminderUrgency(reminder.deadline);
+          const days = daysUntil(reminder.deadline);
+          return (
+            <li
+              key={reminder.id}
+              className={`flex items-center justify-between gap-3 rounded-md border-2 px-4 py-3 ${URGENCY_STYLE[urgency]}`}
+            >
+              {editingId === reminder.id ? (
+                <EditReminderForm
+                  reminder={reminder}
+                  onSave={(patch) => handleSaveEdit(reminder.id, patch)}
+                  onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <>
+                  <button type="button" onClick={() => setEditingId(reminder.id)} className="min-w-0 flex-1 text-left">
+                    <p className="truncate text-sm font-bold hover:underline">{reminder.title}</p>
+                    {reminder.note && <p className="truncate text-xs text-muted">{reminder.note}</p>}
+                    <p className="font-mono text-xs tracking-wide text-muted uppercase">
+                      {new Date(reminder.deadline).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                    </p>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold">
+                      {urgencyLabel(urgency, days)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(reminder.id)}
+                      className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </li>
+          );
+        })}
+        {reminders.length === 0 && !formOpen && (
+          <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+            Nothing to remember yet — add your first deadline above.
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [activities, setActivities] = useState<SportActivity[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [github, setGithub] = useState<DevActivitySummary | null>(null);
@@ -89,7 +586,9 @@ export default function DashboardPage() {
     if (!user || !db) return;
     const unsubs = [
       subscribeTasks(db, user.uid, setTasks),
-      subscribeSportActivities(db, user.uid, setActivities, undefined, 1),
+      subscribeGoals(db, user.uid, setGoals),
+      subscribeChallenges(db, user.uid, setChallenges),
+      subscribeSportActivities(db, user.uid, setActivities),
       subscribeCalendarEvents(db, user.uid, setEvents, undefined, 3),
       subscribeDevActivity(db, user.uid, "github", setGithub),
       subscribeDevActivity(db, user.uid, "gitlab", setGitlab),
@@ -103,20 +602,21 @@ export default function DashboardPage() {
     return () => unsubs.forEach((u) => u());
   }, [user]);
 
+  if (!user) return null;
+
   const openTasks = tasks.filter((t) => t.status !== "done");
   const latestActivity = activities[0];
   const openPrCount = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
-  const dueSoonReminders = reminders.filter((r) => isDueSoon(r.deadline));
   const insightLevel = levelFromXp(computeInsightXp(lessons, drills, vocabWords, readingItems));
   const lessonDoneToday = lessons.some((l) => l.id === todayLessonId());
   const pendingReadingCount = readingItems.filter((i) => i.status !== "read").length;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+    <div className="mx-auto flex max-w-4xl flex-col gap-8">
       <div>
         <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Overview</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">
-          Welcome back{user?.displayName ? `, ${user.displayName.split(" ")[0]}` : ""}
+          Welcome back{user.displayName ? `, ${user.displayName.split(" ")[0]}` : ""}
         </h1>
       </div>
 
@@ -168,26 +668,11 @@ export default function DashboardPage() {
             <>
               <p className="truncate text-lg font-bold">{spotify.recentTracks[0]!.name}</p>
               <p className="text-sm text-muted">
-                {spotify.topArtists[0]
-                  ? `Top artist: ${spotify.topArtists[0].name}`
-                  : spotify.recentTracks[0]!.artists}
+                {spotify.topArtists[0] ? `Top artist: ${spotify.topArtists[0].name}` : spotify.recentTracks[0]!.artists}
               </p>
             </>
           ) : (
             <p className="text-sm text-muted">No listening history yet — connect Spotify.</p>
-          )}
-        </Card>
-
-        <Card title="Remember" href="/remember">
-          {dueSoonReminders.length > 0 ? (
-            <>
-              <p className="text-3xl font-bold text-primary">{dueSoonReminders.length}</p>
-              <p className="text-sm text-muted">
-                due soon — next: <span className="font-bold text-foreground">{dueSoonReminders[0]!.title}</span>
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-muted">Nothing due soon.</p>
           )}
         </Card>
 
@@ -196,13 +681,16 @@ export default function DashboardPage() {
             <p className="text-3xl font-bold">Lv {insightLevel.level}</p>
             <p className="text-sm text-muted">
               {lessonDoneToday ? "Today's lesson done" : "No lesson generated today"}
-              {pendingReadingCount > 0
-                ? ` · ${pendingReadingCount} unread article${pendingReadingCount === 1 ? "" : "s"}`
-                : ""}
+              {pendingReadingCount > 0 ? ` · ${pendingReadingCount} unread article${pendingReadingCount === 1 ? "" : "s"}` : ""}
             </p>
           </ExternalCard>
         )}
       </div>
+
+      <TasksSection tasks={tasks} uid={user.uid} />
+      <GoalsSection goals={goals} tasks={tasks} uid={user.uid} />
+      <ChallengesSection challenges={challenges} activities={activities} uid={user.uid} />
+      <RemindersSection reminders={reminders} uid={user.uid} />
     </div>
   );
 }
