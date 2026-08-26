@@ -48,11 +48,19 @@ export interface GradeResult {
   feedback: string;
 }
 
+export interface DrillGradeResult {
+  score: number; // 0-10
+  correct: boolean; // score >= 7
+  feedback: string;
+  hint?: string; // present when score < 7
+  videoUrl?: string; // present when score < 7 — a YouTube search-results link, not a specific video
+}
+
 export function gradeDrillAnswer(
   client: KnowledgeApiClient,
   drillId: string,
   answer: string,
-): Promise<GradeResult> {
+): Promise<DrillGradeResult> {
   return post(client, "/api/knowledge/drill/grade", { drillId, answer });
 }
 

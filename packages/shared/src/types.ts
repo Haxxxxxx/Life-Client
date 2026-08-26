@@ -370,8 +370,11 @@ export interface CodeDrill {
   explanation: string; // the concept explanation / model answer
   userAnswer?: string; // the learner's submitted answer, once graded
   graded?: boolean;
-  correct?: boolean;
+  score?: number; // 0-10, how well the answer demonstrated correct understanding
+  correct?: boolean; // score >= 7
   feedback?: string; // AI feedback on the submitted answer
+  hint?: string; // a specific, actionable hint — set when score < 7, cleared once passing
+  videoUrl?: string; // a YouTube search-results link for the specific gap — set when score < 7, cleared once passing
   createdAt: string;
 }
 

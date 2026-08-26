@@ -4,6 +4,7 @@ import {
   type CodeDrill,
   type CodeDrillDifficulty,
   type DailyLesson,
+  type DrillGradeResult,
   type GradeResult,
   type ReadingListItem,
   type VocabMastery,
@@ -148,8 +149,16 @@ function DrillCard({
   const [revealed, setRevealed] = useState(false);
   const [answer, setAnswer] = useState(drill.userAnswer ?? "");
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<GradeResult | null>(
-    drill.graded ? { correct: Boolean(drill.correct), feedback: drill.feedback ?? "" } : null,
+  const [result, setResult] = useState<DrillGradeResult | null>(
+    drill.graded
+      ? {
+          score: drill.score ?? (drill.correct ? 10 : 0),
+          correct: Boolean(drill.correct),
+          feedback: drill.feedback ?? "",
+          hint: drill.hint,
+          videoUrl: drill.videoUrl,
+        }
+      : null,
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -233,12 +242,30 @@ function DrillCard({
             result.correct ? "border-green-600 bg-green-600/10" : "border-red-600 bg-red-600/10"
           }`}
         >
-          <p className="font-mono text-xs font-bold uppercase">{result.correct ? "Correct" : "Not quite"}</p>
+          <p className="font-mono text-xs font-bold uppercase">
+            {result.correct ? "Correct" : "Not quite"} · {result.score}/10
+          </p>
           <p className="mt-1 text-sm text-muted">{result.feedback}</p>
+          {!result.correct && (result.hint || result.videoUrl) && (
+            <div className="mt-3 flex flex-col gap-2 border-t-2 border-foreground/20 pt-3">
+              <p className="font-mono text-xs font-bold text-primary uppercase">Need a hand?</p>
+              {result.hint && <p className="text-sm text-muted">{result.hint}</p>}
+              {result.videoUrl && (
+                <a
+                  href={result.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="self-start font-mono text-xs font-bold text-primary uppercase hover:underline"
+                >
+                  Watch a video on this →
+                </a>
+              )}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setResult(null)}
-            className="mt-2 font-mono text-xs font-bold text-primary uppercase hover:underline"
+            className="mt-3 font-mono text-xs font-bold text-primary uppercase hover:underline"
           >
             Edit answer
           </button>
@@ -276,7 +303,7 @@ function PastDrillRow({
               drill.correct ? "border-green-600 text-green-700" : "border-red-600 text-red-700"
             }`}
           >
-            {drill.correct ? "Correct" : "Missed"}
+            {typeof drill.score === "number" ? `${drill.score}/10` : drill.correct ? "Correct" : "Missed"}
           </span>
         ) : (
           <span className="font-mono text-[10px] font-bold text-muted uppercase">Skipped</span>

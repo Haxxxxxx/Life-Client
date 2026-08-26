@@ -6,10 +6,27 @@ import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const gradeSchema = z.object({
-  correct: z.boolean().describe("Whether the answer demonstrates correct understanding of the problem"),
+  score: z
+    .number()
+    .int()
+    .min(0)
+    .max(10)
+    .describe("How well the answer demonstrates correct understanding of the problem, from 0 (blank/completely wrong) to 10 (perfect)"),
   feedback: z
     .string()
     .describe("Concise, encouraging feedback — confirm what's right, or explain the gap if incorrect. 2-4 sentences."),
+  hint: z
+    .string()
+    .optional()
+    .describe(
+      "Only when the score is below 7: a short, specific, actionable hint pointing at exactly what to reconsider — never the full answer",
+    ),
+  videoSearchQuery: z
+    .string()
+    .optional()
+    .describe(
+      "Only when the score is below 7: a focused YouTube search query (3-8 words) that would surface a good explainer video for the specific concept the learner is missing",
+    ),
 });
 
 export async function POST(req: NextRequest) {
@@ -36,15 +53,30 @@ export async function POST(req: NextRequest) {
         `A learner was given this coding drill:\n"${drill.prompt}"\n\n` +
         `The model solution/explanation is:\n"${drill.explanation}"\n\n` +
         `The learner's answer:\n"${answer}"\n\n` +
-        "Judge whether the learner's answer demonstrates correct understanding — it doesn't need to match " +
-        "the model solution word-for-word, just be substantively correct. Give brief, encouraging feedback.",
+        "Score how well the answer demonstrates correct understanding, from 0 (blank/completely wrong) to 10 " +
+        "(perfect) — it doesn't need to match the model solution word-for-word, just be substantively correct. " +
+        "Give brief, encouraging feedback. If the score is below 7, also give a short, specific hint (never the " +
+        "full answer) pointing at exactly what to reconsider, and a focused YouTube search query for a good " +
+        "explainer video on the specific concept they're missing.",
     });
 
+    const correct = output.score >= 7;
+    const videoUrl = !correct && output.videoSearchQuery
+      ? `https://www.youtube.com/results?search_query=${encodeURIComponent(output.videoSearchQuery)}`
+      : null;
+    const hint = correct ? null : (output.hint ?? null);
+
     await ref.set(
-      { userAnswer: answer, graded: true, correct: output.correct, feedback: output.feedback },
+      { userAnswer: answer, graded: true, score: output.score, correct, feedback: output.feedback, hint, videoUrl },
       { merge: true },
     );
-    return NextResponse.json({ correct: output.correct, feedback: output.feedback });
+    return NextResponse.json({
+      score: output.score,
+      correct,
+      feedback: output.feedback,
+      hint: hint ?? undefined,
+      videoUrl: videoUrl ?? undefined,
+    });
   } catch (error) {
     console.error("knowledge/drill/grade failed", error);
     return NextResponse.json({ error: "Could not grade your answer" }, { status: 502 });
