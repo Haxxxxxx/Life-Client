@@ -16,8 +16,6 @@ const TABS = [
   { name: 'agenda', href: '/agenda', label: 'Agenda' },
   { name: 'music', href: '/music', label: 'Music' },
   { name: 'integrations', href: '/integrations', label: 'Integrations' },
-  { name: 'remember', href: '/remember', label: 'Remember' },
-  { name: 'manage', href: '/manage', label: 'Manage' },
   { name: 'knowledge', href: '/knowledge', label: 'Knowledge' },
   { name: 'profile', href: '/profile', label: 'Profile' },
 ] as const;

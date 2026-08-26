@@ -24,45 +24,87 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / msPerDay);
 }
 
-function GoalForm({ onSubmit }: { onSubmit: (input: NewGoal) => void }) {
+const GOAL_EXAMPLES = ["Ship WeSplit v2", "Read 12 books this year", "Run a half marathon"];
+
+function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; onCancel: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [targetDate, setTargetDate] = useState("");
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="What are you working toward?"
-        className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted"
-      />
-      <input
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Description (optional)"
-        className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted"
-      />
-      <input
-        type="date"
-        value={targetDate}
-        onChange={(e) => setTargetDate(e.target.value)}
-        className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm"
-      />
-      <button
-        type="button"
-        disabled={!title.trim()}
-        onClick={() =>
-          onSubmit({
-            title: title.trim(),
-            description: description.trim() || undefined,
-            targetDate: targetDate || undefined,
-          })
-        }
-        className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-      >
-        Set goal
-      </button>
+    <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
+      <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">New goal</p>
+
+      <label className="flex flex-col gap-1">
+        <span className="font-mono text-xs text-muted uppercase">What are you working toward?</span>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Ship WeSplit v2"
+          className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+        />
+      </label>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <label className="flex flex-1 flex-col gap-1">
+          <span className="font-mono text-xs text-muted uppercase">Description</span>
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Optional context"
+            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="font-mono text-xs text-muted uppercase">Target date</span>
+          <input
+            type="date"
+            value={targetDate}
+            onChange={(e) => setTargetDate(e.target.value)}
+            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm"
+          />
+        </label>
+      </div>
+
+      {!title.trim() && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[10px] text-muted uppercase">Try</span>
+          {GOAL_EXAMPLES.map((example) => (
+            <button
+              key={example}
+              type="button"
+              onClick={() => setTitle(example)}
+              className="rounded-full border-2 border-foreground/30 px-2.5 py-1 text-xs text-muted hover:border-foreground hover:text-foreground"
+            >
+              {example}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          disabled={!title.trim()}
+          onClick={() =>
+            onSubmit({
+              title: title.trim(),
+              description: description.trim() || undefined,
+              targetDate: targetDate || undefined,
+            })
+          }
+          className="rounded-md border-2 border-foreground bg-primary px-4 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
+        >
+          Set goal
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-muted uppercase hover:bg-foreground/5"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
@@ -152,15 +194,23 @@ function GoalCard({
             <p className="font-bold hover:underline">{goal.title}</p>
             {goal.description && <p className="text-xs text-muted">{goal.description}</p>}
             {days !== null && (
-              <p className="font-mono text-xs text-muted uppercase">
-                {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "Due today" : `${days}d left`}
+              <p className={`font-mono text-xs uppercase ${days < 0 ? "text-red-600" : "text-muted"}`}>
+                {days < 0
+                  ? `${Math.abs(days)}d overdue`
+                  : days === 0
+                    ? "Due today"
+                    : `${days}d left · ${new Date(goal.targetDate!).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
               </p>
             )}
           </button>
         )}
         {!editing && (
           <div className="flex shrink-0 flex-col items-end gap-1">
-            <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-[10px] font-bold uppercase">
+            <span
+              className={`rounded-full border-2 border-foreground px-2.5 py-1 font-mono text-[10px] font-bold uppercase ${
+                goal.status === "completed" ? "bg-primary text-primary-foreground" : "bg-accent"
+              }`}
+            >
               {goal.status}
             </span>
             <div className="flex gap-2">
@@ -201,7 +251,7 @@ function GoalCard({
         </p>
       </div>
 
-      {linkedTasks.length > 0 && (
+      {linkedTasks.length > 0 ? (
         <ul className="flex flex-col gap-1">
           {linkedTasks.map((task) => (
             <li key={task.id} className="flex items-center justify-between gap-2 text-sm">
@@ -216,54 +266,59 @@ function GoalCard({
             </li>
           ))}
         </ul>
+      ) : (
+        <p className="text-xs text-muted italic">No tasks linked yet — link one or add a new one below.</p>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {unlinkedTasks.length > 0 && (
+      <div className="flex flex-col gap-1.5 border-t border-foreground/20 pt-2">
+        <span className="font-mono text-[10px] text-muted uppercase">Link tasks to this goal</span>
+        <div className="flex flex-wrap gap-2">
+          {unlinkedTasks.length > 0 && (
+            <div className="flex gap-1">
+              <select
+                value={linkPick}
+                onChange={(e) => setLinkPick(e.target.value)}
+                className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+              >
+                <option value="">Existing task…</option>
+                {unlinkedTasks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={!linkPick}
+                onClick={() => {
+                  onLinkTask(linkPick);
+                  setLinkPick("");
+                }}
+                className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
+              >
+                Link
+              </button>
+            </div>
+          )}
           <div className="flex gap-1">
-            <select
-              value={linkPick}
-              onChange={(e) => setLinkPick(e.target.value)}
-              className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
-            >
-              <option value="">Link a task…</option>
-              {unlinkedTasks.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title}
-                </option>
-              ))}
-            </select>
+            <input
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              placeholder="Or create a new task…"
+              className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs outline-none placeholder:text-muted"
+            />
             <button
               type="button"
-              disabled={!linkPick}
+              disabled={!newTaskTitle.trim()}
               onClick={() => {
-                onLinkTask(linkPick);
-                setLinkPick("");
+                onNewTask(newTaskTitle.trim());
+                setNewTaskTitle("");
               }}
               className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
             >
-              Link
+              Add
             </button>
           </div>
-        )}
-        <div className="flex gap-1">
-          <input
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="New task for this goal…"
-            className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs outline-none placeholder:text-muted"
-          />
-          <button
-            type="button"
-            disabled={!newTaskTitle.trim()}
-            onClick={() => {
-              onNewTask(newTaskTitle.trim());
-              setNewTaskTitle("");
-            }}
-            className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
-          >
-            Add
-          </button>
         </div>
       </div>
     </div>
@@ -298,7 +353,44 @@ export default function GoalsPage() {
     }
   }
 
-  const activeGoals = goals.filter((g) => g.status !== "archived");
+  const activeGoals = goals.filter((g) => g.status === "active");
+  const completedGoals = goals.filter((g) => g.status === "completed");
+  const overallPercent =
+    activeGoals.length > 0
+      ? Math.round(
+          (activeGoals.reduce((sum, g) => sum + computeGoalProgress(g, tasks).percent, 0) / activeGoals.length) * 100,
+        )
+      : 0;
+
+  function renderGoalCard(goal: Goal) {
+    return (
+      <GoalCard
+        key={goal.id}
+        goal={goal}
+        tasks={tasks}
+        onEdit={(patch) => user && db && updateGoal(db, user.uid, goal.id, patch)}
+        onComplete={() => user && db && setGoalStatus(db, user.uid, goal.id, "completed" as GoalStatus)}
+        onArchive={() => user && db && setGoalStatus(db, user.uid, goal.id, "archived" as GoalStatus)}
+        onDelete={() => user && db && deleteGoal(db, user.uid, goal.id)}
+        onLinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: goal.id })}
+        onUnlinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: undefined })}
+        onNewTask={(title) =>
+          user &&
+          db &&
+          createTask(db, user.uid, {
+            title,
+            status: "todo",
+            priority: "medium",
+            difficulty: "medium",
+            category: "personal",
+            source: "manual",
+            tags: [],
+            goalId: goal.id,
+          })
+        }
+      />
+    );
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -321,45 +413,39 @@ export default function GoalsPage() {
         )}
       </div>
 
-      {formOpen && <GoalForm onSubmit={handleCreate} />}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
+          <p className="text-2xl font-bold text-primary">{activeGoals.length}</p>
+          <p className="font-mono text-[10px] text-muted uppercase">Active</p>
+        </div>
+        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
+          <p className="text-2xl font-bold">{completedGoals.length}</p>
+          <p className="font-mono text-[10px] text-muted uppercase">Completed</p>
+        </div>
+        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
+          <p className="text-2xl font-bold">{overallPercent}%</p>
+          <p className="font-mono text-[10px] text-muted uppercase">Avg. progress</p>
+        </div>
+      </div>
+
+      {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {activeGoals.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {activeGoals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              tasks={tasks}
-              onEdit={(patch) => user && db && updateGoal(db, user.uid, goal.id, patch)}
-              onComplete={() => user && db && setGoalStatus(db, user.uid, goal.id, "completed" as GoalStatus)}
-              onArchive={() => user && db && setGoalStatus(db, user.uid, goal.id, "archived" as GoalStatus)}
-              onDelete={() => user && db && deleteGoal(db, user.uid, goal.id)}
-              onLinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: goal.id })}
-              onUnlinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: undefined })}
-              onNewTask={(title) =>
-                user &&
-                db &&
-                createTask(db, user.uid, {
-                  title,
-                  status: "todo",
-                  priority: "medium",
-                  difficulty: "medium",
-                  category: "personal",
-                  source: "manual",
-                  tags: [],
-                  goalId: goal.id,
-                })
-              }
-            />
-          ))}
+      {activeGoals.length > 0 && <div className="flex flex-col gap-3">{activeGoals.map(renderGoalCard)}</div>}
+
+      {activeGoals.length === 0 && !formOpen && (
+        <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center text-sm text-muted">
+          No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
         </div>
-      ) : (
-        !formOpen && (
-          <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center text-sm text-muted">
-            No goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
-          </div>
-        )
+      )}
+
+      {completedGoals.length > 0 && (
+        <details className="flex flex-col gap-3">
+          <summary className="cursor-pointer font-mono text-xs font-bold tracking-[0.2em] text-muted uppercase">
+            Completed ({completedGoals.length})
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">{completedGoals.map(renderGoalCard)}</div>
+        </details>
       )}
     </div>
   );

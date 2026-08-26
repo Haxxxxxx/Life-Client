@@ -1,32 +1,54 @@
 import {
   type CalendarEvent,
+  type Challenge,
   type CodeDrill,
   type DailyLesson,
   type DevActivitySummary,
+  type Goal,
   type ReadingListItem,
   type Reminder,
+  type ReminderUrgency,
   type SportActivity,
   type SpotifySummary,
   type Task,
-  type VocabWord,
+  archiveChallenge,
+  computeChallengeProgress,
+  computeGoalProgress,
   computeInsightXp,
+  createReminder,
+  daysUntil,
+  deleteChallenge,
+  deleteGoal,
+  deleteReminderEverywhere,
+  deleteTask,
   isDueSoon,
   levelFromXp,
+  reminderUrgency,
+  setGoalStatus,
+  setTaskStatus,
   subscribeCalendarEvents,
+  subscribeChallenges,
   subscribeCodeDrills,
   subscribeDailyLessons,
   subscribeDevActivity,
+  subscribeGoals,
   subscribeReadingList,
   subscribeReminders,
   subscribeSportActivities,
   subscribeSpotifySummary,
   subscribeTasks,
   subscribeVocabWords,
+  syncReminderToCalendar,
   todayLessonId,
+  updateChallenge,
+  updateGoal,
+  updateReminder,
+  updateTask,
+  type VocabWord,
 } from '@life-client/shared';
 import { Link, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -35,6 +57,7 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
+import { webApiClient } from '@/lib/webApiClient';
 
 function Card({ title, href, children }: { title: string; href: Href; children: React.ReactNode }) {
   const theme = useTheme();
@@ -63,9 +86,547 @@ function Card({ title, href, children }: { title: string; href: Href; children: 
   );
 }
 
+function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+        {eyebrow}
+      </ThemedText>
+      <ThemedText type="subtitle">{title}</ThemedText>
+    </View>
+  );
+}
+
+function RenameField({ value, onSave, style }: { value: string; onSave: (next: string) => void; style?: object }) {
+  const theme = useTheme();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (!editing) {
+    return (
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => {
+          setDraft(value);
+          setEditing(true);
+        }}>
+        <ThemedText type="small" numberOfLines={1} style={style}>
+          {value}
+        </ThemedText>
+      </Pressable>
+    );
+  }
+
+  function commit() {
+    if (draft.trim() && draft.trim() !== value) onSave(draft.trim());
+    setEditing(false);
+  }
+
+  return (
+    <TextInput
+      autoFocus
+      value={draft}
+      onChangeText={setDraft}
+      onBlur={commit}
+      onSubmitEditing={commit}
+      style={[
+        styles.renameInput,
+        { flex: 1, color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+      ]}
+    />
+  );
+}
+
+function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
+  const theme = useTheme();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkMarkDone() {
+    if (!db) return;
+    await Promise.all([...selected].map((id) => setTaskStatus(db!, uid, id, 'done')));
+    setSelected(new Set());
+  }
+
+  async function bulkDelete() {
+    if (!db) return;
+    await Promise.all([...selected].map((id) => deleteTask(db!, uid, id)));
+    setSelected(new Set());
+  }
+
+  async function clearCompleted() {
+    if (!db) return;
+    const done = tasks.filter((t) => t.status === 'done');
+    await Promise.all(done.map((t) => deleteTask(db!, uid, t.id)));
+  }
+
+  return (
+    <View style={{ gap: Spacing.two }}>
+      <View style={styles.sectionHeaderRow}>
+        <SectionHeader eyebrow="Today" title="Tasks" />
+        <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+          <Pressable onPress={clearCompleted} style={[styles.smallOutlineButton, { borderColor: theme.border }]}>
+            <ThemedText type="small" style={{ fontWeight: '700' }}>
+              Clear completed
+            </ThemedText>
+          </Pressable>
+          <Link href="/tasks" asChild>
+            <Pressable>
+              <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+                Open →
+              </ThemedText>
+            </Pressable>
+          </Link>
+        </View>
+      </View>
+      {selected.size > 0 && (
+        <View style={[styles.bulkBar, { borderColor: theme.primary, backgroundColor: theme.accent }]}>
+          <ThemedText type="small" style={{ fontWeight: '700' }}>
+            {selected.size} selected
+          </ThemedText>
+          <Pressable onPress={bulkMarkDone}>
+            <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+              Mark done
+            </ThemedText>
+          </Pressable>
+          <Pressable onPress={bulkDelete}>
+            <ThemedText type="small" style={styles.deleteText}>
+              Delete
+            </ThemedText>
+          </Pressable>
+          <Pressable onPress={() => setSelected(new Set())} style={{ marginLeft: 'auto' }}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Clear
+            </ThemedText>
+          </Pressable>
+        </View>
+      )}
+      <View style={{ gap: Spacing.one }}>
+        {tasks.map((task) => (
+          <View key={task.id} style={[styles.row, { borderColor: theme.border }]}>
+            <Pressable
+              onPress={() => toggle(task.id)}
+              style={[
+                styles.checkbox,
+                { borderColor: theme.border, backgroundColor: selected.has(task.id) ? theme.primary : 'transparent' },
+              ]}
+            />
+            <RenameField
+              value={task.title}
+              onSave={(next) => db && updateTask(db, uid, task.id, { title: next })}
+              style={task.status === 'done' ? styles.doneText : undefined}
+            />
+            <ThemedText type="code" themeColor="textSecondary">
+              {task.status}
+            </ThemedText>
+            <Pressable onPress={() => db && deleteTask(db, uid, task.id)}>
+              <ThemedText type="small" style={styles.deleteText}>
+                Delete
+              </ThemedText>
+            </Pressable>
+          </View>
+        ))}
+        {tasks.length === 0 && (
+          <ThemedText themeColor="textSecondary" style={styles.emptyText}>
+            No tasks.
+          </ThemedText>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid: string }) {
+  const theme = useTheme();
+
+  return (
+    <View style={{ gap: Spacing.two }}>
+      <View style={styles.sectionHeaderRow}>
+        <SectionHeader eyebrow="Long-term" title="Goals" />
+        <Link href="/goals" asChild>
+          <Pressable>
+            <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+              Open →
+            </ThemedText>
+          </Pressable>
+        </Link>
+      </View>
+      <View style={{ gap: Spacing.one }}>
+        {goals.map((goal) => {
+          const progress = computeGoalProgress(goal, tasks);
+          return (
+            <View key={goal.id} style={[styles.row, { borderColor: theme.border }]}>
+              <RenameField value={goal.title} onSave={(next) => db && updateGoal(db, uid, goal.id, { title: next })} />
+              <ThemedText type="code" themeColor="textSecondary">
+                {progress.completedTaskCount}/{progress.linkedTaskCount} · {goal.status}
+              </ThemedText>
+              {goal.status === 'active' && (
+                <Pressable onPress={() => db && setGoalStatus(db, uid, goal.id, 'completed')}>
+                  <ThemedText type="small" themeColor="primary">
+                    Complete
+                  </ThemedText>
+                </Pressable>
+              )}
+              <Pressable onPress={() => db && setGoalStatus(db, uid, goal.id, 'archived')}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Archive
+                </ThemedText>
+              </Pressable>
+              <Pressable onPress={() => db && deleteGoal(db, uid, goal.id)}>
+                <ThemedText type="small" style={styles.deleteText}>
+                  Delete
+                </ThemedText>
+              </Pressable>
+            </View>
+          );
+        })}
+        {goals.length === 0 && (
+          <ThemedText themeColor="textSecondary" style={styles.emptyText}>
+            No goals yet.
+          </ThemedText>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function ChallengesSection({
+  challenges,
+  activities,
+  uid,
+}: {
+  challenges: Challenge[];
+  activities: SportActivity[];
+  uid: string;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View style={{ gap: Spacing.two }}>
+      <View style={styles.sectionHeaderRow}>
+        <SectionHeader eyebrow="Streaks" title="Challenges" />
+        <Link href="/sports" asChild>
+          <Pressable>
+            <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+              Open →
+            </ThemedText>
+          </Pressable>
+        </Link>
+      </View>
+      <View style={{ gap: Spacing.one }}>
+        {challenges.map((challenge) => {
+          const progress = computeChallengeProgress(challenge, activities);
+          return (
+            <View key={challenge.id} style={[styles.row, { borderColor: theme.border }]}>
+              <RenameField
+                value={challenge.title}
+                onSave={(next) => db && updateChallenge(db, uid, challenge.id, { title: next })}
+              />
+              <ThemedText type="code" themeColor="textSecondary">
+                {progress.currentStreak}d{challenge.archived ? ' · archived' : ''}
+              </ThemedText>
+              {!challenge.archived && (
+                <Pressable onPress={() => db && archiveChallenge(db, uid, challenge.id)}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Archive
+                  </ThemedText>
+                </Pressable>
+              )}
+              <Pressable onPress={() => db && deleteChallenge(db, uid, challenge.id)}>
+                <ThemedText type="small" style={styles.deleteText}>
+                  Delete
+                </ThemedText>
+              </Pressable>
+            </View>
+          );
+        })}
+        {challenges.length === 0 && (
+          <ThemedText themeColor="textSecondary" style={styles.emptyText}>
+            No challenges yet.
+          </ThemedText>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const QUICK_OFFSETS = [
+  { label: '1d', days: 1 },
+  { label: '3d', days: 3 },
+  { label: '1w', days: 7 },
+  { label: '2w', days: 14 },
+  { label: '1mo', days: 30 },
+];
+
+const URGENCY_BORDER: Record<ReminderUrgency, string> = {
+  overdue: '#dc2626',
+  'due-today': 'primary',
+  'due-soon': 'primary',
+  upcoming: 'border',
+};
+
+function urgencyLabel(urgency: ReminderUrgency, days: number): string {
+  if (urgency === 'overdue') return `Overdue ${Math.abs(days)}d`;
+  if (urgency === 'due-today') return 'Today';
+  return `${days}d`;
+}
+
+function EditReminderForm({
+  reminder,
+  onSave,
+  onCancel,
+}: {
+  reminder: Reminder;
+  onSave: (patch: { title: string; note?: string; deadline: string }) => void;
+  onCancel: () => void;
+}) {
+  const theme = useTheme();
+  const [title, setTitle] = useState(reminder.title);
+  const [note, setNote] = useState(reminder.note ?? '');
+  const [offsetDays, setOffsetDays] = useState(7);
+
+  return (
+    <View style={{ flex: 1, gap: Spacing.one }}>
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder="Notes"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <View style={styles.chipRow}>
+        {QUICK_OFFSETS.map((opt) => {
+          const active = opt.days === offsetDays;
+          return (
+            <Pressable
+              key={opt.days}
+              onPress={() => setOffsetDays(opt.days)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                In {opt.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.cardActionsRow}>
+        <Pressable
+          onPress={() =>
+            onSave({
+              title: title.trim() || reminder.title,
+              note: note.trim() || undefined,
+              deadline: new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000).toISOString(),
+            })
+          }>
+          <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
+            Save
+          </ThemedText>
+        </Pressable>
+        <Pressable onPress={onCancel}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Cancel
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: string }) {
+  const theme = useTheme();
+  const [title, setTitle] = useState('');
+  const [note, setNote] = useState('');
+  const [offsetDays, setOffsetDays] = useState(7);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+
+  async function handleAdd() {
+    if (!db || !title.trim()) return;
+    setError(null);
+    try {
+      const deadline = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+      const reminderId = await createReminder(db, uid, {
+        title: title.trim(),
+        note: note.trim() || undefined,
+        deadline: deadline.toISOString(),
+      });
+      setTitle('');
+      setNote('');
+      setFormOpen(false);
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error('Could not sync reminder to Google Calendar', err),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create reminder');
+    }
+  }
+
+  async function handleDelete(reminderId: string) {
+    try {
+      await deleteReminderEverywhere(webApiClient, reminderId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete reminder');
+    }
+  }
+
+  async function handleSaveEdit(reminderId: string, patch: { title: string; note?: string; deadline: string }) {
+    if (!db) return;
+    try {
+      await updateReminder(db, uid, reminderId, patch);
+      setEditingId(null);
+      syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
+        console.error('Could not sync reminder to Google Calendar', err),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update reminder');
+    }
+  }
+
+  return (
+    <View style={{ gap: Spacing.two }}>
+      <View style={styles.sectionHeaderRow}>
+        <SectionHeader eyebrow="Deadlines" title="Remember" />
+        {!formOpen && (
+          <Pressable
+            onPress={() => setFormOpen(true)}
+            style={[styles.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+            <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
+              New reminder
+            </ThemedText>
+          </Pressable>
+        )}
+      </View>
+
+      {formOpen && (
+        <View style={[styles.form, { borderColor: theme.border }]}>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="What do you need to remember?"
+            placeholderTextColor={theme.textSecondary}
+            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          />
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            placeholder="Notes (e.g. account it's linked to)"
+            placeholderTextColor={theme.textSecondary}
+            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          />
+          <View style={styles.chipRow}>
+            {QUICK_OFFSETS.map((opt) => {
+              const active = opt.days === offsetDays;
+              return (
+                <Pressable
+                  key={opt.days}
+                  onPress={() => setOffsetDays(opt.days)}
+                  style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+                  <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                    In {opt.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.cardActionsRow}>
+            <Pressable
+              onPress={handleAdd}
+              disabled={!title.trim()}
+              style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
+              <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add reminder</ThemedText>
+            </Pressable>
+            <Pressable onPress={() => setFormOpen(false)}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Cancel
+              </ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {error && (
+        <ThemedText themeColor="text" style={styles.error}>
+          {error}
+        </ThemedText>
+      )}
+
+      <View style={{ gap: Spacing.two }}>
+        {reminders.map((reminder) => {
+          const urgency = reminderUrgency(reminder.deadline);
+          const days = daysUntil(reminder.deadline);
+          const borderKey = URGENCY_BORDER[urgency];
+          const borderColor = borderKey === 'primary' ? theme.primary : borderKey === 'border' ? theme.border : borderKey;
+          if (editingId === reminder.id) {
+            return (
+              <ThemedView key={reminder.id} type="backgroundElement" style={[styles.reminderCard, { borderColor }]}>
+                <EditReminderForm
+                  reminder={reminder}
+                  onSave={(patch) => handleSaveEdit(reminder.id, patch)}
+                  onCancel={() => setEditingId(null)}
+                />
+              </ThemedView>
+            );
+          }
+          return (
+            <ThemedView
+              key={reminder.id}
+              type={isDueSoon(reminder.deadline) ? 'backgroundSelected' : 'backgroundElement'}
+              style={[styles.reminderCard, { borderColor }]}>
+              <Pressable style={styles.cardInfo} onPress={() => setEditingId(reminder.id)}>
+                <ThemedText type="smallBold">{reminder.title}</ThemedText>
+                {reminder.note && (
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {reminder.note}
+                  </ThemedText>
+                )}
+                <ThemedText type="code" themeColor="textSecondary">
+                  {new Date(reminder.deadline).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                </ThemedText>
+              </Pressable>
+              <View style={styles.cardActions}>
+                <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
+                  <ThemedText type="code" style={styles.badgeText}>
+                    {urgencyLabel(urgency, days)}
+                  </ThemedText>
+                </View>
+                <Pressable onPress={() => handleDelete(reminder.id)}>
+                  <ThemedText type="small" style={styles.deleteText}>
+                    Delete
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </ThemedView>
+          );
+        })}
+        {reminders.length === 0 && !formOpen && (
+          <ThemedView type="backgroundElement" style={styles.emptyState}>
+            <ThemedText themeColor="textSecondary">Nothing to remember yet — add your first deadline above.</ThemedText>
+          </ThemedView>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function DashboardScreen() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [activities, setActivities] = useState<SportActivity[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [github, setGithub] = useState<DevActivitySummary | null>(null);
@@ -81,7 +642,9 @@ export default function DashboardScreen() {
     if (!user || !db) return;
     const unsubs = [
       subscribeTasks(db, user.uid, setTasks),
-      subscribeSportActivities(db, user.uid, setActivities, undefined, 1),
+      subscribeGoals(db, user.uid, setGoals),
+      subscribeChallenges(db, user.uid, setChallenges),
+      subscribeSportActivities(db, user.uid, setActivities),
       subscribeCalendarEvents(db, user.uid, setEvents, undefined, 3),
       subscribeDevActivity(db, user.uid, 'github', setGithub),
       subscribeDevActivity(db, user.uid, 'gitlab', setGitlab),
@@ -95,10 +658,11 @@ export default function DashboardScreen() {
     return () => unsubs.forEach((u) => u());
   }, [user]);
 
+  if (!user) return null;
+
   const openTasks = tasks.filter((t) => t.status !== 'done');
   const latestActivity = activities[0];
   const openPrCount = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
-  const dueSoonReminders = reminders.filter((r) => isDueSoon(r.deadline));
   const insightLevel = levelFromXp(computeInsightXp(lessons, drills, vocabWords, readingItems));
   const lessonDoneToday = lessons.some((l) => l.id === todayLessonId());
   const pendingReadingCount = readingItems.filter((i) => i.status !== 'read').length;
@@ -112,7 +676,7 @@ export default function DashboardScreen() {
               Overview
             </ThemedText>
             <ThemedText type="subtitle">
-              Welcome back{user?.displayName ? `, ${user.displayName.split(' ')[0]}` : ''}
+              Welcome back{user.displayName ? `, ${user.displayName.split(' ')[0]}` : ''}
             </ThemedText>
           </View>
 
@@ -186,21 +750,6 @@ export default function DashboardScreen() {
               )}
             </Card>
 
-            <Card title="Remember" href="/remember">
-              {dueSoonReminders.length > 0 ? (
-                <>
-                  <ThemedText type="title" themeColor="primary" style={styles.bigNumber}>
-                    {dueSoonReminders.length}
-                  </ThemedText>
-                  <ThemedText themeColor="textSecondary">
-                    due soon — next: <ThemedText type="smallBold">{dueSoonReminders[0]!.title}</ThemedText>
-                  </ThemedText>
-                </>
-              ) : (
-                <ThemedText themeColor="textSecondary">Nothing due soon.</ThemedText>
-              )}
-            </Card>
-
             <Card title="Knowledge" href="/knowledge">
               <ThemedText type="title" style={styles.bigNumber}>
                 Lv {insightLevel.level}
@@ -212,6 +761,13 @@ export default function DashboardScreen() {
                   : ''}
               </ThemedText>
             </Card>
+          </View>
+
+          <View style={styles.sections}>
+            <TasksSection tasks={tasks} uid={user.uid} />
+            <GoalsSection goals={goals} tasks={tasks} uid={user.uid} />
+            <ChallengesSection challenges={challenges} activities={activities} uid={user.uid} />
+            <RemindersSection reminders={reminders} uid={user.uid} />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -252,4 +808,44 @@ const styles = StyleSheet.create({
   },
   cardEyebrow: { letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: Spacing.one },
   bigNumber: { fontSize: 32, lineHeight: 36 },
+  sections: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.five },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  logToggle: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
+  smallOutlineButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  bulkBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 2, borderRadius: Spacing.two, padding: Spacing.two },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderWidth: 2,
+    borderRadius: Spacing.two,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one + Spacing.half,
+  },
+  checkbox: { width: 16, height: 16, borderWidth: 2, borderRadius: 4 },
+  renameInput: { borderWidth: 2, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
+  doneText: { textDecorationLine: 'line-through' },
+  deleteText: { color: '#dc2626' },
+  emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
+  form: { gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three },
+  input: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three, alignItems: 'center' },
+  cardActionsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  error: {},
+  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
+  reminderCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: Spacing.two,
+    borderWidth: 2,
+    borderRadius: Spacing.three,
+    padding: Spacing.three,
+  },
+  cardInfo: { flex: 1, gap: 2 },
+  cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
+  badge: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
+  badgeText: { fontSize: 10 },
 });

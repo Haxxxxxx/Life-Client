@@ -13,8 +13,6 @@ const NAV_ITEMS = [
   { href: "/agenda", label: "Agenda" },
   { href: "/music", label: "Music" },
   { href: "/integrations", label: "Integrations" },
-  { href: "/remember", label: "Remember" },
-  { href: "/manage", label: "Manage" },
   { href: "/profile", label: "Profile" },
 ];
 
