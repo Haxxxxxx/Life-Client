@@ -267,10 +267,12 @@ export interface DailyLesson {
   codeConcept: string;
   codeExplanation: string;
   word: string;
+  wordLanguage: "en" | "fr";
   wordDefinition: string;
   wordExample: string;
   articleTopic: string;
   articleReason: string; // why this topic was suggested
+  articleUrl?: string; // a real Wikipedia article matching articleTopic, when a match was found
   createdAt: string;
 }
 

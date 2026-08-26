@@ -74,7 +74,9 @@ function DailyLessonSection() {
             <p className="mt-1 text-sm text-muted">{lesson.codeExplanation}</p>
           </div>
           <div className="rounded-md border-2 border-foreground bg-surface p-4">
-            <p className="font-mono text-xs font-bold text-primary uppercase">New Word</p>
+            <p className="font-mono text-xs font-bold text-primary uppercase">
+              New Word{lesson.wordLanguage ? ` · ${lesson.wordLanguage.toUpperCase()}` : ""}
+            </p>
             <p className="mt-1 font-bold">{lesson.word}</p>
             <p className="mt-1 text-sm text-muted">{lesson.wordDefinition}</p>
             <p className="mt-1 text-sm italic text-muted">&ldquo;{lesson.wordExample}&rdquo;</p>
@@ -83,6 +85,16 @@ function DailyLessonSection() {
             <p className="font-mono text-xs font-bold text-primary uppercase">Read About</p>
             <p className="mt-1 font-bold">{lesson.articleTopic}</p>
             <p className="mt-1 text-sm text-muted">{lesson.articleReason}</p>
+            {lesson.articleUrl && (
+              <a
+                href={lesson.articleUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block font-mono text-xs font-bold text-primary uppercase hover:underline"
+              >
+                Read on Wikipedia →
+              </a>
+            )}
           </div>
         </div>
       ) : (

@@ -19,7 +19,7 @@ import {
   subscribeVocabWords,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -86,7 +86,7 @@ function DailyLessonSection() {
           </ThemedView>
           <ThemedView type="backgroundElement" style={[styles.lessonCard, { borderColor: theme.border }]}>
             <ThemedText type="code" themeColor="primary" style={styles.cardLabel}>
-              New Word
+              New Word{lesson.wordLanguage ? ` · ${lesson.wordLanguage.toUpperCase()}` : ''}
             </ThemedText>
             <ThemedText type="smallBold">{lesson.word}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
@@ -101,6 +101,13 @@ function DailyLessonSection() {
             <ThemedText type="small" themeColor="textSecondary">
               {lesson.articleReason}
             </ThemedText>
+            {lesson.articleUrl && (
+              <Pressable onPress={() => Linking.openURL(lesson.articleUrl!)}>
+                <ThemedText type="code" themeColor="primary" style={styles.wikiLink}>
+                  Read on Wikipedia →
+                </ThemedText>
+              </Pressable>
+            )}
           </ThemedView>
         </View>
       ) : (
@@ -472,6 +479,7 @@ const styles = StyleSheet.create({
   lessonGrid: { gap: Spacing.two },
   lessonCard: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.half },
   cardLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
+  wikiLink: { marginTop: Spacing.one, textTransform: 'uppercase' },
   emptyState: { borderWidth: 2, borderStyle: 'dashed', borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center', gap: Spacing.three },
   primaryButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.four, alignItems: 'center' },
   primaryButtonSmall: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.three },
