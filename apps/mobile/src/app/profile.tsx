@@ -1,26 +1,35 @@
 import {
   CHARACTERISTICS,
   type CharacteristicDefinition,
+  type CodeDrill,
+  type DailyLesson,
   type DevActivitySummary,
   MANUAL_EVENT_TYPES,
   type ManualEventType,
   type ManualProgress,
+  type ReadingListItem,
   type SportActivity,
   type SpotifySummary,
   type Task,
   type TaskCategory,
+  type VocabWord,
   computeCategoryXp,
   computeCraftXp,
   computeDisciplineXp,
   computeFitnessXp,
+  computeInsightXp,
   computeRhythmXp,
   levelFromXp,
   logManualEvent,
+  subscribeCodeDrills,
+  subscribeDailyLessons,
   subscribeDevActivity,
   subscribeManualProgress,
+  subscribeReadingList,
   subscribeSportActivities,
   subscribeSpotifySummary,
   subscribeTasks,
+  subscribeVocabWords,
 } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -198,6 +207,10 @@ export default function ProfileScreen() {
   const [focusProgress, setFocusProgress] = useState<ManualProgress | null>(null);
   const [socialProgress, setSocialProgress] = useState<ManualProgress | null>(null);
   const [spotify, setSpotify] = useState<SpotifySummary | null>(null);
+  const [lessons, setLessons] = useState<DailyLesson[]>([]);
+  const [drills, setDrills] = useState<CodeDrill[]>([]);
+  const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
+  const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -209,6 +222,10 @@ export default function ProfileScreen() {
       subscribeManualProgress(db, user.uid, 'focus', setFocusProgress),
       subscribeManualProgress(db, user.uid, 'social', setSocialProgress),
       subscribeSpotifySummary(db, user.uid, setSpotify),
+      subscribeDailyLessons(db, user.uid, setLessons),
+      subscribeCodeDrills(db, user.uid, setDrills),
+      subscribeVocabWords(db, user.uid, setVocabWords),
+      subscribeReadingList(db, user.uid, setReadingItems),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -225,6 +242,7 @@ export default function ProfileScreen() {
     focus: focusProgress?.xp ?? 0,
     social: socialProgress?.xp ?? 0,
     rhythm: computeRhythmXp(spotify),
+    insight: computeInsightXp(lessons, drills, vocabWords, readingItems),
   };
 
   const xpByCharacteristic: Record<string, number> = Object.fromEntries(

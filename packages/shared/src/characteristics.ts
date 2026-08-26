@@ -10,13 +10,17 @@ import {
   TASK_DIFFICULTY_XP,
   type CharacteristicId,
   type CharacteristicLevel,
+  type CodeDrill,
+  type DailyLesson,
   type DevActivitySummary,
   type ManualEventType,
   type ManualProgress,
+  type ReadingListItem,
   type SportActivity,
   type SpotifySummary,
   type Task,
   type TaskCategory,
+  type VocabWord,
 } from "./types";
 
 const XP_PER_KM = 10;
@@ -27,6 +31,10 @@ const XP_PER_MERGED_PR = 25;
 const XP_PER_OPEN_PR = 5;
 const XP_PER_RECENT_TRACK = 2;
 const XP_PER_UNIQUE_ARTIST = 6;
+const XP_PER_DAILY_LESSON = 8;
+const XP_PER_CORRECT_DRILL = 15;
+const XP_PER_PRACTICED_WORD = 12;
+const XP_PER_READ_ARTICLE = 6;
 
 function completedTaskXp(task: Task): number {
   return TASK_DIFFICULTY_XP[task.difficulty ?? "medium"];
@@ -89,6 +97,20 @@ export function computeRhythmXp(spotify: SpotifySummary | null): number {
   const trackXp = spotify.recentTracks.length * XP_PER_RECENT_TRACK;
   const artistXp = spotify.topArtists.length * XP_PER_UNIQUE_ARTIST;
   return trackXp + artistXp;
+}
+
+/** Rewards actually engaging with Knowledge content (correct drills, practiced words, read articles) over just generating it. */
+export function computeInsightXp(
+  lessons: DailyLesson[],
+  drills: CodeDrill[],
+  vocabWords: VocabWord[],
+  readingItems: ReadingListItem[],
+): number {
+  const lessonXp = lessons.length * XP_PER_DAILY_LESSON;
+  const drillXp = drills.filter((d) => d.correct).length * XP_PER_CORRECT_DRILL;
+  const vocabXp = vocabWords.filter((w) => w.practiceCorrect).length * XP_PER_PRACTICED_WORD;
+  const articleXp = readingItems.filter((i) => i.status === "read").length * XP_PER_READ_ARTICLE;
+  return lessonXp + drillXp + vocabXp + articleXp;
 }
 
 function manualProgressDoc(db: Firestore, uid: string, characteristicId: CharacteristicId) {

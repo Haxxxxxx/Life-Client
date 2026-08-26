@@ -160,7 +160,14 @@ export interface Reminder {
 
 export type NewReminder = Omit<Reminder, "id" | "createdAt" | "updatedAt" | "calendarEventId">;
 
-export type CoreCharacteristicId = "discipline" | "fitness" | "craft" | "focus" | "social" | "rhythm";
+export type CoreCharacteristicId =
+  | "discipline"
+  | "fitness"
+  | "craft"
+  | "focus"
+  | "social"
+  | "rhythm"
+  | "insight";
 export type CharacteristicId = CoreCharacteristicId | TaskCategory;
 export type CharacteristicSource = "computed" | "manual";
 export type CharacteristicGroup = "core" | "category";
@@ -207,6 +214,13 @@ export const CHARACTERISTICS: CharacteristicDefinition[] = [
     label: "Social",
     description: "Log time well spent with people to grow this.",
     source: "manual",
+    group: "core",
+  },
+  {
+    id: "insight",
+    label: "Insight",
+    description: "Grows with Knowledge: daily lessons, correctly-solved drills, practiced words, and articles read.",
+    source: "computed",
     group: "core",
   },
   {
@@ -284,6 +298,10 @@ export interface CodeDrill {
   difficulty: CodeDrillDifficulty;
   prompt: string; // the problem/question posed to the user
   explanation: string; // the concept explanation / model answer
+  userAnswer?: string; // the learner's submitted answer, once graded
+  graded?: boolean;
+  correct?: boolean;
+  feedback?: string; // AI feedback on the submitted answer
   createdAt: string;
 }
 
@@ -295,6 +313,9 @@ export interface VocabWord {
   definition: string;
   example: string;
   mastery: VocabMastery;
+  practiceSentence?: string; // the learner's own sentence using the word, once graded
+  practiceCorrect?: boolean;
+  practiceFeedback?: string; // AI feedback on the practice sentence
   createdAt: string;
   updatedAt: string;
 }

@@ -4,11 +4,14 @@ import {
   type CodeDrill,
   type CodeDrillDifficulty,
   type DailyLesson,
+  type GradeResult,
   type ReadingListItem,
   type VocabMastery,
   type VocabWord,
   createReadingListItem,
   deleteReadingListItem,
+  gradeDrillAnswer,
+  gradeVocabSentence,
   generateCodeDrill,
   generateDailyLesson,
   generateVocabWord,
@@ -123,6 +126,26 @@ const DIFFICULTIES: { id: CodeDrillDifficulty; label: string }[] = [
 
 function DrillCard({ drill }: { drill: CodeDrill }) {
   const [revealed, setRevealed] = useState(false);
+  const [answer, setAnswer] = useState(drill.userAnswer ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<GradeResult | null>(
+    drill.graded ? { correct: Boolean(drill.correct), feedback: drill.feedback ?? "" } : null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    if (!answer.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      setResult(await gradeDrillAnswer(knowledgeApiClient, drill.id, answer.trim()));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not grade your answer");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <li className="rounded-md border-2 border-foreground bg-surface p-4">
       <div className="flex items-center justify-between gap-2">
@@ -132,16 +155,53 @@ function DrillCard({ drill }: { drill: CodeDrill }) {
         <span className="font-mono text-xs text-muted">{drill.topic}</span>
       </div>
       <p className="mt-2 text-sm font-bold">{drill.prompt}</p>
-      {revealed ? (
-        <p className="mt-2 text-sm whitespace-pre-wrap text-muted">{drill.explanation}</p>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setRevealed(true)}
-          className="mt-2 font-mono text-xs font-bold text-primary uppercase hover:underline"
+
+      {!result && (
+        <div className="mt-2 flex flex-col gap-2">
+          <textarea
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            placeholder="Type your answer or explanation…"
+            rows={3}
+            className="w-full resize-y rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting || !answer.trim()}
+              className="rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
+            >
+              {submitting ? "Grading…" : "Submit answer"}
+            </button>
+            {!revealed && (
+              <button
+                type="button"
+                onClick={() => setRevealed(true)}
+                className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+              >
+                Show answer instead
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+      {result && (
+        <div
+          className={`mt-2 rounded-md border-2 p-3 ${
+            result.correct ? "border-green-600 bg-green-600/10" : "border-red-600 bg-red-600/10"
+          }`}
         >
-          Show answer
-        </button>
+          <p className="font-mono text-xs font-bold uppercase">{result.correct ? "Correct" : "Not quite"}</p>
+          <p className="mt-1 text-sm text-muted">{result.feedback}</p>
+        </div>
+      )}
+
+      {(revealed || result) && (
+        <p className="mt-2 text-sm whitespace-pre-wrap text-muted">{drill.explanation}</p>
       )}
     </li>
   );
@@ -208,10 +268,9 @@ function CodeDrillsSection() {
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <ul className="flex flex-col gap-2">
-        {drills.map((drill) => (
-          <DrillCard key={drill.id} drill={drill} />
-        ))}
-        {drills.length === 0 && (
+        {drills[0] ? (
+          <DrillCard key={drills[0].id} drill={drills[0]} />
+        ) : (
           <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
             No drills yet — generate your first one above.
           </li>
@@ -223,6 +282,83 @@ function CodeDrillsSection() {
 
 const MASTERY_ORDER: VocabMastery[] = ["new", "learning", "known"];
 const MASTERY_LABEL: Record<VocabMastery, string> = { new: "New", learning: "Learning", known: "Known" };
+
+function VocabCard({ w }: { w: VocabWord }) {
+  const { user } = useAuth();
+  const [sentence, setSentence] = useState(w.practiceSentence ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<GradeResult | null>(
+    w.practiceSentence ? { correct: Boolean(w.practiceCorrect), feedback: w.practiceFeedback ?? "" } : null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    if (!sentence.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      setResult(await gradeVocabSentence(knowledgeApiClient, w.id, sentence.trim()));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not grade your sentence");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <li className="rounded-md border-2 border-foreground bg-surface p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-bold">{w.word}</p>
+          <p className="text-sm text-muted">{w.definition}</p>
+          <p className="mt-1 text-sm italic text-muted">&ldquo;{w.example}&rdquo;</p>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          {MASTERY_ORDER.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => user && db && setVocabMastery(db, user.uid, w.id, m)}
+              className={`rounded-full border-2 border-foreground px-2 py-1 font-mono text-[10px] font-bold uppercase ${
+                w.mastery === m ? "bg-accent" : ""
+              }`}
+            >
+              {MASTERY_LABEL[m]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 border-t-2 border-foreground/10 pt-3">
+        <p className="font-mono text-xs font-bold text-primary uppercase">Practice it</p>
+        <input
+          value={sentence}
+          onChange={(e) => setSentence(e.target.value)}
+          placeholder={`Write a sentence using "${w.word}"…`}
+          className="w-full rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+        />
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting || !sentence.trim()}
+          className="self-start rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
+        >
+          {submitting ? "Checking…" : "Check my sentence"}
+        </button>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {result && (
+          <div
+            className={`rounded-md border-2 p-3 ${
+              result.correct ? "border-green-600 bg-green-600/10" : "border-red-600 bg-red-600/10"
+            }`}
+          >
+            <p className="font-mono text-xs font-bold uppercase">{result.correct ? "Nice, that works" : "Not quite"}</p>
+            <p className="mt-1 text-sm text-muted">{result.feedback}</p>
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
 
 function VocabularySection() {
   const { user } = useAuth();
@@ -263,29 +399,7 @@ function VocabularySection() {
       {error && <p className="text-sm text-red-600">{error}</p>}
       <ul className="flex flex-col gap-2">
         {words.map((w) => (
-          <li key={w.id} className="rounded-md border-2 border-foreground bg-surface p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-bold">{w.word}</p>
-                <p className="text-sm text-muted">{w.definition}</p>
-                <p className="mt-1 text-sm italic text-muted">&ldquo;{w.example}&rdquo;</p>
-              </div>
-              <div className="flex shrink-0 gap-1">
-                {MASTERY_ORDER.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => user && db && setVocabMastery(db, user.uid, w.id, m)}
-                    className={`rounded-full border-2 border-foreground px-2 py-1 font-mono text-[10px] font-bold uppercase ${
-                      w.mastery === m ? "bg-accent" : ""
-                    }`}
-                  >
-                    {MASTERY_LABEL[m]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </li>
+          <VocabCard key={w.id} w={w} />
         ))}
         {words.length === 0 && (
           <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">

@@ -42,3 +42,24 @@ export function requestReadingSummary(
 ): Promise<ReadingListItem> {
   return post(client, "/api/knowledge/summarize", { itemId });
 }
+
+export interface GradeResult {
+  correct: boolean;
+  feedback: string;
+}
+
+export function gradeDrillAnswer(
+  client: KnowledgeApiClient,
+  drillId: string,
+  answer: string,
+): Promise<GradeResult> {
+  return post(client, "/api/knowledge/drill/grade", { drillId, answer });
+}
+
+export function gradeVocabSentence(
+  client: KnowledgeApiClient,
+  wordId: string,
+  sentence: string,
+): Promise<GradeResult> {
+  return post(client, "/api/knowledge/vocab/grade", { wordId, sentence });
+}
