@@ -398,6 +398,19 @@ function VocabCard({ w }: { w: VocabWord }) {
   );
 }
 
+function DictionaryEntry({ w }: { w: VocabWord }) {
+  return (
+    <li className="rounded-md border-2 border-foreground/20 p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-bold">{w.word}</p>
+        <span className="shrink-0 font-mono text-[10px] font-bold text-green-700 uppercase">Learned</span>
+      </div>
+      <p className="mt-1 text-sm text-muted">{w.definition}</p>
+      {w.practiceSentence && <p className="mt-1 text-sm italic text-muted">&ldquo;{w.practiceSentence}&rdquo;</p>}
+    </li>
+  );
+}
+
 function VocabularySection() {
   const { user } = useAuth();
   const [words, setWords] = useState<VocabWord[]>([]);
@@ -421,6 +434,12 @@ function VocabularySection() {
     }
   }
 
+  const activeWords = words.filter((w) => !w.practiceCorrect);
+  const dictionaryWords = words
+    .filter((w) => w.practiceCorrect)
+    .slice()
+    .sort((a, b) => a.word.localeCompare(b.word));
+
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
@@ -436,15 +455,28 @@ function VocabularySection() {
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <ul className="flex flex-col gap-2">
-        {words.map((w) => (
+        {activeWords.map((w) => (
           <VocabCard key={w.id} w={w} />
         ))}
-        {words.length === 0 && (
+        {activeWords.length === 0 && (
           <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
-            No words yet — get your first one above.
+            {words.length === 0
+              ? "No words yet — get your first one above."
+              : "All caught up — every word's in your dictionary. Get a new one above."}
           </li>
         )}
       </ul>
+
+      {dictionaryWords.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 border-t-2 border-foreground/10 pt-4">
+          <SectionHeader eyebrow={`${dictionaryWords.length} learned`} title="Dictionary" />
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {dictionaryWords.map((w) => (
+              <DictionaryEntry key={w.id} w={w} />
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }
