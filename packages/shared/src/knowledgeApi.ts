@@ -56,6 +56,10 @@ export function gradeDrillAnswer(
   return post(client, "/api/knowledge/drill/grade", { drillId, answer });
 }
 
+export function deleteCodeDrill(client: KnowledgeApiClient, drillId: string): Promise<{ ok: true }> {
+  return post(client, "/api/knowledge/drill/delete", { drillId });
+}
+
 export function gradeVocabSentence(
   client: KnowledgeApiClient,
   wordId: string,

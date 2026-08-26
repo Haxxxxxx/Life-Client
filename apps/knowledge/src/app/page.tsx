@@ -11,6 +11,7 @@ import {
   computeInsightXp,
   createReadingListItem,
   dailyLessonStreak,
+  deleteCodeDrill,
   deleteReadingListItem,
   gradeDrillAnswer,
   gradeVocabSentence,
@@ -90,6 +91,9 @@ function DailyLessonSection() {
           </div>
           <div className="rounded-md border-2 border-foreground bg-surface p-4">
             <p className="font-mono text-xs font-bold text-primary uppercase">Read About</p>
+            {lesson.articleSource && (
+              <p className="mt-1 font-mono text-[10px] font-bold text-muted uppercase">{lesson.articleSource}</p>
+            )}
             <p className="mt-1 font-bold">{lesson.articleTopic}</p>
             <p className="mt-1 text-sm text-muted">{lesson.articleReason}</p>
             {lesson.articleUrl && (
@@ -99,7 +103,7 @@ function DailyLessonSection() {
                 rel="noopener noreferrer"
                 className="mt-2 inline-block font-mono text-xs font-bold text-primary uppercase hover:underline"
               >
-                Read on Wikipedia →
+                Read the article →
               </a>
             )}
           </div>
@@ -128,7 +132,19 @@ const DIFFICULTIES: { id: CodeDrillDifficulty; label: string }[] = [
   { id: "advanced", label: "Advanced" },
 ];
 
-function DrillCard({ drill }: { drill: CodeDrill }) {
+function DrillCard({
+  drill,
+  onSkip,
+  skipping,
+  onDelete,
+  deleting,
+}: {
+  drill: CodeDrill;
+  onSkip: () => void;
+  skipping: boolean;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
   const [revealed, setRevealed] = useState(false);
   const [answer, setAnswer] = useState(drill.userAnswer ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -156,7 +172,17 @@ function DrillCard({ drill }: { drill: CodeDrill }) {
         <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold uppercase">
           {drill.difficulty}
         </span>
-        <span className="font-mono text-xs text-muted">{drill.topic}</span>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-xs text-muted">{drill.topic}</span>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className="font-mono text-xs font-bold text-red-600 uppercase hover:underline disabled:opacity-50"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
       </div>
       <p className="mt-2 text-sm font-bold">{drill.prompt}</p>
 
@@ -187,6 +213,14 @@ function DrillCard({ drill }: { drill: CodeDrill }) {
                 Show answer instead
               </button>
             )}
+            <button
+              type="button"
+              onClick={onSkip}
+              disabled={skipping}
+              className="ml-auto font-mono text-xs font-bold text-muted uppercase hover:underline disabled:opacity-50"
+            >
+              {skipping ? "Skipping…" : "Skip"}
+            </button>
           </div>
         </div>
       )}
@@ -201,6 +235,13 @@ function DrillCard({ drill }: { drill: CodeDrill }) {
         >
           <p className="font-mono text-xs font-bold uppercase">{result.correct ? "Correct" : "Not quite"}</p>
           <p className="mt-1 text-sm text-muted">{result.feedback}</p>
+          <button
+            type="button"
+            onClick={() => setResult(null)}
+            className="mt-2 font-mono text-xs font-bold text-primary uppercase hover:underline"
+          >
+            Edit answer
+          </button>
         </div>
       )}
 
@@ -211,7 +252,15 @@ function DrillCard({ drill }: { drill: CodeDrill }) {
   );
 }
 
-function PastDrillRow({ drill }: { drill: CodeDrill }) {
+function PastDrillRow({
+  drill,
+  onDelete,
+  deleting,
+}: {
+  drill: CodeDrill;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
   return (
     <li className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground/20 px-3 py-2">
       <div className="min-w-0">
@@ -220,17 +269,27 @@ function PastDrillRow({ drill }: { drill: CodeDrill }) {
           {drill.difficulty} · {drill.topic}
         </p>
       </div>
-      {drill.graded ? (
-        <span
-          className={`shrink-0 rounded-full border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
-            drill.correct ? "border-green-600 text-green-700" : "border-red-600 text-red-700"
-          }`}
+      <div className="flex shrink-0 items-center gap-2">
+        {drill.graded ? (
+          <span
+            className={`rounded-full border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+              drill.correct ? "border-green-600 text-green-700" : "border-red-600 text-red-700"
+            }`}
+          >
+            {drill.correct ? "Correct" : "Missed"}
+          </span>
+        ) : (
+          <span className="font-mono text-[10px] font-bold text-muted uppercase">Skipped</span>
+        )}
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={deleting}
+          className="font-mono text-[10px] font-bold text-red-600 uppercase hover:underline disabled:opacity-50"
         >
-          {drill.correct ? "Correct" : "Missed"}
-        </span>
-      ) : (
-        <span className="shrink-0 font-mono text-[10px] font-bold text-muted uppercase">Skipped</span>
-      )}
+          {deleting ? "…" : "Delete"}
+        </button>
+      </div>
     </li>
   );
 }
@@ -241,6 +300,7 @@ function CodeDrillsSection() {
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState<CodeDrillDifficulty>("intermediate");
   const [generating, setGenerating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -258,6 +318,18 @@ function CodeDrillsSection() {
       setError(err instanceof Error ? err.message : "Could not generate a drill");
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    setError(null);
+    try {
+      await deleteCodeDrill(knowledgeApiClient, id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete this drill");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -297,7 +369,14 @@ function CodeDrillsSection() {
       {error && <p className="text-sm text-red-600">{error}</p>}
       <ul className="flex flex-col gap-2">
         {drills[0] ? (
-          <DrillCard key={drills[0].id} drill={drills[0]} />
+          <DrillCard
+            key={drills[0].id}
+            drill={drills[0]}
+            onSkip={handleGenerate}
+            skipping={generating}
+            onDelete={() => handleDelete(drills[0]!.id)}
+            deleting={deletingId === drills[0].id}
+          />
         ) : (
           <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
             No drills yet — generate your first one above.
@@ -309,7 +388,7 @@ function CodeDrillsSection() {
           <p className="font-mono text-xs font-bold text-muted uppercase">Past drills</p>
           <ul className="flex flex-col gap-2">
             {drills.slice(1, 9).map((d) => (
-              <PastDrillRow key={d.id} drill={d} />
+              <PastDrillRow key={d.id} drill={d} onDelete={() => handleDelete(d.id)} deleting={deletingId === d.id} />
             ))}
           </ul>
         </div>
