@@ -3,10 +3,17 @@
 import {
   ENDURANCE_EXERCISE_PRESETS,
   STRENGTH_EXERCISE_PRESETS,
+  type Challenge,
+  type ChallengeMetric,
   type SportActivity,
   type SportActivityKind,
+  archiveChallenge,
+  computeChallengeProgress,
+  createChallenge,
   createManualSportActivity,
+  deleteChallenge,
   deleteSportActivity,
+  subscribeChallenges,
   subscribeSportActivities,
 } from "@life-client/shared";
 import Link from "next/link";
@@ -169,6 +176,262 @@ function LogActivityForm({
   );
 }
 
+const EXERCISE_PRESETS = [...ENDURANCE_EXERCISE_PRESETS, ...STRENGTH_EXERCISE_PRESETS];
+const METRICS: { id: ChallengeMetric; label: string; unit: string }[] = [
+  { id: "reps", label: "Reps/day", unit: "reps" },
+  { id: "distanceMeters", label: "Distance/day", unit: "m" },
+  { id: "sessions", label: "Session/day", unit: "session" },
+];
+
+function todayLocalDate(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof createChallenge>[2]) => void }) {
+  const [exerciseType, setExerciseType] = useState(EXERCISE_PRESETS[0]!);
+  const [customType, setCustomType] = useState("");
+  const [metric, setMetric] = useState<ChallengeMetric>("reps");
+  const [dailyTarget, setDailyTarget] = useState(100);
+  const [durationDays, setDurationDays] = useState(100);
+  const [startDate, setStartDate] = useState(todayLocalDate());
+
+  const type = customType.trim() || exerciseType;
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3">
+      <div className="flex flex-wrap gap-2">
+        {EXERCISE_PRESETS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => {
+              setExerciseType(p);
+              setCustomType("");
+            }}
+            className={`rounded-full border-2 border-foreground px-2.5 py-1 text-xs ${
+              exerciseType === p && !customType ? "bg-accent" : ""
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        <input
+          value={customType}
+          onChange={(e) => setCustomType(e.target.value)}
+          placeholder="Or type your own…"
+          className="min-w-0 flex-1 rounded-full border-2 border-foreground bg-background px-2.5 py-1 text-xs outline-none placeholder:text-muted"
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {METRICS.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => setMetric(m.id)}
+            className={`rounded-full border-2 border-foreground px-3 py-1 text-xs font-bold uppercase ${
+              metric === m.id ? "bg-primary text-primary-foreground" : ""
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
+          Daily target ({METRICS.find((m) => m.id === metric)!.unit})
+          <input
+            type="number"
+            min={1}
+            value={dailyTarget}
+            onChange={(e) => setDailyTarget(Number(e.target.value))}
+            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+          />
+        </label>
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
+          Duration (days)
+          <input
+            type="number"
+            min={1}
+            value={durationDays}
+            onChange={(e) => setDurationDays(Number(e.target.value))}
+            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+          />
+        </label>
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
+          Start date
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+          />
+        </label>
+      </div>
+      <button
+        type="button"
+        onClick={() =>
+          onSubmit({
+            title: `${durationDays} Days of ${dailyTarget} ${type}`,
+            exerciseType: type,
+            metric,
+            dailyTarget,
+            durationDays,
+            startDate,
+          })
+        }
+        className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+      >
+        Start challenge
+      </button>
+    </div>
+  );
+}
+
+function ChallengeCard({
+  challenge,
+  activities,
+  onArchive,
+  onDelete,
+}: {
+  challenge: Challenge;
+  activities: SportActivity[];
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const progress = computeChallengeProgress(challenge, activities);
+  const unit = METRICS.find((m) => m.id === challenge.metric)!.unit;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-bold">{challenge.title}</p>
+          <p className="text-xs text-muted">
+            {challenge.exerciseType} · {challenge.dailyTarget} {unit}/day
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={onArchive}
+            className="font-mono text-xs font-bold text-muted uppercase hover:underline"
+          >
+            Archive
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-4">
+        <div>
+          <p className="text-2xl font-bold text-primary">{progress.currentStreak}</p>
+          <p className="font-mono text-xs text-muted uppercase">current streak</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold">{progress.longestStreak}</p>
+          <p className="font-mono text-xs text-muted uppercase">longest streak</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold">
+            {progress.completedCount}/{challenge.durationDays}
+          </p>
+          <p className="font-mono text-xs text-muted uppercase">days completed</p>
+        </div>
+        {progress.isFinished && (
+          <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold uppercase">
+            Finished
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {progress.days.map((day) => (
+          <div
+            key={day.date}
+            title={`${day.date}: ${day.value} ${unit}`}
+            className={`h-3 w-3 rounded-sm border ${
+              day.completed ? "border-primary bg-primary" : "border-foreground/30 bg-background"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChallengesSection({ activities }: { activities: SportActivity[] }) {
+  const { user } = useAuth();
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [formOpen, setFormOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    return subscribeChallenges(db, user.uid, setChallenges, (err) => setError(err.message));
+  }, [user]);
+
+  async function handleCreate(input: Parameters<typeof createChallenge>[2]) {
+    if (!user || !db) return;
+    setError(null);
+    try {
+      await createChallenge(db, user.uid, input);
+      setFormOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start challenge");
+    }
+  }
+
+  const activeChallenges = challenges.filter((c) => !c.archived);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">Streaks</p>
+          <h2 className="text-lg font-bold tracking-tight">Challenges</h2>
+        </div>
+        {!formOpen && (
+          <button
+            type="button"
+            onClick={() => setFormOpen(true)}
+            className="shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+          >
+            New challenge
+          </button>
+        )}
+      </div>
+      {formOpen && <ChallengeForm onSubmit={handleCreate} />}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {activeChallenges.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {activeChallenges.map((challenge) => (
+            <ChallengeCard
+              key={challenge.id}
+              challenge={challenge}
+              activities={activities}
+              onArchive={() => user && db && archiveChallenge(db, user.uid, challenge.id)}
+              onDelete={() => user && db && deleteChallenge(db, user.uid, challenge.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        !formOpen && (
+          <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center text-sm text-muted">
+            No active challenges — e.g. &ldquo;100 days of 100 push-ups&rdquo;. Completion is tracked automatically
+            from activities you log below.
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 export default function SportsPage() {
   const { user } = useAuth();
   const [activities, setActivities] = useState<SportActivity[]>([]);
@@ -232,6 +495,8 @@ export default function SportsPage() {
 
       {formOpen && <LogActivityForm onSubmit={handleLog} />}
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <ChallengesSection activities={activities} />
 
       {loaded && activities.length === 0 && (
         <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center text-sm text-muted">

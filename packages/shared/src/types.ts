@@ -92,6 +92,42 @@ export interface SportActivity {
 export const ENDURANCE_EXERCISE_PRESETS = ["Running", "Cycling", "Swimming"];
 export const STRENGTH_EXERCISE_PRESETS = ["Squats", "Push-ups", "Pull-ups", "Dips"];
 
+/**
+ * "reps"/"distanceMeters" sum the matching SportActivity metric across all of
+ * that day's logged activities for exerciseType; "sessions" just requires at
+ * least one activity of that type to have been logged that day.
+ */
+export type ChallengeMetric = "reps" | "distanceMeters" | "sessions";
+
+export interface Challenge {
+  id: string;
+  title: string;
+  exerciseType: string; // matches SportActivity.type, e.g. "Push-ups"
+  metric: ChallengeMetric;
+  dailyTarget: number; // e.g. 100 (reps/meters), or 1 for "sessions"
+  durationDays: number; // e.g. 100
+  startDate: string; // ISO date (YYYY-MM-DD), local
+  createdAt: string;
+  archived?: boolean;
+}
+
+export type NewChallenge = Omit<Challenge, "id" | "createdAt" | "archived">;
+
+export interface ChallengeDayStatus {
+  date: string; // YYYY-MM-DD
+  completed: boolean;
+  value: number;
+}
+
+export interface ChallengeProgress {
+  days: ChallengeDayStatus[]; // startDate..min(today, endDate)
+  currentStreak: number;
+  longestStreak: number;
+  completedCount: number;
+  totalDaysSoFar: number;
+  isFinished: boolean; // today is past startDate + durationDays
+}
+
 export type IntegrationProvider =
   | "github"
   | "gitlab"
