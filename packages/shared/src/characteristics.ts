@@ -11,6 +11,7 @@ import {
   type CharacteristicId,
   type CharacteristicLevel,
   type CodeDrill,
+  type CoreCharacteristicId,
   type DailyLesson,
   type DevActivitySummary,
   type ManualEventType,
@@ -59,6 +60,65 @@ export function levelFromXp(totalXp: number): CharacteristicLevel {
     xpForNextLevel,
     progress: remaining / xpForNextLevel,
   };
+}
+
+/** Cheeky, level-tiered flavor text for each core stat — replaces the plain static description on the Profile page. */
+const CORE_ROAST_TIERS: Record<CoreCharacteristicId, [string, string, string, string]> = {
+  discipline: [
+    "Currently surviving on vibes and open browser tabs. Discipline: not detected.",
+    "You closed a task. Groundbreaking. Do it again before the streak notices.",
+    "Adulting is happening. Slowly, suspiciously, but happening.",
+    "Certified task-crushing machine — even your to-do list is scared of you.",
+  ],
+  fitness: [
+    "Fitness level: houseplant. The houseplant moves more than you.",
+    "One (1) walk to the fridge has been logged. Progress, technically.",
+    "Building real momentum — or at least a solid excuse to buy new shoes.",
+    "Absolute unit. Your cardiovascular system sends its regards.",
+  ],
+  craft: [
+    "Zero merged PRs. Are you a developer, or just cosplaying as one?",
+    "One PR merged. Bold of you to call that a career.",
+    "Shipping code at a respectable, mildly caffeinated pace.",
+    "Certified ship-it legend — main trembles every time you push.",
+  ],
+  focus: [
+    "Focus sessions logged: none. Attention span: goldfish-adjacent.",
+    "One deep-work session — a shy first step out of notification hell.",
+    "Building a real focus habit. Slack fears you slightly now.",
+    "Monk-level focus achieved. Silence itself asks YOU to keep it down.",
+  ],
+  social: [
+    "Social battery still in the box, factory-sealed, never opened.",
+    "One hangout logged. Baby's first step out of the cave.",
+    "Actively maintaining a social life — the group chat acknowledges you.",
+    "Main character of every group chat. People build their week around you.",
+  ],
+  insight: [
+    "Knowledge XP: zero. Today's lesson is judging you quietly.",
+    "One lesson down. Big-brain energy, still in its larval stage.",
+    "Steadily leveling up the brain — words learned, drills drilled.",
+    "Walking encyclopedia. The daily lesson has nothing left to teach you.",
+  ],
+  rhythm: [
+    "Rhythm level: silence. Even the elevator has better taste right now.",
+    "A few tracks played. Baby's first playlist, respectfully.",
+    "Solid rotation going — the algorithm is starting to respect you.",
+    "Peak rhythm achieved. You ARE the algorithm at this point.",
+  ],
+};
+
+/** 0: level<=1, 1: level 2-4, 2: level 5-9, 3: level 10+. */
+function roastTierIndex(level: number): 0 | 1 | 2 | 3 {
+  if (level <= 1) return 0;
+  if (level <= 4) return 1;
+  if (level <= 9) return 2;
+  return 3;
+}
+
+/** A cheeky, level-aware line for a core stat — funnier and more alive than a static description. */
+export function characteristicRoast(id: CoreCharacteristicId, level: number): string {
+  return CORE_ROAST_TIERS[id][roastTierIndex(level)];
 }
 
 export function computeDisciplineXp(tasks: Task[]): number {

@@ -4,6 +4,7 @@ import {
   CHARACTERISTICS,
   type CharacteristicDefinition,
   type CodeDrill,
+  type CoreCharacteristicId,
   type DailyLesson,
   type DevActivitySummary,
   MANUAL_EVENT_TYPES,
@@ -15,6 +16,7 @@ import {
   type Task,
   type TaskCategory,
   type VocabWord,
+  characteristicRoast,
   computeCategoryXp,
   computeCraftXp,
   computeDisciplineXp,
@@ -122,13 +124,15 @@ function CharacteristicCard({
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const level = levelFromXp(totalXp);
+  const description =
+    def.group === "core" ? characteristicRoast(def.id as CoreCharacteristicId, level.level) : def.description;
 
   return (
     <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-bold">{def.label}</p>
-          <p className="text-xs text-muted">{def.description}</p>
+          <p className="text-xs text-muted">{description}</p>
         </div>
         <span className="shrink-0 rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold">
           Lv {level.level}

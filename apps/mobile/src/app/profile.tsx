@@ -2,6 +2,7 @@ import {
   CHARACTERISTICS,
   type CharacteristicDefinition,
   type CodeDrill,
+  type CoreCharacteristicId,
   type DailyLesson,
   type DevActivitySummary,
   MANUAL_EVENT_TYPES,
@@ -13,6 +14,7 @@ import {
   type Task,
   type TaskCategory,
   type VocabWord,
+  characteristicRoast,
   computeCategoryXp,
   computeCraftXp,
   computeDisciplineXp,
@@ -152,6 +154,8 @@ function CharacteristicCard({
   const theme = useTheme();
   const [formOpen, setFormOpen] = useState(false);
   const level = levelFromXp(totalXp);
+  const description =
+    def.group === 'core' ? characteristicRoast(def.id as CoreCharacteristicId, level.level) : def.description;
 
   return (
     <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
@@ -159,7 +163,7 @@ function CharacteristicCard({
         <View style={styles.cardText}>
           <ThemedText type="smallBold">{def.label}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {def.description}
+            {description}
           </ThemedText>
         </View>
         <View style={[styles.levelBadge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
