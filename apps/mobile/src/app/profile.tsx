@@ -23,6 +23,7 @@ import {
   computeRhythmXp,
   levelFromXp,
   logManualEvent,
+  taskCategoryRoast,
   subscribeCodeDrills,
   subscribeDailyLessons,
   subscribeDevActivity,
@@ -155,7 +156,9 @@ function CharacteristicCard({
   const [formOpen, setFormOpen] = useState(false);
   const level = levelFromXp(totalXp);
   const description =
-    def.group === 'core' ? characteristicRoast(def.id as CoreCharacteristicId, level.level) : def.description;
+    def.group === 'core'
+      ? characteristicRoast(def.id as CoreCharacteristicId, level.level)
+      : taskCategoryRoast(def.id as TaskCategory, level.level);
 
   return (
     <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
