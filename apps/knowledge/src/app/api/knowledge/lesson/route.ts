@@ -18,7 +18,29 @@ const lessonSchema = z.object({
   articleReason: z.string().describe("One sentence on why this topic is worth reading about"),
 });
 
-/** Finds a real Wikipedia article matching the topic — no API key needed. */
+const STOPWORDS = new Set([
+  "the", "a", "an", "of", "and", "or", "with", "for", "to", "in", "on", "at", "is", "are",
+  "path", "forward", "understanding", "how", "why", "what", "new", "modern",
+]);
+
+function significantWords(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !STOPWORDS.has(w)),
+  );
+}
+
+/**
+ * Finds a real Wikipedia article matching the topic — no API key needed.
+ * Wikipedia's search reliably returns *some* result even for very specific
+ * AI-coined topics (e.g. "intent-centric protocols") with no real matching
+ * page, defaulting to an essentially unrelated top hit — so this rejects any
+ * result that doesn't share at least one substantive word with the topic,
+ * rather than link to something wrong.
+ */
 async function findWikipediaUrl(topic: string): Promise<string | undefined> {
   try {
     const res = await fetch(
@@ -27,7 +49,14 @@ async function findWikipediaUrl(topic: string): Promise<string | undefined> {
     if (!res.ok) return undefined;
     const data = (await res.json()) as { query?: { search?: { title: string }[] } };
     const title = data.query?.search?.[0]?.title;
-    return title ? `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}` : undefined;
+    if (!title) return undefined;
+
+    const topicWords = significantWords(topic);
+    const titleWords = significantWords(title);
+    const hasOverlap = [...titleWords].some((w) => topicWords.has(w));
+    if (!hasOverlap) return undefined;
+
+    return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
   } catch {
     return undefined;
   }
@@ -93,6 +122,24 @@ export async function POST(req: NextRequest) {
     const lesson = { ...output, wordLanguage, articleUrl };
     const createdAt = new Date().toISOString();
     await ref.set({ ...lesson, createdAt });
+
+    // Only when a genuinely relevant article was found — Reading List summaries
+    // fetch and summarize the URL's real content, so an entry with no article
+    // behind it would just error out.
+    if (articleUrl) {
+      await adminDb
+        .collection("users")
+        .doc(uid)
+        .collection("readingList")
+        .add({
+          url: articleUrl,
+          title: output.articleTopic,
+          status: "pending",
+          createdAt,
+          updatedAt: createdAt,
+        });
+    }
+
     return NextResponse.json({ id: lessonId, ...lesson, createdAt });
   } catch (error) {
     console.error("knowledge/lesson generation failed", error);
