@@ -2,23 +2,40 @@
 
 import {
   type CalendarEvent,
+  type CodeDrill,
+  type DailyLesson,
   type DevActivitySummary,
+  type ReadingListItem,
   type Reminder,
   type SportActivity,
   type SpotifySummary,
   type Task,
+  type VocabWord,
+  computeInsightXp,
   isDueSoon,
+  levelFromXp,
   subscribeCalendarEvents,
+  subscribeCodeDrills,
+  subscribeDailyLessons,
   subscribeDevActivity,
+  subscribeReadingList,
   subscribeReminders,
   subscribeSportActivities,
   subscribeSpotifySummary,
   subscribeTasks,
+  subscribeVocabWords,
+  todayLessonId,
 } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
+
+// Knowledge lives in its own deployable app (apps/knowledge) — same link-out as the sidebar nav.
+const KNOWLEDGE_APP_URL = process.env.NEXT_PUBLIC_KNOWLEDGE_APP_URL;
+
+const cardClassName =
+  "flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-5 shadow-[3px_3px_0_0_var(--foreground)] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--foreground)]";
 
 function Card({
   title,
@@ -30,13 +47,27 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-5 shadow-[3px_3px_0_0_var(--foreground)] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--foreground)]"
-    >
+    <Link href={href} className={cardClassName}>
       <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{title}</p>
       {children}
     </Link>
+  );
+}
+
+function ExternalCard({
+  title,
+  href,
+  children,
+}: {
+  title: string;
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={cardClassName}>
+      <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{title}</p>
+      {children}
+    </a>
   );
 }
 
@@ -49,6 +80,10 @@ export default function DashboardPage() {
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [spotify, setSpotify] = useState<SpotifySummary | null>(null);
+  const [lessons, setLessons] = useState<DailyLesson[]>([]);
+  const [drills, setDrills] = useState<CodeDrill[]>([]);
+  const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
+  const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -60,6 +95,10 @@ export default function DashboardPage() {
       subscribeDevActivity(db, user.uid, "gitlab", setGitlab),
       subscribeReminders(db, user.uid, setReminders),
       subscribeSpotifySummary(db, user.uid, setSpotify),
+      subscribeDailyLessons(db, user.uid, setLessons),
+      subscribeCodeDrills(db, user.uid, setDrills),
+      subscribeVocabWords(db, user.uid, setVocabWords),
+      subscribeReadingList(db, user.uid, setReadingItems),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -68,6 +107,9 @@ export default function DashboardPage() {
   const latestActivity = activities[0];
   const openPrCount = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
   const dueSoonReminders = reminders.filter((r) => isDueSoon(r.deadline));
+  const insightLevel = levelFromXp(computeInsightXp(lessons, drills, vocabWords, readingItems));
+  const lessonDoneToday = lessons.some((l) => l.id === todayLessonId());
+  const pendingReadingCount = readingItems.filter((i) => i.status !== "read").length;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -148,6 +190,18 @@ export default function DashboardPage() {
             <p className="text-sm text-muted">Nothing due soon.</p>
           )}
         </Card>
+
+        {KNOWLEDGE_APP_URL && (
+          <ExternalCard title="Knowledge" href={KNOWLEDGE_APP_URL}>
+            <p className="text-3xl font-bold">Lv {insightLevel.level}</p>
+            <p className="text-sm text-muted">
+              {lessonDoneToday ? "Today's lesson done" : "No lesson generated today"}
+              {pendingReadingCount > 0
+                ? ` · ${pendingReadingCount} unread article${pendingReadingCount === 1 ? "" : "s"}`
+                : ""}
+            </p>
+          </ExternalCard>
+        )}
       </div>
     </div>
   );

@@ -1,17 +1,28 @@
 import {
   type CalendarEvent,
+  type CodeDrill,
+  type DailyLesson,
   type DevActivitySummary,
+  type ReadingListItem,
   type Reminder,
   type SportActivity,
   type SpotifySummary,
   type Task,
+  type VocabWord,
+  computeInsightXp,
   isDueSoon,
+  levelFromXp,
   subscribeCalendarEvents,
+  subscribeCodeDrills,
+  subscribeDailyLessons,
   subscribeDevActivity,
+  subscribeReadingList,
   subscribeReminders,
   subscribeSportActivities,
   subscribeSpotifySummary,
   subscribeTasks,
+  subscribeVocabWords,
+  todayLessonId,
 } from '@life-client/shared';
 import { Link, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -61,6 +72,10 @@ export default function DashboardScreen() {
   const [gitlab, setGitlab] = useState<DevActivitySummary | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [spotify, setSpotify] = useState<SpotifySummary | null>(null);
+  const [lessons, setLessons] = useState<DailyLesson[]>([]);
+  const [drills, setDrills] = useState<CodeDrill[]>([]);
+  const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
+  const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -72,6 +87,10 @@ export default function DashboardScreen() {
       subscribeDevActivity(db, user.uid, 'gitlab', setGitlab),
       subscribeReminders(db, user.uid, setReminders),
       subscribeSpotifySummary(db, user.uid, setSpotify),
+      subscribeDailyLessons(db, user.uid, setLessons),
+      subscribeCodeDrills(db, user.uid, setDrills),
+      subscribeVocabWords(db, user.uid, setVocabWords),
+      subscribeReadingList(db, user.uid, setReadingItems),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -80,6 +99,9 @@ export default function DashboardScreen() {
   const latestActivity = activities[0];
   const openPrCount = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
   const dueSoonReminders = reminders.filter((r) => isDueSoon(r.deadline));
+  const insightLevel = levelFromXp(computeInsightXp(lessons, drills, vocabWords, readingItems));
+  const lessonDoneToday = lessons.some((l) => l.id === todayLessonId());
+  const pendingReadingCount = readingItems.filter((i) => i.status !== 'read').length;
 
   return (
     <ThemedView style={styles.screen}>
@@ -177,6 +199,18 @@ export default function DashboardScreen() {
               ) : (
                 <ThemedText themeColor="textSecondary">Nothing due soon.</ThemedText>
               )}
+            </Card>
+
+            <Card title="Knowledge" href="/knowledge">
+              <ThemedText type="title" style={styles.bigNumber}>
+                Lv {insightLevel.level}
+              </ThemedText>
+              <ThemedText themeColor="textSecondary">
+                {lessonDoneToday ? "Today's lesson done" : 'No lesson generated today'}
+                {pendingReadingCount > 0
+                  ? ` · ${pendingReadingCount} unread article${pendingReadingCount === 1 ? '' : 's'}`
+                  : ''}
+              </ThemedText>
             </Card>
           </View>
         </ScrollView>
