@@ -8,7 +8,9 @@ import {
   type ReadingListItem,
   type VocabMastery,
   type VocabWord,
+  computeInsightXp,
   createReadingListItem,
+  dailyLessonStreak,
   deleteReadingListItem,
   gradeDrillAnswer,
   gradeVocabSentence,
@@ -16,10 +18,12 @@ import {
   generateDailyLesson,
   generateVocabWord,
   getTodayLesson,
+  levelFromXp,
   markReadingListItemRead,
   requestReadingSummary,
   setVocabMastery,
   subscribeCodeDrills,
+  subscribeDailyLessons,
   subscribeReadingList,
   subscribeVocabWords,
 } from "@life-client/shared";
@@ -207,6 +211,30 @@ function DrillCard({ drill }: { drill: CodeDrill }) {
   );
 }
 
+function PastDrillRow({ drill }: { drill: CodeDrill }) {
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground/20 px-3 py-2">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium">{drill.prompt}</p>
+        <p className="font-mono text-xs text-muted uppercase">
+          {drill.difficulty} · {drill.topic}
+        </p>
+      </div>
+      {drill.graded ? (
+        <span
+          className={`shrink-0 rounded-full border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+            drill.correct ? "border-green-600 text-green-700" : "border-red-600 text-red-700"
+          }`}
+        >
+          {drill.correct ? "Correct" : "Missed"}
+        </span>
+      ) : (
+        <span className="shrink-0 font-mono text-[10px] font-bold text-muted uppercase">Skipped</span>
+      )}
+    </li>
+  );
+}
+
 function CodeDrillsSection() {
   const { user } = useAuth();
   const [drills, setDrills] = useState<CodeDrill[]>([]);
@@ -276,6 +304,16 @@ function CodeDrillsSection() {
           </li>
         )}
       </ul>
+      {drills.length > 1 && (
+        <div className="flex flex-col gap-2">
+          <p className="font-mono text-xs font-bold text-muted uppercase">Past drills</p>
+          <ul className="flex flex-col gap-2">
+            {drills.slice(1, 9).map((d) => (
+              <PastDrillRow key={d.id} drill={d} />
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }
@@ -360,6 +398,19 @@ function VocabCard({ w }: { w: VocabWord }) {
   );
 }
 
+function DictionaryEntry({ w }: { w: VocabWord }) {
+  return (
+    <li className="rounded-md border-2 border-foreground/20 p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-bold">{w.word}</p>
+        <span className="shrink-0 font-mono text-[10px] font-bold text-green-700 uppercase">Learned</span>
+      </div>
+      <p className="mt-1 text-sm text-muted">{w.definition}</p>
+      {w.practiceSentence && <p className="mt-1 text-sm italic text-muted">&ldquo;{w.practiceSentence}&rdquo;</p>}
+    </li>
+  );
+}
+
 function VocabularySection() {
   const { user } = useAuth();
   const [words, setWords] = useState<VocabWord[]>([]);
@@ -383,6 +434,12 @@ function VocabularySection() {
     }
   }
 
+  const activeWords = words.filter((w) => !w.practiceCorrect);
+  const dictionaryWords = words
+    .filter((w) => w.practiceCorrect)
+    .slice()
+    .sort((a, b) => a.word.localeCompare(b.word));
+
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
@@ -398,15 +455,28 @@ function VocabularySection() {
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <ul className="flex flex-col gap-2">
-        {words.map((w) => (
+        {activeWords.map((w) => (
           <VocabCard key={w.id} w={w} />
         ))}
-        {words.length === 0 && (
+        {activeWords.length === 0 && (
           <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
-            No words yet — get your first one above.
+            {words.length === 0
+              ? "No words yet — get your first one above."
+              : "All caught up — every word's in your dictionary. Get a new one above."}
           </li>
         )}
       </ul>
+
+      {dictionaryWords.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 border-t-2 border-foreground/10 pt-4">
+          <SectionHeader eyebrow={`${dictionaryWords.length} learned`} title="Dictionary" />
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {dictionaryWords.map((w) => (
+              <DictionaryEntry key={w.id} w={w} />
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }
@@ -532,10 +602,25 @@ function ReadingListSection() {
 export default function KnowledgeHomePage() {
   const { user, loading, signOutUser } = useAuth();
   const router = useRouter();
+  const [lessons, setLessons] = useState<DailyLesson[]>([]);
+  const [drills, setDrills] = useState<CodeDrill[]>([]);
+  const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
+  const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    const unsubs = [
+      subscribeDailyLessons(db, user.uid, setLessons, undefined, 400),
+      subscribeCodeDrills(db, user.uid, setDrills),
+      subscribeVocabWords(db, user.uid, setVocabWords),
+      subscribeReadingList(db, user.uid, setReadingItems),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [user]);
 
   if (loading || !user) {
     return (
@@ -545,23 +630,51 @@ export default function KnowledgeHomePage() {
     );
   }
 
+  const insightLevel = levelFromXp(computeInsightXp(lessons, drills, vocabWords, readingItems));
+  const streak = dailyLessonStreak(lessons);
+  const firstName = user.displayName?.split(" ")[0];
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 p-6 sm:p-10">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Grow</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">Knowledge</h1>
-          <p className="text-sm text-muted">
-            A daily lesson, coding drills, new words, and articles worth reading — all AI-generated for you.
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {firstName ? `${firstName}'s Knowledge` : "Knowledge"}
+            </h1>
+            <p className="text-sm text-muted">Your daily lesson, coding drills, vocab, and reading list.</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {streak > 0 && (
+              <span className="rounded-full border-2 border-foreground bg-accent px-3 py-1.5 font-mono text-xs font-bold uppercase">
+                {streak}-day streak
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => signOutUser()}
+              className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => signOutUser()}
-          className="shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
-        >
-          Sign out
-        </button>
+        <div className="flex flex-col gap-1.5 rounded-md border-2 border-foreground bg-surface p-4">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
+              Insight · Level {insightLevel.level}
+            </p>
+            <p className="font-mono text-xs text-muted">
+              {insightLevel.xpIntoLevel} / {insightLevel.xpForNextLevel} XP
+            </p>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full border-2 border-foreground bg-background">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${Math.min(100, Math.max(0, insightLevel.progress * 100))}%` }}
+            />
+          </div>
+        </div>
       </div>
       <DailyLessonSection />
       <CodeDrillsSection />

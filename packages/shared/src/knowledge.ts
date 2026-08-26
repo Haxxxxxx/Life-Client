@@ -32,6 +32,23 @@ export async function getTodayLesson(db: Firestore, uid: string): Promise<DailyL
   return snap.exists() ? (snap.data() as DailyLesson) : null;
 }
 
+/**
+ * Consecutive days (ending today or yesterday) with a daily lesson generated.
+ * Today not having a lesson yet doesn't break the streak — it just isn't counted yet.
+ */
+export function dailyLessonStreak(lessons: DailyLesson[], now: Date = new Date()): number {
+  const ids = new Set(lessons.map((l) => l.id));
+  const cursor = new Date(now);
+  if (!ids.has(todayLessonId(cursor))) cursor.setDate(cursor.getDate() - 1);
+
+  let streak = 0;
+  while (ids.has(todayLessonId(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 export function subscribeDailyLessons(
   db: Firestore,
   uid: string,
