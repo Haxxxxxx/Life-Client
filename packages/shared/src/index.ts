@@ -18,3 +18,4 @@ export * from "./goals";
 export * from "./pushTokens";
 export * from "./recurrence";
 export * from "./finance";
+export * from "./journal";

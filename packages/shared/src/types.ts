@@ -506,3 +506,25 @@ export interface BudgetStatus {
   percent: number; // 0-1+, can exceed 1 when over budget
   remaining: number;
 }
+
+// ---- Journal ----
+
+export type JournalMood = "great" | "good" | "okay" | "bad" | "rough";
+
+export const JOURNAL_MOODS: { id: JournalMood; label: string; emoji: string }[] = [
+  { id: "great", label: "Great", emoji: "😄" },
+  { id: "good", label: "Good", emoji: "🙂" },
+  { id: "okay", label: "Okay", emoji: "😐" },
+  { id: "bad", label: "Bad", emoji: "🙁" },
+  { id: "rough", label: "Rough", emoji: "😣" },
+];
+
+export interface JournalEntry {
+  id: string;
+  content: string;
+  mood?: JournalMood;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NewJournalEntry = Omit<JournalEntry, "id" | "createdAt" | "updatedAt">;
