@@ -2,13 +2,9 @@
 
 import {
   subscribeGoals,
-  subscribeHabits,
-  subscribeJournalEntries,
   subscribeReminders,
   subscribeTasks,
   type Goal,
-  type Habit,
-  type JournalEntry,
   type Reminder,
   type Task,
 } from "@life-client/shared";
@@ -19,7 +15,7 @@ import { db } from "@/lib/firebase";
 
 interface SearchResult {
   id: string;
-  kind: "Task" | "Goal" | "Reminder" | "Habit" | "Journal";
+  kind: "Task" | "Goal" | "Reminder";
   title: string;
   href: string;
 }
@@ -31,8 +27,6 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function close() {
@@ -70,8 +64,6 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
       subscribeTasks(db, user.uid, setTasks),
       subscribeGoals(db, user.uid, setGoals),
       subscribeReminders(db, user.uid, setReminders),
-      subscribeHabits(db, user.uid, setHabits),
-      subscribeJournalEntries(db, user.uid, setJournalEntries),
     ];
     return () => unsubs.forEach((u) => u());
   }, [open, user]);
@@ -90,12 +82,6 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
         ...reminders
           .filter((r) => r.title.toLowerCase().includes(q))
           .map((r): SearchResult => ({ id: r.id, kind: "Reminder", title: r.title, href: "/dashboard" })),
-        ...habits
-          .filter((h) => h.title.toLowerCase().includes(q))
-          .map((h): SearchResult => ({ id: h.id, kind: "Habit", title: h.title, href: "/habits" })),
-        ...journalEntries
-          .filter((j) => j.content.toLowerCase().includes(q))
-          .map((j): SearchResult => ({ id: j.id, kind: "Journal", title: j.content.slice(0, 80), href: "/journal" })),
       ].slice(0, 30)
     : [];
 
@@ -114,7 +100,7 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Tasks, Goals, Reminders, Habits, Journal…"
+          placeholder="Search Tasks, Goals, Reminders…"
           className="w-full rounded-t-md border-b-2 border-foreground bg-background px-4 py-3 text-sm outline-none placeholder:text-muted"
         />
         <ul className="max-h-80 overflow-y-auto">

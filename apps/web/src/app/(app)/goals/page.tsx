@@ -1,17 +1,22 @@
 "use client";
 
 import {
+  VICE_PRESETS,
   type Goal,
   type GoalStatus,
   type NewGoal,
   type Task,
+  type ViceLog,
   computeGoalProgress,
   createGoal,
   createTask,
   deleteGoal,
+  deleteViceLog,
+  logVice,
   setGoalStatus,
   subscribeGoals,
   subscribeTasks,
+  subscribeViceLogs,
   updateGoal,
   updateTask,
 } from "@life-client/shared";
@@ -329,6 +334,7 @@ export default function GoalsPage() {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [viceLogs, setViceLogs] = useState<ViceLog[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -342,6 +348,11 @@ export default function GoalsPage() {
     return subscribeTasks(db, user.uid, setTasks);
   }, [user]);
 
+  useEffect(() => {
+    if (!user || !db) return;
+    return subscribeViceLogs(db, user.uid, setViceLogs);
+  }, [user]);
+
   async function handleCreate(input: NewGoal) {
     if (!user || !db) return;
     setError(null);
@@ -352,6 +363,18 @@ export default function GoalsPage() {
       setError(err instanceof Error ? err.message : "Could not create goal");
     }
   }
+
+  async function handleLogVice(vicePresetId: string) {
+    if (!user || !db) return;
+    setError(null);
+    try {
+      await logVice(db, user.uid, vicePresetId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not log slip");
+    }
+  }
+
+  const activeViceLogs = viceLogs.filter((v) => !v.compensated);
 
   const activeGoals = goals.filter((g) => g.status === "active");
   const completedGoals = goals.filter((g) => g.status === "completed");
@@ -446,6 +469,60 @@ export default function GoalsPage() {
           </summary>
           <div className="mt-3 flex flex-col gap-3">{completedGoals.map(renderGoalCard)}</div>
         </details>
+      )}
+
+      <div className="flex flex-col gap-2 border-t-2 border-dashed border-foreground/20 pt-6">
+        <div>
+          <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">Slipped up?</p>
+          <h2 className="text-lg font-bold tracking-tight">Log a slip</h2>
+          <p className="text-sm text-muted">
+            Docks XP from a relevant stat and auto-creates a compensating task — complete it to refund the XP.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {VICE_PRESETS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => handleLogVice(v.id)}
+              className="rounded-full border-2 border-foreground px-3 py-1.5 text-xs hover:bg-accent/20"
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {activeViceLogs.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-bold tracking-tight">Active slips</h2>
+          <ul className="flex flex-col gap-2">
+            {activeViceLogs.map((v) => {
+              const preset = VICE_PRESETS.find((p) => p.id === v.viceId);
+              const task = tasks.find((t) => t.id === v.compensatingTaskId);
+              return (
+                <li
+                  key={v.id}
+                  className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-bold">{preset?.label ?? v.viceId}</p>
+                    <p className="font-mono text-xs text-muted uppercase">
+                      -{v.penaltyXp} XP · {task ? `Task: ${task.title} (${task.status})` : "Compensating task missing"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => user && db && deleteViceLog(db, user.uid, v.id)}
+                    className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                  >
+                    Dismiss
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </div>
   );

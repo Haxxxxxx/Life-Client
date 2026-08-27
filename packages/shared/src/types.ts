@@ -508,60 +508,6 @@ export interface BudgetStatus {
   remaining: number;
 }
 
-// ---- Journal ----
-
-export type JournalMood = "great" | "good" | "okay" | "bad" | "rough";
-
-export const JOURNAL_MOODS: { id: JournalMood; label: string; emoji: string }[] = [
-  { id: "great", label: "Great", emoji: "😄" },
-  { id: "good", label: "Good", emoji: "🙂" },
-  { id: "okay", label: "Okay", emoji: "😐" },
-  { id: "bad", label: "Bad", emoji: "🙁" },
-  { id: "rough", label: "Rough", emoji: "😣" },
-];
-
-export interface JournalEntry {
-  id: string;
-  content: string;
-  mood?: JournalMood;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type NewJournalEntry = Omit<JournalEntry, "id" | "createdAt" | "updatedAt">;
-
-// ---- Habits (non-sport) ----
-
-export type HabitCadence = "daily" | "weekly";
-
-export interface Habit {
-  id: string;
-  title: string;
-  cadence: HabitCadence;
-  targetPerCadence: number; // e.g. 1x/day, or 3x/week
-  startDate: string; // ISO date
-  durationDays?: number;
-  archived?: boolean;
-  createdAt: string;
-}
-
-export type NewHabit = Omit<Habit, "id" | "createdAt" | "archived">;
-
-export interface HabitLog {
-  id: string;
-  habitId: string;
-  date: string; // ISO date — one check-in per day
-  createdAt: string;
-}
-
-export interface HabitProgress {
-  days: { date: string; completed: boolean }[];
-  currentStreak: number;
-  longestStreak: number;
-  completedCount: number;
-  totalDaysSoFar: number;
-}
-
 // ---- Vices (negative bonus / compensation mechanic) ----
 
 export interface VicePreset {

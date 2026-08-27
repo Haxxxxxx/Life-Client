@@ -1,12 +1,8 @@
 import {
   subscribeGoals,
-  subscribeHabits,
-  subscribeJournalEntries,
   subscribeReminders,
   subscribeTasks,
   type Goal,
-  type Habit,
-  type JournalEntry,
   type Reminder,
   type Task,
 } from '@life-client/shared';
@@ -24,9 +20,9 @@ import { db } from '@/lib/firebase';
 
 interface SearchResult {
   id: string;
-  kind: 'Task' | 'Goal' | 'Reminder' | 'Habit' | 'Journal';
+  kind: 'Task' | 'Goal' | 'Reminder';
   title: string;
-  href: '/tasks' | '/goals' | '/' | '/habits' | '/journal';
+  href: '/tasks' | '/goals' | '/';
 }
 
 export default function SearchScreen() {
@@ -36,8 +32,6 @@ export default function SearchScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -45,8 +39,6 @@ export default function SearchScreen() {
       subscribeTasks(db, user.uid, setTasks),
       subscribeGoals(db, user.uid, setGoals),
       subscribeReminders(db, user.uid, setReminders),
-      subscribeHabits(db, user.uid, setHabits),
-      subscribeJournalEntries(db, user.uid, setJournalEntries),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -57,10 +49,6 @@ export default function SearchScreen() {
         ...tasks.filter((t) => t.title.toLowerCase().includes(q)).map((t): SearchResult => ({ id: t.id, kind: 'Task', title: t.title, href: '/tasks' })),
         ...goals.filter((g) => g.title.toLowerCase().includes(q)).map((g): SearchResult => ({ id: g.id, kind: 'Goal', title: g.title, href: '/goals' })),
         ...reminders.filter((r) => r.title.toLowerCase().includes(q)).map((r): SearchResult => ({ id: r.id, kind: 'Reminder', title: r.title, href: '/' })),
-        ...habits.filter((h) => h.title.toLowerCase().includes(q)).map((h): SearchResult => ({ id: h.id, kind: 'Habit', title: h.title, href: '/habits' })),
-        ...journalEntries
-          .filter((j) => j.content.toLowerCase().includes(q))
-          .map((j): SearchResult => ({ id: j.id, kind: 'Journal', title: j.content.slice(0, 80), href: '/journal' })),
       ].slice(0, 50)
     : [];
 
@@ -77,7 +65,7 @@ export default function SearchScreen() {
           value={query}
           onChangeText={setQuery}
           autoFocus
-          placeholder="Search Tasks, Goals, Reminders, Habits, Journal…"
+          placeholder="Search Tasks, Goals, Reminders…"
           placeholderTextColor={theme.textSecondary}
           style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
         />

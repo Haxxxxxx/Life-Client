@@ -1,14 +1,19 @@
 import {
+  VICE_PRESETS,
   type Goal,
   type NewGoal,
   type Task,
+  type ViceLog,
   computeGoalProgress,
   createGoal,
   createTask,
   deleteGoal,
+  deleteViceLog,
+  logVice,
   setGoalStatus,
   subscribeGoals,
   subscribeTasks,
+  subscribeViceLogs,
   updateGoal,
   updateTask,
 } from '@life-client/shared';
@@ -313,6 +318,7 @@ export default function GoalsScreen() {
   const theme = useTheme();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [viceLogs, setViceLogs] = useState<ViceLog[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -326,6 +332,11 @@ export default function GoalsScreen() {
     return subscribeTasks(db, user.uid, setTasks);
   }, [user]);
 
+  useEffect(() => {
+    if (!user || !db) return;
+    return subscribeViceLogs(db, user.uid, setViceLogs);
+  }, [user]);
+
   async function handleCreate(input: NewGoal) {
     if (!user || !db) return;
     setError(null);
@@ -336,6 +347,18 @@ export default function GoalsScreen() {
       setError(err instanceof Error ? err.message : 'Could not create goal');
     }
   }
+
+  async function handleLogVice(vicePresetId: string) {
+    if (!user || !db) return;
+    setError(null);
+    try {
+      await logVice(db, user.uid, vicePresetId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not log slip');
+    }
+  }
+
+  const activeViceLogs = viceLogs.filter((v) => !v.compensated);
 
   const activeGoals = goals.filter((g) => g.status === 'active');
   const completedGoals = goals.filter((g) => g.status === 'completed');
@@ -448,6 +471,50 @@ export default function GoalsScreen() {
               {showCompleted && <View style={{ gap: Spacing.three }}>{completedGoals.map(renderGoalCard)}</View>}
             </View>
           )}
+
+          <View style={[styles.section, styles.viceSection, { borderColor: theme.border }]}>
+            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+              Slipped up?
+            </ThemedText>
+            <ThemedText type="subtitle">Log a slip</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Docks XP from a relevant stat and auto-creates a compensating task — complete it to refund the XP.
+            </ThemedText>
+            <View style={styles.chipRowWrap}>
+              {VICE_PRESETS.map((v) => (
+                <Pressable key={v.id} onPress={() => handleLogVice(v.id)} style={[styles.chip, { borderColor: theme.border }]}>
+                  <ThemedText type="small">{v.label}</ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {activeViceLogs.length > 0 && (
+            <View style={styles.section}>
+              <ThemedText type="subtitle">Active slips</ThemedText>
+              <View style={{ gap: Spacing.two }}>
+                {activeViceLogs.map((v) => {
+                  const preset = VICE_PRESETS.find((p) => p.id === v.viceId);
+                  const task = tasks.find((t) => t.id === v.compensatingTaskId);
+                  return (
+                    <View key={v.id} style={[styles.viceRow, { borderColor: theme.border }]}>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText type="smallBold">{preset?.label ?? v.viceId}</ThemedText>
+                        <ThemedText type="code" themeColor="textSecondary">
+                          -{v.penaltyXp} XP · {task ? `${task.title} (${task.status})` : 'Task missing'}
+                        </ThemedText>
+                      </View>
+                      <Pressable onPress={() => user && db && deleteViceLog(db, user.uid, v.id)}>
+                        <ThemedText type="small" style={styles.deleteText}>
+                          Dismiss
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -487,4 +554,16 @@ const styles = StyleSheet.create({
   statLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   linkSection: { gap: Spacing.one, borderTopWidth: 1, paddingTop: Spacing.two },
   italicText: { fontStyle: 'italic' },
+  section: { gap: Spacing.one },
+  viceSection: { borderTopWidth: 2, borderStyle: 'dashed', paddingTop: Spacing.four },
+  viceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderWidth: 2,
+    borderRadius: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
 });

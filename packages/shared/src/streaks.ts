@@ -1,4 +1,4 @@
-/** Generic day-by-day streak math shared by Challenges (sport-derived) and Habits (manual check-ins). */
+/** Generic day-by-day streak math for Challenges (sport-derived). */
 
 export function toDateStr(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
