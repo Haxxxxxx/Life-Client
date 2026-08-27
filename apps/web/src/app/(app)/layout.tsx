@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/tasks", label: "Tasks" },
   { href: "/goals", label: "Goals" },
   { href: "/sports", label: "Sports" },
+  { href: "/habits", label: "Habits" },
   { href: "/agenda", label: "Agenda" },
   { href: "/music", label: "Music" },
   { href: "/money", label: "Money" },

@@ -15,6 +15,7 @@ import {
   type SpotifySummary,
   type Task,
   type TaskCategory,
+  type ViceLog,
   type VocabWord,
   characteristicRoast,
   computeCategoryXp,
@@ -23,6 +24,7 @@ import {
   computeFitnessXp,
   computeInsightXp,
   computeRhythmXp,
+  computeVicePenalty,
   levelFromXp,
   logManualEvent,
   taskCategoryRoast,
@@ -34,6 +36,7 @@ import {
   subscribeSportActivities,
   subscribeSpotifySummary,
   subscribeTasks,
+  subscribeViceLogs,
   subscribeVocabWords,
 } from "@life-client/shared";
 import { useEffect, useState } from "react";
@@ -187,6 +190,7 @@ export default function ProfilePage() {
   const [drills, setDrills] = useState<CodeDrill[]>([]);
   const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
+  const [viceLogs, setViceLogs] = useState<ViceLog[]>([]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -202,6 +206,7 @@ export default function ProfilePage() {
       subscribeCodeDrills(db, user.uid, setDrills),
       subscribeVocabWords(db, user.uid, setVocabWords),
       subscribeReadingList(db, user.uid, setReadingItems),
+      subscribeViceLogs(db, user.uid, setViceLogs),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -211,7 +216,7 @@ export default function ProfilePage() {
     social: socialProgress,
   };
 
-  const coreXp: Record<string, number> = {
+  const rawCoreXp: Record<string, number> = {
     discipline: computeDisciplineXp(tasks),
     fitness: computeFitnessXp(activities),
     craft: computeCraftXp(github, gitlab),
@@ -220,6 +225,15 @@ export default function ProfilePage() {
     rhythm: computeRhythmXp(spotify),
     insight: computeInsightXp(lessons, drills, vocabWords, readingItems),
   };
+
+  // Uncompensated vice slips dock XP from whichever stat they're linked to —
+  // completing the auto-created compensating Task refunds it (see advanceTaskStatus).
+  const coreXp: Record<string, number> = Object.fromEntries(
+    Object.entries(rawCoreXp).map(([id, xp]) => [
+      id,
+      Math.max(0, xp - computeVicePenalty(viceLogs, id as CoreCharacteristicId)),
+    ]),
+  );
 
   const xpByCharacteristic: Record<string, number> = Object.fromEntries(
     CHARACTERISTICS.map((def) => [

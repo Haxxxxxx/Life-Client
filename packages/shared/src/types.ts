@@ -75,6 +75,7 @@ export interface Task {
   tags: string[];
   goalId?: string; // links this task to a parent Goal
   recurrence?: Recurrence; // when set, completing this task creates the next occurrence
+  viceLogId?: string; // reverse link — completing this task marks the linked ViceLog compensated
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }
@@ -528,3 +529,55 @@ export interface JournalEntry {
 }
 
 export type NewJournalEntry = Omit<JournalEntry, "id" | "createdAt" | "updatedAt">;
+
+// ---- Habits (non-sport) ----
+
+export type HabitCadence = "daily" | "weekly";
+
+export interface Habit {
+  id: string;
+  title: string;
+  cadence: HabitCadence;
+  targetPerCadence: number; // e.g. 1x/day, or 3x/week
+  startDate: string; // ISO date
+  durationDays?: number;
+  archived?: boolean;
+  createdAt: string;
+}
+
+export type NewHabit = Omit<Habit, "id" | "createdAt" | "archived">;
+
+export interface HabitLog {
+  id: string;
+  habitId: string;
+  date: string; // ISO date — one check-in per day
+  createdAt: string;
+}
+
+export interface HabitProgress {
+  days: { date: string; completed: boolean }[];
+  currentStreak: number;
+  longestStreak: number;
+  completedCount: number;
+  totalDaysSoFar: number;
+}
+
+// ---- Vices (negative bonus / compensation mechanic) ----
+
+export interface VicePreset {
+  id: string;
+  label: string;
+  penaltyStat: CoreCharacteristicId;
+  penaltyXp: number;
+  compensatingTaskTitle: string;
+}
+
+export interface ViceLog {
+  id: string;
+  viceId: string;
+  penaltyStat: CoreCharacteristicId;
+  penaltyXp: number;
+  compensatingTaskId?: string;
+  compensated: boolean;
+  createdAt: string;
+}

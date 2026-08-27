@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { nextOccurrenceDate } from "./recurrence";
 import type { NewTask, Task, TaskStatus } from "./types";
+import { setViceLogCompensated } from "./vices";
 
 function tasksCollection(db: Firestore, uid: string) {
   return collection(db, "users", uid, "tasks");
@@ -71,6 +72,8 @@ export async function deleteTask(db: Firestore, uid: string, taskId: string): Pr
 /**
  * Sets a task's status, and — if it's a recurring task transitioning to "done" —
  * also creates the next occurrence (same fields, advanced dueDate, status reset to "todo").
+ * If the task is a vice's compensating task (Task.viceLogId), marking it done also
+ * flips the linked ViceLog to compensated, excluding its penalty going forward.
  */
 export async function advanceTaskStatus(
   db: Firestore,
@@ -85,6 +88,9 @@ export async function advanceTaskStatus(
       dueDate: nextOccurrenceDate(task.dueDate, task.recurrence),
       status: "todo",
     });
+  }
+  if (task.viceLogId) {
+    await setViceLogCompensated(db, uid, task.viceLogId, nextStatus === "done");
   }
   await setTaskStatus(db, uid, task.id, nextStatus);
 }

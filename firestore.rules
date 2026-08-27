@@ -51,6 +51,18 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      match /habits/{habitId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /habitLogs/{logId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /viceLogs/{logId} {
+        allow read, write: if isOwner(uid);
+      }
+
       match /devActivity/{provider} {
         allow read: if isOwner(uid);
         allow write: if false;

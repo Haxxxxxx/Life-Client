@@ -9,6 +9,7 @@ import {
   query,
   updateDoc,
 } from "firebase/firestore";
+import { addDays, computeCurrentStreak, computeLongestStreak, dateRange, toDateStr } from "./streaks";
 import type {
   Challenge,
   ChallengeDayStatus,
@@ -59,55 +60,6 @@ export async function archiveChallenge(db: Firestore, uid: string, challengeId: 
 
 export async function deleteChallenge(db: Firestore, uid: string, challengeId: string): Promise<void> {
   await deleteDoc(doc(db, "users", uid, "challenges", challengeId));
-}
-
-function toDateStr(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function addDays(dateStr: string, days: number): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const date = new Date(y!, m! - 1, d!);
-  date.setDate(date.getDate() + days);
-  return toDateStr(date);
-}
-
-function dateRange(start: string, end: string): string[] {
-  const result: string[] = [];
-  let cur = start;
-  while (cur <= end) {
-    result.push(cur);
-    cur = addDays(cur, 1);
-  }
-  return result;
-}
-
-function computeCurrentStreak(days: ChallengeDayStatus[]): number {
-  let i = days.length - 1;
-  // Today may simply not be logged yet — don't treat that as breaking the
-  // streak, just don't count it until it's actually done.
-  if (i >= 0 && !days[i]!.completed) i -= 1;
-  let streak = 0;
-  for (; i >= 0; i--) {
-    if (!days[i]!.completed) break;
-    streak += 1;
-  }
-  return streak;
-}
-
-function computeLongestStreak(days: ChallengeDayStatus[]): number {
-  let longest = 0;
-  let current = 0;
-  for (const day of days) {
-    if (day.completed) {
-      current += 1;
-      longest = Math.max(longest, current);
-    } else {
-      current = 0;
-    }
-  }
-  return longest;
 }
 
 /** Derives daily completion/streak from actual logged SportActivity entries — no separate manual check-in needed. */
