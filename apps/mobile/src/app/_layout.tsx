@@ -4,10 +4,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppTabs from '@/components/app-tabs';
 import { LoginScreen } from '@/components/login-screen';
+import { usePushRegistration } from '@/hooks/use-push-registration';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 
 function Gate() {
   const { user, loading } = useAuth();
+  usePushRegistration(user?.uid);
   if (loading) return null;
   return user ? <AppTabs /> : <LoginScreen />;
 }

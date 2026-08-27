@@ -35,6 +35,10 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      match /pushTokens/{tokenId} {
+        allow read, write: if isOwner(uid);
+      }
+
       match /devActivity/{provider} {
         allow read: if isOwner(uid);
         allow write: if false;
