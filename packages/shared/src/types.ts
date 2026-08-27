@@ -441,3 +441,15 @@ export interface NowPlayingTrack {
     progressMs: number;
   };
 }
+
+// ---- Push notifications ----
+
+export type PushTokenPlatform = "expo" | "web";
+
+export interface PushToken {
+  id: string;
+  platform: PushTokenPlatform;
+  expoPushToken?: string; // set when platform === "expo"
+  webSubscription?: { endpoint: string; keys: { p256dh: string; auth: string } }; // set when platform === "web"
+  createdAt: string;
+}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendDailyDigests } from "@/lib/server/sendDailyDigests";
 import { syncAllGoogleCalendar } from "@/lib/server/syncCalendar";
 import { syncAllDevActivity } from "@/lib/server/syncDevActivity";
 import { syncAllSpotify } from "@/lib/server/syncSpotify";
@@ -21,6 +22,14 @@ export async function GET(req: NextRequest) {
   const failures = results.filter((r) => r.status === "rejected");
   if (failures.length > 0) {
     console.error("cron/sync: some syncs failed", failures);
+  }
+
+  // Runs after syncing so the digest reflects freshly-synced data. A failure
+  // here shouldn't mark the whole cron run as failed.
+  try {
+    await sendDailyDigests();
+  } catch (err) {
+    console.error("cron/sync: sendDailyDigests failed", err);
   }
 
   return NextResponse.json({ ok: true, failures: failures.length });

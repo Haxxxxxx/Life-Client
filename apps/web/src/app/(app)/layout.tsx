@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { usePushRegistration } from "@/hooks/use-push-registration";
 import { useAuth } from "@/lib/auth-context";
 
 const NAV_ITEMS = [
@@ -24,6 +25,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOutUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  usePushRegistration(user?.uid);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
