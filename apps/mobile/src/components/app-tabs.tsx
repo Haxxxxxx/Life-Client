@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 const TABS = [
   { name: 'index', href: '/', label: 'Dashboard' },
+  { name: 'search', href: '/search', label: 'Search' },
   { name: 'tasks', href: '/tasks', label: 'Tasks' },
   { name: 'goals', href: '/goals', label: 'Goals' },
   { name: 'sports', href: '/sports', label: 'Sports' },

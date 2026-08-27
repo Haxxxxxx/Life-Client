@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { GlobalSearch } from "@/components/global-search";
 import { usePushRegistration } from "@/hooks/use-push-registration";
 import { useAuth } from "@/lib/auth-context";
 
@@ -28,6 +29,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOutUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [searchOpen, setSearchOpen] = useState(false);
   usePushRegistration(user?.uid);
 
   useEffect(() => {
@@ -49,6 +51,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <p className="mb-6 text-lg font-bold tracking-tight">
             Life <span className="text-primary">Client</span>
           </p>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="mb-4 flex w-full items-center justify-between rounded-md border-2 border-foreground/30 px-3 py-2 font-mono text-xs text-muted transition hover:border-foreground/60 hover:text-foreground"
+          >
+            <span>Search…</span>
+            <span className="rounded border-2 border-foreground/30 px-1.5 py-0.5 text-[10px]">⌘K</span>
+          </button>
           <nav className="flex flex-wrap gap-2 md:flex-col">
             {NAV_ITEMS.map((item) => {
               const active = pathname?.startsWith(item.href);
@@ -100,6 +110,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="flex-1 p-4 md:p-8">{children}</main>
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }
