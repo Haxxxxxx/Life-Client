@@ -4,13 +4,17 @@ import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
   TASK_PRIORITIES,
+  WEEKDAY_LABELS,
+  advanceTaskStatus,
   createTask,
   deleteTask,
-  setTaskStatus,
+  describeRecurrence,
   subscribeGoals,
   subscribeTasks,
   updateTask,
   type Goal,
+  type Recurrence,
+  type RecurrenceFreq,
   type Task,
   type TaskCategory,
   type TaskDifficulty,
@@ -37,6 +41,77 @@ const DIFFICULTY_LABEL = Object.fromEntries(TASK_DIFFICULTIES.map((d) => [d.id, 
   string
 >;
 
+function RecurrencePicker({
+  value,
+  onChange,
+}: {
+  value: Recurrence | undefined;
+  onChange: (next: Recurrence | undefined) => void;
+}) {
+  const freq = value?.freq;
+  const interval = value?.interval ?? 1;
+  const daysOfWeek = value?.daysOfWeek ?? [];
+
+  function setFreq(next: RecurrenceFreq | undefined) {
+    if (!next) {
+      onChange(undefined);
+      return;
+    }
+    onChange({ freq: next, interval, daysOfWeek: next === "weekly" ? daysOfWeek : undefined });
+  }
+
+  function toggleDay(day: number) {
+    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
+    onChange({ freq: "weekly", interval, daysOfWeek: next });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {(["none", "daily", "weekly", "monthly"] as const).map((f) => (
+        <button
+          key={f}
+          type="button"
+          onClick={() => setFreq(f === "none" ? undefined : f)}
+          className={`rounded-full border-2 px-2.5 py-1 text-xs capitalize ${
+            (f === "none" && !freq) || f === freq ? "border-foreground bg-accent" : "border-foreground/30 text-muted"
+          }`}
+        >
+          {f === "none" ? "No repeat" : f}
+        </button>
+      ))}
+      {freq && (
+        <label className="flex items-center gap-1 text-xs text-muted">
+          every
+          <input
+            type="number"
+            min={1}
+            value={interval}
+            onChange={(e) => onChange({ freq, interval: Number(e.target.value) || 1, daysOfWeek: value?.daysOfWeek })}
+            className="w-12 rounded-md border-2 border-foreground bg-background px-1 py-0.5 text-xs"
+          />
+          {freq === "daily" ? "day(s)" : freq === "weekly" ? "week(s)" : "month(s)"}
+        </label>
+      )}
+      {freq === "weekly" && (
+        <div className="flex gap-1">
+          {WEEKDAY_LABELS.map((label, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggleDay(i)}
+              className={`rounded-full border-2 px-1.5 py-1 text-[10px] font-bold ${
+                daysOfWeek.includes(i) ? "border-foreground bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditTaskForm({
   task,
   goals,
@@ -54,6 +129,7 @@ function EditTaskForm({
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [dueDate, setDueDate] = useState(task.dueDate ?? "");
   const [goalId, setGoalId] = useState(task.goalId ?? "");
+  const [recurrence, setRecurrence] = useState<Recurrence | undefined>(task.recurrence);
 
   return (
     <div className="flex flex-1 flex-col gap-2">
@@ -115,6 +191,7 @@ function EditTaskForm({
           ))}
         </select>
       </div>
+      <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <div className="flex gap-3">
         <button
           type="button"
@@ -126,6 +203,7 @@ function EditTaskForm({
               priority,
               dueDate: dueDate || undefined,
               goalId: goalId || undefined,
+              recurrence,
             })
           }
           className="font-mono text-xs font-bold text-primary uppercase hover:underline"
@@ -271,6 +349,7 @@ export default function TasksPage() {
                     {task.category && ` · ${CATEGORY_LABEL[task.category]}`}
                     {task.difficulty && ` · ${DIFFICULTY_LABEL[task.difficulty]}`}
                     {task.goalId && ` · ${goals.find((g) => g.id === task.goalId)?.title ?? "Goal"}`}
+                    {task.recurrence && ` · ↻ ${describeRecurrence(task.recurrence)}`}
                   </p>
                 </button>
                 <div className="flex shrink-0 items-center gap-2">
@@ -286,7 +365,7 @@ export default function TasksPage() {
                   )}
                   <button
                     type="button"
-                    onClick={() => setTaskStatus(db!, user!.uid, task.id, nextStatus(task.status))}
+                    onClick={() => advanceTaskStatus(db!, user!.uid, task, nextStatus(task.status))}
                     className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
                   >
                     Mark {STATUS_LABEL[nextStatus(task.status)]}

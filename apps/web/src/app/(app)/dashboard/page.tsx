@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  WEEKDAY_LABELS,
   type CalendarEvent,
   type Challenge,
   type CodeDrill,
@@ -8,13 +9,15 @@ import {
   type DevActivitySummary,
   type Goal,
   type ReadingListItem,
+  type Recurrence,
+  type RecurrenceFreq,
   type Reminder,
   type ReminderUrgency,
   type SportActivity,
   type SpotifySummary,
   type Task,
-  type TaskStatus,
   type VocabWord,
+  advanceTaskStatus,
   archiveChallenge,
   computeChallengeProgress,
   computeGoalProgress,
@@ -25,10 +28,11 @@ import {
   deleteGoal,
   deleteReminderEverywhere,
   deleteTask,
+  describeRecurrence,
   levelFromXp,
+  nextOccurrenceDate,
   reminderUrgency,
   setGoalStatus,
-  setTaskStatus,
   subscribeCalendarEvents,
   subscribeChallenges,
   subscribeCodeDrills,
@@ -148,7 +152,12 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
 
   async function bulkMarkDone() {
     if (!db) return;
-    await Promise.all([...selected].map((id) => setTaskStatus(db!, uid, id, "done" as TaskStatus)));
+    await Promise.all(
+      [...selected].map((id) => {
+        const task = tasks.find((t) => t.id === id);
+        return task ? advanceTaskStatus(db!, uid, task, "done") : undefined;
+      }),
+    );
     setSelected(new Set());
   }
 
@@ -357,18 +366,90 @@ function toDatetimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function RecurrencePicker({
+  value,
+  onChange,
+}: {
+  value: Recurrence | undefined;
+  onChange: (next: Recurrence | undefined) => void;
+}) {
+  const freq = value?.freq;
+  const interval = value?.interval ?? 1;
+  const daysOfWeek = value?.daysOfWeek ?? [];
+
+  function setFreq(next: RecurrenceFreq | undefined) {
+    if (!next) {
+      onChange(undefined);
+      return;
+    }
+    onChange({ freq: next, interval, daysOfWeek: next === "weekly" ? daysOfWeek : undefined });
+  }
+
+  function toggleDay(day: number) {
+    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
+    onChange({ freq: "weekly", interval, daysOfWeek: next });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {(["none", "daily", "weekly", "monthly"] as const).map((f) => (
+        <button
+          key={f}
+          type="button"
+          onClick={() => setFreq(f === "none" ? undefined : f)}
+          className={`rounded-full border-2 px-2.5 py-1 text-xs capitalize ${
+            (f === "none" && !freq) || f === freq ? "border-foreground bg-accent" : "border-foreground/30 text-muted"
+          }`}
+        >
+          {f === "none" ? "No repeat" : f}
+        </button>
+      ))}
+      {freq && (
+        <label className="flex items-center gap-1 text-xs text-muted">
+          every
+          <input
+            type="number"
+            min={1}
+            value={interval}
+            onChange={(e) => onChange({ freq, interval: Number(e.target.value) || 1, daysOfWeek: value?.daysOfWeek })}
+            className="w-12 rounded-md border-2 border-foreground bg-background px-1 py-0.5 text-xs"
+          />
+          {freq === "daily" ? "day(s)" : freq === "weekly" ? "week(s)" : "month(s)"}
+        </label>
+      )}
+      {freq === "weekly" && (
+        <div className="flex gap-1">
+          {WEEKDAY_LABELS.map((label, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggleDay(i)}
+              className={`rounded-full border-2 px-1.5 py-1 text-[10px] font-bold ${
+                daysOfWeek.includes(i) ? "border-foreground bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditReminderForm({
   reminder,
   onSave,
   onCancel,
 }: {
   reminder: Reminder;
-  onSave: (patch: { title: string; note?: string; deadline: string }) => void;
+  onSave: (patch: { title: string; note?: string; deadline: string; recurrence?: Recurrence }) => void;
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState(reminder.title);
   const [note, setNote] = useState(reminder.note ?? "");
   const [deadline, setDeadline] = useState(toDatetimeLocalValue(new Date(reminder.deadline)));
+  const [recurrence, setRecurrence] = useState<Recurrence | undefined>(reminder.recurrence);
 
   return (
     <div className="flex flex-1 flex-col gap-2">
@@ -389,6 +470,7 @@ function EditReminderForm({
         onChange={(e) => setDeadline(e.target.value)}
         className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
       />
+      <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <div className="flex gap-3">
         <button
           type="button"
@@ -397,6 +479,7 @@ function EditReminderForm({
               title: title.trim() || reminder.title,
               note: note.trim() || undefined,
               deadline: new Date(deadline).toISOString(),
+              recurrence,
             })
           }
           className="font-mono text-xs font-bold text-primary uppercase hover:underline"
@@ -419,6 +502,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
     tomorrow.setDate(tomorrow.getDate() + 1);
     return toDatetimeLocalValue(tomorrow);
   });
+  const [recurrence, setRecurrence] = useState<Recurrence | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -434,9 +518,11 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
         title: title.trim(),
         note: note.trim() || undefined,
         deadline: new Date(deadline).toISOString(),
+        recurrence,
       });
       setTitle("");
       setNote("");
+      setRecurrence(undefined);
       setFormOpen(false);
       syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
         console.error("Could not sync reminder to Google Calendar", err),
@@ -448,15 +534,26 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
     }
   }
 
-  async function handleDelete(reminderId: string) {
+  async function handleDelete(reminder: Reminder) {
     try {
-      await deleteReminderEverywhere(webApiClient, reminderId);
+      if (db && reminder.recurrence) {
+        await createReminder(db, uid, {
+          title: reminder.title,
+          note: reminder.note,
+          deadline: nextOccurrenceDate(reminder.deadline, reminder.recurrence),
+          recurrence: reminder.recurrence,
+        });
+      }
+      await deleteReminderEverywhere(webApiClient, reminder.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete reminder");
     }
   }
 
-  async function handleSaveEdit(reminderId: string, patch: { title: string; note?: string; deadline: string }) {
+  async function handleSaveEdit(
+    reminderId: string,
+    patch: { title: string; note?: string; deadline: string; recurrence?: Recurrence },
+  ) {
     if (!db) return;
     try {
       await updateReminder(db, uid, reminderId, patch);
@@ -505,6 +602,9 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
               onChange={(e) => setDeadline(e.target.value)}
               className="min-w-0 flex-1 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none focus:shadow-[2px_2px_0_0_var(--primary)]"
             />
+          </div>
+          <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+          <div className="flex gap-2">
             <button
               type="submit"
               disabled={submitting || !title.trim() || !deadline}
@@ -547,6 +647,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                     {reminder.note && <p className="truncate text-xs text-muted">{reminder.note}</p>}
                     <p className="font-mono text-xs tracking-wide text-muted uppercase">
                       {new Date(reminder.deadline).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                      {reminder.recurrence && ` · ↻ ${describeRecurrence(reminder.recurrence)}`}
                     </p>
                   </button>
                   <div className="flex shrink-0 items-center gap-2">
@@ -555,7 +656,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleDelete(reminder.id)}
+                      onClick={() => handleDelete(reminder)}
                       className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
                     >
                       Delete

@@ -1,4 +1,5 @@
 import {
+  WEEKDAY_LABELS,
   type CalendarEvent,
   type Challenge,
   type CodeDrill,
@@ -6,11 +7,14 @@ import {
   type DevActivitySummary,
   type Goal,
   type ReadingListItem,
+  type Recurrence,
+  type RecurrenceFreq,
   type Reminder,
   type ReminderUrgency,
   type SportActivity,
   type SpotifySummary,
   type Task,
+  advanceTaskStatus,
   archiveChallenge,
   computeChallengeProgress,
   computeGoalProgress,
@@ -21,11 +25,12 @@ import {
   deleteGoal,
   deleteReminderEverywhere,
   deleteTask,
+  describeRecurrence,
   isDueSoon,
   levelFromXp,
+  nextOccurrenceDate,
   reminderUrgency,
   setGoalStatus,
-  setTaskStatus,
   subscribeCalendarEvents,
   subscribeChallenges,
   subscribeCodeDrills,
@@ -152,7 +157,12 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
 
   async function bulkMarkDone() {
     if (!db) return;
-    await Promise.all([...selected].map((id) => setTaskStatus(db!, uid, id, 'done')));
+    await Promise.all(
+      [...selected].map((id) => {
+        const task = tasks.find((t) => t.id === id);
+        return task ? advanceTaskStatus(db!, uid, task, 'done') : undefined;
+      }),
+    );
     setSelected(new Set());
   }
 
@@ -386,19 +396,99 @@ function urgencyLabel(urgency: ReminderUrgency, days: number): string {
   return `${days}d`;
 }
 
+function RecurrencePicker({
+  value,
+  onChange,
+}: {
+  value: Recurrence | undefined;
+  onChange: (next: Recurrence | undefined) => void;
+}) {
+  const theme = useTheme();
+  const freq = value?.freq;
+  const interval = value?.interval ?? 1;
+  const daysOfWeek = value?.daysOfWeek ?? [];
+
+  function setFreq(next: RecurrenceFreq | undefined) {
+    if (!next) {
+      onChange(undefined);
+      return;
+    }
+    onChange({ freq: next, interval, daysOfWeek: next === 'weekly' ? daysOfWeek : undefined });
+  }
+
+  function toggleDay(day: number) {
+    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
+    onChange({ freq: 'weekly', interval, daysOfWeek: next });
+  }
+
+  return (
+    <View style={{ gap: Spacing.one }}>
+      <View style={styles.chipRow}>
+        {(['none', 'daily', 'weekly', 'monthly'] as const).map((f) => {
+          const active = (f === 'none' && !freq) || f === freq;
+          return (
+            <Pressable
+              key={f}
+              onPress={() => setFreq(f === 'none' ? undefined : f)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
+                {f === 'none' ? 'No repeat' : f}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      {freq && (
+        <View style={styles.recurrenceIntervalRow}>
+          <ThemedText type="small" themeColor="textSecondary">
+            every
+          </ThemedText>
+          <TextInput
+            value={String(interval)}
+            onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
+            keyboardType="number-pad"
+            style={[styles.intervalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          />
+          <ThemedText type="small" themeColor="textSecondary">
+            {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
+          </ThemedText>
+        </View>
+      )}
+      {freq === 'weekly' && (
+        <View style={styles.chipRow}>
+          {WEEKDAY_LABELS.map((label, i) => {
+            const active = daysOfWeek.includes(i);
+            return (
+              <Pressable
+                key={i}
+                onPress={() => toggleDay(i)}
+                style={[styles.weekdayChip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+                <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                  {label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function EditReminderForm({
   reminder,
   onSave,
   onCancel,
 }: {
   reminder: Reminder;
-  onSave: (patch: { title: string; note?: string; deadline: string }) => void;
+  onSave: (patch: { title: string; note?: string; deadline: string; recurrence?: Recurrence }) => void;
   onCancel: () => void;
 }) {
   const theme = useTheme();
   const [title, setTitle] = useState(reminder.title);
   const [note, setNote] = useState(reminder.note ?? '');
   const [offsetDays, setOffsetDays] = useState(7);
+  const [recurrence, setRecurrence] = useState<Recurrence | undefined>(reminder.recurrence);
 
   return (
     <View style={{ flex: 1, gap: Spacing.one }}>
@@ -429,6 +519,7 @@ function EditReminderForm({
           );
         })}
       </View>
+      <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <View style={styles.cardActionsRow}>
         <Pressable
           onPress={() =>
@@ -436,6 +527,7 @@ function EditReminderForm({
               title: title.trim() || reminder.title,
               note: note.trim() || undefined,
               deadline: new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000).toISOString(),
+              recurrence,
             })
           }>
           <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
@@ -457,6 +549,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [offsetDays, setOffsetDays] = useState(7);
+  const [recurrence, setRecurrence] = useState<Recurrence | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -470,9 +563,11 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
         title: title.trim(),
         note: note.trim() || undefined,
         deadline: deadline.toISOString(),
+        recurrence,
       });
       setTitle('');
       setNote('');
+      setRecurrence(undefined);
       setFormOpen(false);
       syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
         console.error('Could not sync reminder to Google Calendar', err),
@@ -482,15 +577,26 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
     }
   }
 
-  async function handleDelete(reminderId: string) {
+  async function handleDelete(reminder: Reminder) {
     try {
-      await deleteReminderEverywhere(webApiClient, reminderId);
+      if (db && reminder.recurrence) {
+        await createReminder(db, uid, {
+          title: reminder.title,
+          note: reminder.note,
+          deadline: nextOccurrenceDate(reminder.deadline, reminder.recurrence),
+          recurrence: reminder.recurrence,
+        });
+      }
+      await deleteReminderEverywhere(webApiClient, reminder.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete reminder');
     }
   }
 
-  async function handleSaveEdit(reminderId: string, patch: { title: string; note?: string; deadline: string }) {
+  async function handleSaveEdit(
+    reminderId: string,
+    patch: { title: string; note?: string; deadline: string; recurrence?: Recurrence },
+  ) {
     if (!db) return;
     try {
       await updateReminder(db, uid, reminderId, patch);
@@ -549,6 +655,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
               );
             })}
           </View>
+          <RecurrencePicker value={recurrence} onChange={setRecurrence} />
           <View style={styles.cardActionsRow}>
             <Pressable
               onPress={handleAdd}
@@ -602,6 +709,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                 )}
                 <ThemedText type="code" themeColor="textSecondary">
                   {new Date(reminder.deadline).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                  {reminder.recurrence && ` · ↻ ${describeRecurrence(reminder.recurrence)}`}
                 </ThemedText>
               </Pressable>
               <View style={styles.cardActions}>
@@ -610,7 +718,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                     {urgencyLabel(urgency, days)}
                   </ThemedText>
                 </View>
-                <Pressable onPress={() => handleDelete(reminder.id)}>
+                <Pressable onPress={() => handleDelete(reminder)}>
                   <ThemedText type="small" style={styles.deleteText}>
                     Delete
                   </ThemedText>
@@ -855,4 +963,7 @@ const styles = StyleSheet.create({
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
   badge: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
+  recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  intervalInput: { width: 44, borderWidth: 2, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
+  weekdayChip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
 });

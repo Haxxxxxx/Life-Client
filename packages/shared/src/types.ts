@@ -52,6 +52,14 @@ export const TASK_CATEGORIES: { id: TaskCategory; label: string }[] = [
   { id: "reading", label: "Reading" },
 ];
 
+export type RecurrenceFreq = "daily" | "weekly" | "monthly";
+
+export interface Recurrence {
+  freq: RecurrenceFreq;
+  interval: number; // e.g. every 2 weeks
+  daysOfWeek?: number[]; // 0=Sun..6=Sat — only meaningful when freq is "weekly"
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -66,6 +74,7 @@ export interface Task {
   sourceUrl?: string;
   tags: string[];
   goalId?: string; // links this task to a parent Goal
+  recurrence?: Recurrence; // when set, completing this task creates the next occurrence
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }
@@ -223,6 +232,7 @@ export interface Reminder {
   note?: string; // e.g. "Referral code from a friend", linked account, or any other context
   deadline: string; // ISO datetime
   calendarEventId?: string; // set by the server once mirrored to Google Calendar
+  recurrence?: Recurrence; // when set, deleting this reminder creates the next occurrence
   createdAt: string;
   updatedAt: string;
 }

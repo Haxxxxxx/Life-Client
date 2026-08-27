@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
+import { nextOccurrenceDate } from "./recurrence";
 import type { NewTask, Task, TaskStatus } from "./types";
 
 function tasksCollection(db: Firestore, uid: string) {
@@ -65,4 +66,25 @@ export async function setTaskStatus(
 
 export async function deleteTask(db: Firestore, uid: string, taskId: string): Promise<void> {
   await deleteDoc(doc(db, "users", uid, "tasks", taskId));
+}
+
+/**
+ * Sets a task's status, and — if it's a recurring task transitioning to "done" —
+ * also creates the next occurrence (same fields, advanced dueDate, status reset to "todo").
+ */
+export async function advanceTaskStatus(
+  db: Firestore,
+  uid: string,
+  task: Task,
+  nextStatus: TaskStatus,
+): Promise<void> {
+  if (nextStatus === "done" && task.recurrence && task.dueDate) {
+    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = task;
+    await createTask(db, uid, {
+      ...rest,
+      dueDate: nextOccurrenceDate(task.dueDate, task.recurrence),
+      status: "todo",
+    });
+  }
+  await setTaskStatus(db, uid, task.id, nextStatus);
 }

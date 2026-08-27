@@ -2,13 +2,17 @@ import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
   TASK_PRIORITIES,
+  WEEKDAY_LABELS,
+  advanceTaskStatus,
   createTask,
   deleteTask,
-  setTaskStatus,
+  describeRecurrence,
   subscribeGoals,
   subscribeTasks,
   updateTask,
   type Goal,
+  type Recurrence,
+  type RecurrenceFreq,
   type Task,
   type TaskCategory,
   type TaskDifficulty,
@@ -47,6 +51,88 @@ function nextStatus(status: TaskStatus): TaskStatus {
   return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]!;
 }
 
+function RecurrencePicker({
+  value,
+  onChange,
+}: {
+  value: Recurrence | undefined;
+  onChange: (next: Recurrence | undefined) => void;
+}) {
+  const theme = useTheme();
+  const freq = value?.freq;
+  const interval = value?.interval ?? 1;
+  const daysOfWeek = value?.daysOfWeek ?? [];
+
+  function setFreq(next: RecurrenceFreq | undefined) {
+    if (!next) {
+      onChange(undefined);
+      return;
+    }
+    onChange({ freq: next, interval, daysOfWeek: next === 'weekly' ? daysOfWeek : undefined });
+  }
+
+  function toggleDay(day: number) {
+    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
+    onChange({ freq: 'weekly', interval, daysOfWeek: next });
+  }
+
+  return (
+    <View style={{ gap: Spacing.one }}>
+      <View style={styles.chipRowWrap}>
+        {(['none', 'daily', 'weekly', 'monthly'] as const).map((f) => {
+          const active = (f === 'none' && !freq) || f === freq;
+          return (
+            <Pressable
+              key={f}
+              onPress={() => setFreq(f === 'none' ? undefined : f)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
+                {f === 'none' ? 'No repeat' : f}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      {freq && (
+        <View style={styles.recurrenceIntervalRow}>
+          <ThemedText type="small" themeColor="textSecondary">
+            every
+          </ThemedText>
+          <TextInput
+            value={String(interval)}
+            onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
+            keyboardType="number-pad"
+            style={[styles.intervalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          />
+          <ThemedText type="small" themeColor="textSecondary">
+            {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
+          </ThemedText>
+        </View>
+      )}
+      {freq === 'weekly' && (
+        <View style={styles.chipRowWrap}>
+          {WEEKDAY_LABELS.map((label, i) => {
+            const active = daysOfWeek.includes(i);
+            return (
+              <Pressable
+                key={i}
+                onPress={() => toggleDay(i)}
+                style={[
+                  styles.weekdayChip,
+                  { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' },
+                ]}>
+                <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                  {label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function EditTaskForm({
   task,
   goals,
@@ -65,6 +151,7 @@ function EditTaskForm({
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [dueDate, setDueDate] = useState(task.dueDate ?? '');
   const [goalId, setGoalId] = useState(task.goalId ?? '');
+  const [recurrence, setRecurrence] = useState<Recurrence | undefined>(task.recurrence);
 
   return (
     <View style={{ flex: 1, gap: Spacing.one }}>
@@ -140,6 +227,7 @@ function EditTaskForm({
           </Pressable>
         ))}
       </View>
+      <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <View style={styles.taskActions}>
         <Pressable
           onPress={() =>
@@ -150,6 +238,7 @@ function EditTaskForm({
               priority,
               dueDate: dueDate || undefined,
               goalId: goalId || undefined,
+              recurrence,
             })
           }>
           <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
@@ -314,6 +403,7 @@ export default function TasksScreen() {
                     {item.category && ` · ${CATEGORY_LABEL[item.category]}`}
                     {item.difficulty && ` · ${DIFFICULTY_LABEL[item.difficulty]}`}
                     {item.goalId && ` · ${goals.find((g) => g.id === item.goalId)?.title ?? 'Goal'}`}
+                    {item.recurrence && ` · ↻ ${describeRecurrence(item.recurrence)}`}
                   </ThemedText>
                 </Pressable>
                 <View style={styles.taskActions}>
@@ -325,7 +415,7 @@ export default function TasksScreen() {
                     </Pressable>
                   )}
                   <Pressable
-                    onPress={() => setTaskStatus(db!, user!.uid, item.id, nextStatus(item.status))}
+                    onPress={() => advanceTaskStatus(db!, user!.uid, item, nextStatus(item.status))}
                     style={[styles.pillButton, { borderColor: theme.border }]}>
                     <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
                   </Pressable>
@@ -372,4 +462,7 @@ const styles = StyleSheet.create({
   pillButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteText: { color: '#dc2626' },
+  recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  intervalInput: { width: 44, borderWidth: 2, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
+  weekdayChip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
 });

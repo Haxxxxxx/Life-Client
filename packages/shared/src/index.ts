@@ -15,3 +15,4 @@ export * from "./spotifyApi";
 export * from "./challenges";
 export * from "./goals";
 export * from "./pushTokens";
+export * from "./recurrence";
