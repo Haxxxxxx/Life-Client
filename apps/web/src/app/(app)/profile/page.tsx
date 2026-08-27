@@ -8,6 +8,7 @@ import {
   type DailyLesson,
   type DevActivitySummary,
   MANUAL_EVENT_TYPES,
+  type ManualEventInput,
   type ManualEventType,
   type ManualProgress,
   type ReadingListItem,
@@ -57,16 +58,30 @@ const EVENT_TYPE_LABEL = Object.fromEntries(MANUAL_EVENT_TYPES.map((t) => [t.id,
   string
 >;
 
-function LogEventForm({ onSubmit }: { onSubmit: (input: { eventType: ManualEventType; durationMinutes: number; peopleCount: number }) => void }) {
+// Only Focus/Social are manually-logged core stats — give each a note prompt
+// that actually means something instead of a generic "Notes" field.
+const NOTE_PLACEHOLDER: Partial<Record<string, string>> = {
+  focus: "What were you focused on?",
+  social: "Who with?",
+};
+
+function LogEventForm({
+  characteristicId,
+  onSubmit,
+}: {
+  characteristicId: string;
+  onSubmit: (input: ManualEventInput) => void;
+}) {
   const [eventType, setEventType] = useState<ManualEventType>(MANUAL_EVENT_TYPES[0]!.id);
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [peopleCount, setPeopleCount] = useState(1);
+  const [note, setNote] = useState("");
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ eventType, durationMinutes, peopleCount });
+        onSubmit({ eventType, durationMinutes, peopleCount, note: note.trim() || undefined });
       }}
       className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3"
     >
@@ -105,6 +120,12 @@ function LogEventForm({ onSubmit }: { onSubmit: (input: { eventType: ManualEvent
           />
         </label>
       </div>
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder={NOTE_PLACEHOLDER[characteristicId] ?? "Notes (optional)"}
+        className="w-full rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm outline-none placeholder:text-muted"
+      />
       <button
         type="submit"
         className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
@@ -124,7 +145,7 @@ function CharacteristicCard({
   def: CharacteristicDefinition;
   totalXp: number;
   manualProgress?: ManualProgress | null;
-  onLogEvent?: (input: { eventType: ManualEventType; durationMinutes: number; peopleCount: number }) => void;
+  onLogEvent?: (input: ManualEventInput) => void;
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const level = levelFromXp(totalXp);
@@ -163,10 +184,12 @@ function CharacteristicCard({
         <p className="font-mono text-xs text-muted">
           Last: {EVENT_TYPE_LABEL[manualProgress.lastEventType]} · {manualProgress.lastDurationMinutes}min ·{" "}
           {manualProgress.lastPeopleCount} {manualProgress.lastPeopleCount === 1 ? "person" : "people"}
+          {manualProgress.lastNote ? ` · "${manualProgress.lastNote}"` : ""}
         </p>
       )}
       {onLogEvent && formOpen && (
         <LogEventForm
+          characteristicId={def.id}
           onSubmit={(input) => {
             onLogEvent(input);
             setFormOpen(false);

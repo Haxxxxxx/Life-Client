@@ -6,6 +6,7 @@ import {
   type DailyLesson,
   type DevActivitySummary,
   MANUAL_EVENT_TYPES,
+  type ManualEventInput,
   type ManualEventType,
   type ManualProgress,
   type ReadingListItem,
@@ -63,17 +64,25 @@ function ProgressBar({ progress }: { progress: number }) {
   );
 }
 
-interface EventInput {
-  eventType: ManualEventType;
-  durationMinutes: number;
-  peopleCount: number;
-}
+// Only Focus/Social are manually-logged core stats — give each a note prompt
+// that actually means something instead of a generic "Notes" field.
+const NOTE_PLACEHOLDER: Partial<Record<string, string>> = {
+  focus: 'What were you focused on?',
+  social: 'Who with?',
+};
 
-function LogEventForm({ onSubmit }: { onSubmit: (input: EventInput) => void }) {
+function LogEventForm({
+  characteristicId,
+  onSubmit,
+}: {
+  characteristicId: string;
+  onSubmit: (input: ManualEventInput) => void;
+}) {
   const theme = useTheme();
   const [eventType, setEventType] = useState<ManualEventType>(MANUAL_EVENT_TYPES[0]!.id);
   const [durationMinutes, setDurationMinutes] = useState('30');
   const [peopleCount, setPeopleCount] = useState('1');
+  const [note, setNote] = useState('');
 
   return (
     <View style={[styles.form, { borderColor: theme.border }]}>
@@ -126,12 +135,20 @@ function LogEventForm({ onSubmit }: { onSubmit: (input: EventInput) => void }) {
           />
         </View>
       </View>
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder={NOTE_PLACEHOLDER[characteristicId] ?? 'Notes (optional)'}
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
       <Pressable
         onPress={() =>
           onSubmit({
             eventType,
             durationMinutes: Number(durationMinutes) || 0,
             peopleCount: Number(peopleCount) || 1,
+            note: note.trim() || undefined,
           })
         }
         style={[styles.logButton, { backgroundColor: theme.primary, borderColor: theme.border }]}
@@ -153,7 +170,7 @@ function CharacteristicCard({
   def: CharacteristicDefinition;
   totalXp: number;
   manualProgress?: ManualProgress | null;
-  onLogEvent?: (input: EventInput) => void;
+  onLogEvent?: (input: ManualEventInput) => void;
 }) {
   const theme = useTheme();
   const [formOpen, setFormOpen] = useState(false);
@@ -193,10 +210,12 @@ function CharacteristicCard({
         <ThemedText type="code" themeColor="textSecondary">
           Last: {EVENT_TYPE_LABEL[manualProgress.lastEventType]} · {manualProgress.lastDurationMinutes}min ·{' '}
           {manualProgress.lastPeopleCount} {manualProgress.lastPeopleCount === 1 ? 'person' : 'people'}
+          {manualProgress.lastNote ? ` · "${manualProgress.lastNote}"` : ''}
         </ThemedText>
       )}
       {onLogEvent && formOpen && (
         <LogEventForm
+          characteristicId={def.id}
           onSubmit={(input) => {
             onLogEvent(input);
             setFormOpen(false);

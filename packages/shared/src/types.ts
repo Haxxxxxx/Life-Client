@@ -338,6 +338,7 @@ export interface ManualProgress {
   lastEventType?: ManualEventType;
   lastDurationMinutes?: number;
   lastPeopleCount?: number;
+  lastNote?: string;
   updatedAt: string;
 }
 

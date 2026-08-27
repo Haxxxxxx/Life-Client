@@ -373,6 +373,7 @@ export interface ManualEventInput {
   eventType: ManualEventType;
   durationMinutes: number;
   peopleCount: number;
+  note?: string;
 }
 
 const EVENT_TYPE_MULTIPLIER: Record<ManualEventType, number> = {
@@ -412,6 +413,7 @@ export async function logManualEvent(
       lastEventType: input.eventType,
       lastDurationMinutes: input.durationMinutes,
       lastPeopleCount: input.peopleCount,
+      lastNote: input.note?.trim() ?? "",
       updatedAt: serverTimestamp(),
     },
     { merge: true },
