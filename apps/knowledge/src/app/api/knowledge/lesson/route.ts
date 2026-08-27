@@ -37,13 +37,21 @@ interface ArticleCandidate {
   url: string;
 }
 
+const NAMED_XML_ENTITIES: Record<string, string> = { lt: "<", gt: ">", quot: '"', apos: "'", amp: "&" };
+
+// A single combined pass — decoding named and numeric entities in separate
+// sequential passes risks double-decoding (e.g. a literal "&amp;lt;" meant to
+// display as "&lt;" would wrongly become "<" if amp were decoded first, then
+// lt decoded on the result).
 function decodeXmlEntities(text: string): string {
-  return text
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;/g, "'")
-    .replace(/&amp;/g, "&");
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
+    if (entity[0] === "#") {
+      const codePoint =
+        entity[1]?.toLowerCase() === "x" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
+      return Number.isNaN(codePoint) ? match : String.fromCodePoint(codePoint);
+    }
+    return NAMED_XML_ENTITIES[entity.toLowerCase()] ?? match;
+  });
 }
 
 /** Every feed here is RSS 2.0 (or RSS 1.0/RDF, same `<item>` shape) with plain-text `<title>`/`<link>`. */
