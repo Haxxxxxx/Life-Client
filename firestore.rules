@@ -39,6 +39,14 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      match /transactions/{transactionId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /budgets/{budgetId} {
+        allow read, write: if isOwner(uid);
+      }
+
       match /devActivity/{provider} {
         allow read: if isOwner(uid);
         allow write: if false;

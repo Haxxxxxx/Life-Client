@@ -463,3 +463,46 @@ export interface PushToken {
   webSubscription?: { endpoint: string; keys: { p256dh: string; auth: string } }; // set when platform === "web"
   createdAt: string;
 }
+
+// ---- Money ----
+
+export type TransactionType = "expense" | "income";
+export type TransactionCategory = "food" | "rent" | "subscription" | "transport" | "entertainment" | "other";
+
+export const TRANSACTION_CATEGORIES: { id: TransactionCategory; label: string }[] = [
+  { id: "food", label: "Food" },
+  { id: "rent", label: "Rent" },
+  { id: "subscription", label: "Subscription" },
+  { id: "transport", label: "Transport" },
+  { id: "entertainment", label: "Entertainment" },
+  { id: "other", label: "Other" },
+];
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  amount: number; // always positive; type determines the sign
+  category: TransactionCategory;
+  note?: string;
+  date: string; // ISO date
+  recurrence?: Recurrence; // e.g. a subscription that charges monthly
+  createdAt: string;
+}
+
+export type NewTransaction = Omit<Transaction, "id" | "createdAt">;
+
+export interface Budget {
+  id: string;
+  category: TransactionCategory;
+  monthlyLimit: number;
+  createdAt: string;
+}
+
+export type NewBudget = Omit<Budget, "id" | "createdAt">;
+
+export interface BudgetStatus {
+  spent: number;
+  limit: number;
+  percent: number; // 0-1+, can exceed 1 when over budget
+  remaining: number;
+}

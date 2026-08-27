@@ -15,6 +15,7 @@ const TABS = [
   { name: 'sports', href: '/sports', label: 'Sports' },
   { name: 'agenda', href: '/agenda', label: 'Agenda' },
   { name: 'music', href: '/music', label: 'Music' },
+  { name: 'money', href: '/money', label: 'Money' },
   { name: 'integrations', href: '/integrations', label: 'Integrations' },
   { name: 'knowledge', href: '/knowledge', label: 'Knowledge' },
   { name: 'profile', href: '/profile', label: 'Profile' },
