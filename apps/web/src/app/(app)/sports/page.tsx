@@ -297,16 +297,21 @@ function ChallengeCard({
   onArchive,
   onDelete,
   onSave,
+  onLogToday,
 }: {
   challenge: Challenge;
   activities: SportActivity[];
   onArchive: () => void;
   onDelete: () => void;
   onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
+  onLogToday: () => void;
 }) {
   const progress = computeChallengeProgress(challenge, activities);
   const milestones = computeChallengeMilestones(challenge, progress);
   const unit = METRICS.find((m) => m.id === challenge.metric)!.unit;
+  const today = todayLocalDate();
+  const todayEntry = progress.days.find((d) => d.date === today);
+  const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
@@ -421,6 +426,20 @@ function ChallengeCard({
             Finished
           </span>
         )}
+        {canLogToday && (
+          <button
+            type="button"
+            onClick={onLogToday}
+            className="ml-auto rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+          >
+            Log today
+          </button>
+        )}
+        {!progress.isFinished && todayEntry?.completed && (
+          <span className="ml-auto rounded-full border-2 border-foreground bg-primary px-2.5 py-1 font-mono text-xs font-bold text-primary-foreground uppercase">
+            Done today
+          </span>
+        )}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {milestones.map((m) => (
@@ -471,6 +490,27 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
     }
   }
 
+  // Logs an activity that matches this challenge's own exerciseType/metric —
+  // avoids the user having to guess the exact type string themselves.
+  async function handleLogToday(challenge: Challenge) {
+    if (!user || !db) return;
+    setError(null);
+    const kind: SportActivityKind = challenge.metric === "distanceMeters" ? "endurance" : "strength";
+    try {
+      await createManualSportActivity(db, user.uid, {
+        kind,
+        type: challenge.exerciseType,
+        name: challenge.exerciseType,
+        startDate: new Date().toISOString(),
+        ...(kind === "endurance"
+          ? { distanceMeters: challenge.dailyTarget }
+          : { reps: challenge.metric === "reps" ? challenge.dailyTarget : 1, sets: 1 }),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not log today");
+    }
+  }
+
   const activeChallenges = challenges.filter((c) => !c.archived);
 
   return (
@@ -502,6 +542,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               onArchive={() => user && db && archiveChallenge(db, user.uid, challenge.id)}
               onDelete={() => user && db && deleteChallenge(db, user.uid, challenge.id)}
               onSave={(patch) => user && db && updateChallenge(db, user.uid, challenge.id, patch)}
+              onLogToday={() => handleLogToday(challenge)}
             />
           ))}
         </div>

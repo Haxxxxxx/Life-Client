@@ -321,17 +321,22 @@ function ChallengeCard({
   onArchive,
   onDelete,
   onSave,
+  onLogToday,
 }: {
   challenge: Challenge;
   activities: SportActivity[];
   onArchive: () => void;
   onDelete: () => void;
   onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
+  onLogToday: () => void;
 }) {
   const theme = useTheme();
   const progress = computeChallengeProgress(challenge, activities);
   const milestones = computeChallengeMilestones(challenge, progress);
   const unit = METRICS.find((m) => m.id === challenge.metric)!.unit;
+  const today = todayLocalDate();
+  const todayEntry = progress.days.find((d) => d.date === today);
+  const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
@@ -447,6 +452,22 @@ function ChallengeCard({
             days completed
           </ThemedText>
         </View>
+        {canLogToday && (
+          <Pressable
+            onPress={onLogToday}
+            style={[styles.logTodayButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+            <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
+              Log today
+            </ThemedText>
+          </Pressable>
+        )}
+        {!progress.isFinished && todayEntry?.completed && (
+          <View style={[styles.doneTodayBadge, { borderColor: theme.border, backgroundColor: theme.primary }]}>
+            <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
+              Done today
+            </ThemedText>
+          </View>
+        )}
       </View>
       <View style={styles.milestoneRow}>
         {milestones.map((m) => (
@@ -508,6 +529,27 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
     }
   }
 
+  // Logs an activity that matches this challenge's own exerciseType/metric —
+  // avoids the user having to guess the exact type string themselves.
+  async function handleLogToday(challenge: Challenge) {
+    if (!user || !db) return;
+    setError(null);
+    const kind: SportActivityKind = challenge.metric === 'distanceMeters' ? 'endurance' : 'strength';
+    try {
+      await createManualSportActivity(db, user.uid, {
+        kind,
+        type: challenge.exerciseType,
+        name: challenge.exerciseType,
+        startDate: new Date().toISOString(),
+        ...(kind === 'endurance'
+          ? { distanceMeters: challenge.dailyTarget }
+          : { reps: challenge.metric === 'reps' ? challenge.dailyTarget : 1, sets: 1 }),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not log today');
+    }
+  }
+
   const activeChallenges = challenges.filter((c) => !c.archived);
 
   return (
@@ -545,6 +587,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               onArchive={() => user && db && archiveChallenge(db, user.uid, challenge.id)}
               onDelete={() => user && db && deleteChallenge(db, user.uid, challenge.id)}
               onSave={(patch) => user && db && updateChallenge(db, user.uid, challenge.id, patch)}
+              onLogToday={() => handleLogToday(challenge)}
             />
           ))}
         </View>
@@ -730,7 +773,9 @@ const styles = StyleSheet.create({
   challengeCard: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   challengeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   challengeActions: { flexDirection: 'row', gap: Spacing.two },
-  challengeStatsRow: { flexDirection: 'row', gap: Spacing.four },
+  challengeStatsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
+  logTodayButton: { marginLeft: 'auto', borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
+  doneTodayBadge: { marginLeft: 'auto', borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   dayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
   daySquare: { width: 10, height: 10, borderRadius: 2, borderWidth: 1 },
   milestoneRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
