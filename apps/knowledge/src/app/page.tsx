@@ -133,6 +133,117 @@ const DIFFICULTIES: { id: CodeDrillDifficulty; label: string }[] = [
   { id: "advanced", label: "Advanced" },
 ];
 
+const RUN_TIMEOUT_MS = 3000;
+const DEFAULT_SCRATCHPAD_CODE = "for (let i = 0; i < 5; i++) {\n  console.log(i);\n}";
+
+interface RunOutcome {
+  logs: string[];
+  error: string | null;
+}
+
+/**
+ * A Worker never touches the DOM and runs off the main thread, so an infinite
+ * loop in the user's own snippet can be hard-killed via terminate() without
+ * ever freezing the page — good enough isolation for "try your own JS", not
+ * meant to run untrusted third-party code.
+ */
+function buildRunnerWorker(): Worker {
+  const source = `
+self.onmessage = (e) => {
+  const logs = [];
+  const stringify = (value) => {
+    if (typeof value === "string") return value;
+    try { return JSON.stringify(value); } catch { return String(value); }
+  };
+  const capture = (...args) => { logs.push(args.map(stringify).join(" ")); };
+  console.log = capture;
+  console.error = capture;
+  console.warn = capture;
+  try {
+    new Function(e.data)();
+    self.postMessage({ logs, error: null });
+  } catch (err) {
+    self.postMessage({ logs, error: err instanceof Error ? err.message : String(err) });
+  }
+};
+`;
+  const url = URL.createObjectURL(new Blob([source], { type: "application/javascript" }));
+  const worker = new Worker(url);
+  URL.revokeObjectURL(url);
+  return worker;
+}
+
+function CodeRunner() {
+  const [code, setCode] = useState(DEFAULT_SCRATCHPAD_CODE);
+  const [running, setRunning] = useState(false);
+  const [outcome, setOutcome] = useState<RunOutcome | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+
+  function handleRun() {
+    setRunning(true);
+    setOutcome(null);
+    setTimedOut(false);
+
+    const worker = buildRunnerWorker();
+    const timeout = setTimeout(() => {
+      worker.terminate();
+      setTimedOut(true);
+      setRunning(false);
+    }, RUN_TIMEOUT_MS);
+
+    worker.onmessage = (e: MessageEvent<RunOutcome>) => {
+      clearTimeout(timeout);
+      setOutcome(e.data);
+      setRunning(false);
+      worker.terminate();
+    };
+    worker.onerror = (e) => {
+      clearTimeout(timeout);
+      setOutcome({ logs: [], error: e.message });
+      setRunning(false);
+      worker.terminate();
+    };
+    worker.postMessage(code);
+  }
+
+  return (
+    <div className="mt-3 flex flex-col gap-2 rounded-md border-2 border-foreground/20 bg-background p-3">
+      <p className="font-mono text-xs font-bold text-primary uppercase">Try it — JS/TS scratchpad</p>
+      <textarea
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        spellCheck={false}
+        rows={6}
+        className="w-full resize-y rounded-md border-2 border-foreground bg-surface px-3 py-2 font-mono text-sm outline-none focus:shadow-[2px_2px_0_0_var(--primary)]"
+      />
+      <button
+        type="button"
+        onClick={handleRun}
+        disabled={running}
+        className="self-start rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
+      >
+        {running ? "Running…" : "Run"}
+      </button>
+      {(outcome || timedOut) && (
+        <div className="rounded-md border-2 border-foreground/30 bg-black p-3 font-mono text-xs text-green-400">
+          {timedOut && (
+            <p className="text-amber-400">Timed out after {RUN_TIMEOUT_MS / 1000}s — possible infinite loop.</p>
+          )}
+          {outcome?.logs.length === 0 && !outcome.error && (
+            <p className="text-white/50">(no output — try console.log(...))</p>
+          )}
+          {outcome?.logs.map((line, i) => (
+            <p key={i} className="whitespace-pre-wrap">
+              {line}
+            </p>
+          ))}
+          {outcome?.error && <p className="text-red-400">{outcome.error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DrillCard({
   drill,
   onSkip,
@@ -147,6 +258,7 @@ function DrillCard({
   deleting: boolean;
 }) {
   const [revealed, setRevealed] = useState(false);
+  const [showRunner, setShowRunner] = useState(false);
   const [answer, setAnswer] = useState(drill.userAnswer ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<DrillGradeResult | null>(
@@ -275,6 +387,15 @@ function DrillCard({
       {(revealed || result) && (
         <p className="mt-2 text-sm whitespace-pre-wrap text-muted">{drill.explanation}</p>
       )}
+
+      <button
+        type="button"
+        onClick={() => setShowRunner((v) => !v)}
+        className="mt-3 font-mono text-xs font-bold text-primary uppercase hover:underline"
+      >
+        {showRunner ? "Hide scratchpad" : "Try it in JS →"}
+      </button>
+      {showRunner && <CodeRunner />}
     </li>
   );
 }
