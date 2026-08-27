@@ -1,6 +1,12 @@
-import { type CalendarEvent, subscribeCalendarEvents } from '@life-client/shared';
+import {
+  createCalendarEvent,
+  deleteCalendarEvent,
+  subscribeCalendarEvents,
+  updateCalendarEvent,
+  type CalendarEvent,
+} from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,6 +15,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
+import { webApiClient } from '@/lib/webApiClient';
 
 function isAllDay(event: CalendarEvent): boolean {
   return !event.start.includes('T');
@@ -43,16 +50,147 @@ interface EventGroup {
   events: CalendarEvent[];
 }
 
+function toDatetimeLocalValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function parseDatetimeLocalValue(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const [, y, mo, d, h, mi] = match.map(Number) as unknown as number[];
+  return new Date(y!, mo! - 1, d!, h, mi);
+}
+
+function EventForm({
+  initial,
+  onSubmit,
+  onCancel,
+  submitLabel,
+}: {
+  initial?: CalendarEvent;
+  onSubmit: (input: { title: string; start: string; end: string; location?: string }) => void;
+  onCancel: () => void;
+  submitLabel: string;
+}) {
+  const theme = useTheme();
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [location, setLocation] = useState(initial?.location ?? '');
+  const [start, setStart] = useState(() => {
+    if (initial && !isAllDay(initial)) return toDatetimeLocalValue(new Date(initial.start));
+    const in1h = new Date();
+    in1h.setMinutes(0, 0, 0);
+    in1h.setHours(in1h.getHours() + 1);
+    return toDatetimeLocalValue(in1h);
+  });
+  const [end, setEnd] = useState(() => {
+    if (initial && !isAllDay(initial)) return toDatetimeLocalValue(new Date(initial.end));
+    const in2h = new Date();
+    in2h.setMinutes(0, 0, 0);
+    in2h.setHours(in2h.getHours() + 2);
+    return toDatetimeLocalValue(in2h);
+  });
+
+  const startDate = parseDatetimeLocalValue(start);
+  const endDate = parseDatetimeLocalValue(end);
+  const canSubmit = title.trim().length > 0 && startDate !== null && endDate !== null;
+
+  return (
+    <View style={[styles.form, { borderColor: theme.border }]}>
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Event title"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <TextInput
+        value={location}
+        onChangeText={setLocation}
+        placeholder="Location (optional)"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <TextInput
+        value={start}
+        onChangeText={setStart}
+        placeholder="Start YYYY-MM-DDTHH:MM"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <TextInput
+        value={end}
+        onChangeText={setEnd}
+        placeholder="End YYYY-MM-DDTHH:MM"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+      />
+      <View style={styles.formActions}>
+        <Pressable
+          disabled={!canSubmit}
+          onPress={() =>
+            canSubmit &&
+            onSubmit({
+              title: title.trim(),
+              start: startDate!.toISOString(),
+              end: endDate!.toISOString(),
+              location: location.trim() || undefined,
+            })
+          }
+          style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: canSubmit ? 1 : 0.5 }]}>
+          <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>{submitLabel}</ThemedText>
+        </Pressable>
+        <Pressable onPress={onCancel}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Cancel
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function AgendaScreen() {
   const { user } = useAuth();
   const theme = useTheme();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
     return subscribeCalendarEvents(db, user.uid, setEvents, (err) => setError(err.message), 50);
   }, [user]);
+
+  async function handleCreate(input: { title: string; start: string; end: string; location?: string }) {
+    setError(null);
+    try {
+      await createCalendarEvent(webApiClient, input);
+      setFormOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create event');
+    }
+  }
+
+  async function handleUpdate(eventId: string, input: { title: string; start: string; end: string; location?: string }) {
+    setError(null);
+    try {
+      await updateCalendarEvent(webApiClient, eventId, input);
+      setEditingId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update event');
+    }
+  }
+
+  async function handleDelete(eventId: string) {
+    setError(null);
+    try {
+      await deleteCalendarEvent(webApiClient, eventId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete event');
+    }
+  }
 
   const groups: EventGroup[] = [];
   for (const event of events) {
@@ -65,14 +203,25 @@ export default function AgendaScreen() {
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
-            Agenda
-          </ThemedText>
-          <ThemedText type="subtitle">Calendar</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            Upcoming events synced from Google Calendar, over the next 7 days.
-          </ThemedText>
+        <View style={styles.headerRow}>
+          <View style={styles.headerText}>
+            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+              Agenda
+            </ThemedText>
+            <ThemedText type="subtitle">Calendar</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Upcoming events synced from Google Calendar, over the next 7 days.
+            </ThemedText>
+          </View>
+          {!formOpen && (
+            <Pressable
+              onPress={() => setFormOpen(true)}
+              style={[styles.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+              <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
+                New event
+              </ThemedText>
+            </Pressable>
+          )}
         </View>
 
         {error && (
@@ -85,45 +234,70 @@ export default function AgendaScreen() {
           data={groups}
           keyExtractor={(group) => group.key}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            formOpen ? (
+              <EventForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} submitLabel="Create" />
+            ) : null
+          }
           ListEmptyComponent={
-            <ThemedView type="backgroundElement" style={styles.emptyState}>
-              <ThemedText themeColor="textSecondary">
-                No events yet — connect Google Calendar from Integrations, or check back once it&apos;s
-                synced.
-              </ThemedText>
-            </ThemedView>
+            !formOpen ? (
+              <ThemedView type="backgroundElement" style={styles.emptyState}>
+                <ThemedText themeColor="textSecondary">
+                  No events yet — connect Google Calendar from Integrations, add one above, or check back
+                  once it&apos;s synced.
+                </ThemedText>
+              </ThemedView>
+            ) : null
           }
           renderItem={({ item: group }) => (
             <View style={styles.group}>
               <ThemedText type="code" themeColor="primary" style={styles.groupLabel}>
                 {dayLabel(group.key)}
               </ThemedText>
-              {group.events.map((event) => (
-                <ThemedView key={event.id} type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
-                  <View style={styles.cardInfo}>
-                    <ThemedText type="smallBold" numberOfLines={1}>
-                      {event.title}
-                    </ThemedText>
-                    <ThemedText type="code" themeColor="textSecondary">
-                      {timeRangeLabel(event)}
-                    </ThemedText>
-                    {event.location && (
-                      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-                        {event.location}
+              {group.events.map((event) =>
+                editingId === event.id ? (
+                  <ThemedView key={event.id} type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
+                    <EventForm
+                      initial={event}
+                      onSubmit={(input) => handleUpdate(event.id, input)}
+                      onCancel={() => setEditingId(null)}
+                      submitLabel="Save"
+                    />
+                  </ThemedView>
+                ) : (
+                  <ThemedView key={event.id} type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
+                    <Pressable style={styles.cardInfo} onPress={() => setEditingId(event.id)}>
+                      <ThemedText type="smallBold" numberOfLines={1}>
+                        {event.title}
                       </ThemedText>
-                    )}
-                  </View>
-                  {event.url && (
-                    <Pressable
-                      onPress={() => Linking.openURL(event.url!)}
-                      style={[styles.openButton, { borderColor: theme.border }]}>
-                      <ThemedText type="small" style={styles.openButtonText}>
-                        Open
+                      <ThemedText type="code" themeColor="textSecondary">
+                        {timeRangeLabel(event)}
                       </ThemedText>
+                      {event.location && (
+                        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                          {event.location}
+                        </ThemedText>
+                      )}
                     </Pressable>
-                  )}
-                </ThemedView>
-              ))}
+                    <View style={styles.cardActions}>
+                      {event.url && (
+                        <Pressable
+                          onPress={() => Linking.openURL(event.url!)}
+                          style={[styles.openButton, { borderColor: theme.border }]}>
+                          <ThemedText type="small" style={styles.openButtonText}>
+                            Open
+                          </ThemedText>
+                        </Pressable>
+                      )}
+                      <Pressable onPress={() => handleDelete(event.id)}>
+                        <ThemedText type="small" style={styles.deleteText}>
+                          Delete
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  </ThemedView>
+                ),
+              )}
             </View>
           )}
         />
@@ -135,7 +309,9 @@ export default function AgendaScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
-  header: { marginTop: Spacing.four, gap: Spacing.one },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
+  headerText: { flex: 1, gap: Spacing.one },
+  logToggle: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   error: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.three },
@@ -152,6 +328,12 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   cardInfo: { flex: 1, gap: 2, minWidth: 0 },
+  cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
   openButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   openButtonText: { fontWeight: '700', textTransform: 'uppercase' },
+  deleteText: { color: '#dc2626' },
+  form: { gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, marginBottom: Spacing.three },
+  input: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  formActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, alignItems: 'center' },
 });

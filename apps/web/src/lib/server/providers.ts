@@ -24,7 +24,11 @@ export const PROVIDER_CONFIG: Record<IntegrationProvider, ProviderOAuthConfig> =
   google_calendar: {
     authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
-    scope: "https://www.googleapis.com/auth/calendar.readonly",
+    // calendar.events (not calendar.readonly) — the Agenda page can create/edit/delete
+    // events directly, and this is also the scope reminder-mirroring already needed.
+    // Users connected under the old readonly scope must reconnect (prompt:"consent" below
+    // already forces a fresh consent screen on every connect).
+    scope: "https://www.googleapis.com/auth/calendar.events",
     extraAuthParams: { access_type: "offline", prompt: "consent" },
   },
   strava: {
