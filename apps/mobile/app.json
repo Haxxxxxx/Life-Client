@@ -13,6 +13,8 @@
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
+      "package": "com.lifeclient.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#FAF1E3",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
