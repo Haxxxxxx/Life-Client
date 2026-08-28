@@ -178,12 +178,48 @@ function LogActivityForm({
   );
 }
 
-const EXERCISE_PRESETS = [...ENDURANCE_EXERCISE_PRESETS, ...STRENGTH_EXERCISE_PRESETS];
-const METRICS: { id: ChallengeMetric; label: string; unit: string }[] = [
-  { id: "reps", label: "Reps/day", unit: "reps" },
-  { id: "distanceMeters", label: "Distance/day", unit: "m" },
-  { id: "sessions", label: "Session/day", unit: "session" },
+const METRICS: { id: ChallengeMetric; label: string }[] = [
+  { id: "reps", label: "Reps/day" },
+  { id: "distanceMeters", label: "Distance/day" },
+  { id: "sessions", label: "Session/day" },
 ];
+
+// Distance-based sports (Running, Cycling, Swimming) only make sense as
+// distance or session challenges — "100 days of 100 Running" (reps) doesn't.
+// Strength sports only make sense as reps or session challenges.
+const METRICS_FOR_KIND: Record<SportActivityKind, ChallengeMetric[]> = {
+  endurance: ["distanceMeters", "sessions"],
+  strength: ["reps", "sessions"],
+};
+const DEFAULT_METRIC_FOR_KIND: Record<SportActivityKind, ChallengeMetric> = {
+  endurance: "distanceMeters",
+  strength: "reps",
+};
+const DEFAULT_TARGET_FOR_METRIC: Record<ChallengeMetric, number> = {
+  reps: 100,
+  distanceMeters: 5, // km — converted to meters (Challenge.dailyTarget's storage unit) at submit
+  sessions: 1,
+};
+
+function metricUnitLabel(metric: ChallengeMetric): string {
+  return metric === "distanceMeters" ? "km" : metric === "sessions" ? "sessions" : "reps";
+}
+
+/** Formats a raw stored value (meters for distance, count otherwise) for display. */
+function formatMetricValue(metric: ChallengeMetric, value: number): string {
+  if (metric === "distanceMeters") {
+    const km = value / 1000;
+    return `${km % 1 === 0 ? km.toFixed(0) : km.toFixed(2)}km`;
+  }
+  if (metric === "sessions") return `${value} ${value === 1 ? "session" : "sessions"}`;
+  return `${value} reps`;
+}
+
+function buildChallengeTitle(durationDays: number, metric: ChallengeMetric, dailyTargetDisplay: number, type: string): string {
+  if (metric === "sessions") return `${durationDays} Days of ${type}`;
+  const target = dailyTargetDisplay % 1 === 0 ? dailyTargetDisplay.toFixed(0) : dailyTargetDisplay.toFixed(1);
+  return `${durationDays} Days of ${target}${metric === "distanceMeters" ? "km" : ""} ${type}`;
+}
 
 function todayLocalDate(): string {
   const now = new Date();
@@ -192,19 +228,50 @@ function todayLocalDate(): string {
 }
 
 function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof createChallenge>[2]) => void }) {
-  const [exerciseType, setExerciseType] = useState(EXERCISE_PRESETS[0]!);
+  const [kind, setKind] = useState<SportActivityKind>("endurance");
+  const [exerciseType, setExerciseType] = useState(ENDURANCE_EXERCISE_PRESETS[0]!);
   const [customType, setCustomType] = useState("");
-  const [metric, setMetric] = useState<ChallengeMetric>("reps");
-  const [dailyTarget, setDailyTarget] = useState(100);
+  const [metric, setMetric] = useState<ChallengeMetric>("distanceMeters");
+  const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET_FOR_METRIC.distanceMeters);
   const [durationDays, setDurationDays] = useState(100);
   const [startDate, setStartDate] = useState(todayLocalDate());
 
   const type = customType.trim() || exerciseType;
+  const presets = kind === "endurance" ? ENDURANCE_EXERCISE_PRESETS : STRENGTH_EXERCISE_PRESETS;
+  const availableMetrics = METRICS.filter((m) => METRICS_FOR_KIND[kind].includes(m.id));
+
+  function handleKindChange(nextKind: SportActivityKind) {
+    setKind(nextKind);
+    setCustomType("");
+    setExerciseType(nextKind === "endurance" ? ENDURANCE_EXERCISE_PRESETS[0]! : STRENGTH_EXERCISE_PRESETS[0]!);
+    const nextMetric = DEFAULT_METRIC_FOR_KIND[nextKind];
+    setMetric(nextMetric);
+    setDailyTarget(DEFAULT_TARGET_FOR_METRIC[nextMetric]);
+  }
+
+  function handleMetricChange(nextMetric: ChallengeMetric) {
+    setMetric(nextMetric);
+    setDailyTarget(DEFAULT_TARGET_FOR_METRIC[nextMetric]);
+  }
 
   return (
     <div className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3">
+      <div className="flex gap-2">
+        {(["endurance", "strength"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => handleKindChange(k)}
+            className={`rounded-full border-2 border-foreground px-3 py-1 text-xs font-bold uppercase ${
+              kind === k ? "bg-primary text-primary-foreground" : ""
+            }`}
+          >
+            {k === "endurance" ? "Endurance" : "Strength"}
+          </button>
+        ))}
+      </div>
       <div className="flex flex-wrap gap-2">
-        {EXERCISE_PRESETS.map((p) => (
+        {presets.map((p) => (
           <button
             key={p}
             type="button"
@@ -227,11 +294,11 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        {METRICS.map((m) => (
+        {availableMetrics.map((m) => (
           <button
             key={m.id}
             type="button"
-            onClick={() => setMetric(m.id)}
+            onClick={() => handleMetricChange(m.id)}
             className={`rounded-full border-2 border-foreground px-3 py-1 text-xs font-bold uppercase ${
               metric === m.id ? "bg-primary text-primary-foreground" : ""
             }`}
@@ -242,10 +309,11 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
       </div>
       <div className="flex gap-2">
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
-          Daily target ({METRICS.find((m) => m.id === metric)!.unit})
+          Daily target ({metricUnitLabel(metric)})
           <input
             type="number"
-            min={1}
+            min={metric === "distanceMeters" ? 0.1 : 1}
+            step={metric === "distanceMeters" ? 0.1 : 1}
             value={dailyTarget}
             onChange={(e) => setDailyTarget(Number(e.target.value))}
             className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
@@ -275,10 +343,10 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         type="button"
         onClick={() =>
           onSubmit({
-            title: `${durationDays} Days of ${dailyTarget} ${type}`,
+            title: buildChallengeTitle(durationDays, metric, dailyTarget, type),
             exerciseType: type,
             metric,
-            dailyTarget,
+            dailyTarget: metric === "distanceMeters" ? Math.round(dailyTarget * 1000) : dailyTarget,
             durationDays,
             startDate,
           })
@@ -308,19 +376,22 @@ function ChallengeCard({
 }) {
   const progress = computeChallengeProgress(challenge, activities);
   const milestones = computeChallengeMilestones(challenge, progress);
-  const unit = METRICS.find((m) => m.id === challenge.metric)!.unit;
   const today = todayLocalDate();
   const todayEntry = progress.days.find((d) => d.date === today);
   const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;
 
+  // Daily target is stored in canonical units (meters for distance); edited/displayed in km for readability.
+  const dailyTargetToDisplay = (raw: number) => (challenge.metric === "distanceMeters" ? raw / 1000 : raw);
+  const dailyTargetToStored = (display: number) => (challenge.metric === "distanceMeters" ? Math.round(display * 1000) : display);
+
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
-  const [dailyTarget, setDailyTarget] = useState(String(challenge.dailyTarget));
+  const [dailyTarget, setDailyTarget] = useState(String(dailyTargetToDisplay(challenge.dailyTarget)));
   const [durationDays, setDurationDays] = useState(String(challenge.durationDays));
 
   function startEdit() {
     setTitle(challenge.title);
-    setDailyTarget(String(challenge.dailyTarget));
+    setDailyTarget(String(dailyTargetToDisplay(challenge.dailyTarget)));
     setDurationDays(String(challenge.durationDays));
     setEditing(true);
   }
@@ -328,7 +399,7 @@ function ChallengeCard({
   function save() {
     onSave({
       title: title.trim() || challenge.title,
-      dailyTarget: Number(dailyTarget) || challenge.dailyTarget,
+      dailyTarget: Number(dailyTarget) ? dailyTargetToStored(Number(dailyTarget)) : challenge.dailyTarget,
       durationDays: Number(durationDays) || challenge.durationDays,
     });
     setEditing(false);
@@ -346,10 +417,11 @@ function ChallengeCard({
             />
             <div className="flex gap-2">
               <label className="flex flex-col gap-1 text-xs text-muted">
-                Daily target
+                Daily target ({metricUnitLabel(challenge.metric)})
                 <input
                   type="number"
-                  min={1}
+                  min={challenge.metric === "distanceMeters" ? 0.1 : 1}
+                  step={challenge.metric === "distanceMeters" ? 0.1 : 1}
                   value={dailyTarget}
                   onChange={(e) => setDailyTarget(e.target.value)}
                   className="w-28 rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm"
@@ -383,7 +455,7 @@ function ChallengeCard({
           <button type="button" onClick={startEdit} className="text-left">
             <p className="font-bold hover:underline">{challenge.title}</p>
             <p className="text-xs text-muted">
-              {challenge.exerciseType} · {challenge.dailyTarget} {unit}/day
+              {challenge.exerciseType} · {formatMetricValue(challenge.metric, challenge.dailyTarget)}/day
             </p>
           </button>
         )}
@@ -457,7 +529,7 @@ function ChallengeCard({
         {progress.days.map((day) => (
           <div
             key={day.date}
-            title={`${day.date}: ${day.value} ${unit}`}
+            title={`${day.date}: ${formatMetricValue(challenge.metric, day.value)}`}
             className={`h-3 w-3 rounded-sm border ${
               day.completed ? "border-primary bg-primary" : "border-foreground/30 bg-background"
             }`}

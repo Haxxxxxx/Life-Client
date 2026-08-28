@@ -194,12 +194,48 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
   );
 }
 
-const EXERCISE_PRESETS = [...ENDURANCE_EXERCISE_PRESETS, ...STRENGTH_EXERCISE_PRESETS];
-const METRICS: { id: ChallengeMetric; label: string; unit: string }[] = [
-  { id: 'reps', label: 'Reps/day', unit: 'reps' },
-  { id: 'distanceMeters', label: 'Distance/day', unit: 'm' },
-  { id: 'sessions', label: 'Session/day', unit: 'session' },
+const METRICS: { id: ChallengeMetric; label: string }[] = [
+  { id: 'reps', label: 'Reps/day' },
+  { id: 'distanceMeters', label: 'Distance/day' },
+  { id: 'sessions', label: 'Session/day' },
 ];
+
+// Distance-based sports (Running, Cycling, Swimming) only make sense as
+// distance or session challenges — "100 days of 100 Running" (reps) doesn't.
+// Strength sports only make sense as reps or session challenges.
+const METRICS_FOR_KIND: Record<SportActivityKind, ChallengeMetric[]> = {
+  endurance: ['distanceMeters', 'sessions'],
+  strength: ['reps', 'sessions'],
+};
+const DEFAULT_METRIC_FOR_KIND: Record<SportActivityKind, ChallengeMetric> = {
+  endurance: 'distanceMeters',
+  strength: 'reps',
+};
+const DEFAULT_TARGET_FOR_METRIC: Record<ChallengeMetric, string> = {
+  reps: '100',
+  distanceMeters: '5', // km — converted to meters (Challenge.dailyTarget's storage unit) at submit
+  sessions: '1',
+};
+
+function metricUnitLabel(metric: ChallengeMetric): string {
+  return metric === 'distanceMeters' ? 'km' : metric === 'sessions' ? 'sessions' : 'reps';
+}
+
+/** Formats a raw stored value (meters for distance, count otherwise) for display. */
+function formatMetricValue(metric: ChallengeMetric, value: number): string {
+  if (metric === 'distanceMeters') {
+    const km = value / 1000;
+    return `${km % 1 === 0 ? km.toFixed(0) : km.toFixed(2)}km`;
+  }
+  if (metric === 'sessions') return `${value} ${value === 1 ? 'session' : 'sessions'}`;
+  return `${value} reps`;
+}
+
+function buildChallengeTitle(durationDays: number, metric: ChallengeMetric, dailyTargetDisplay: number, type: string): string {
+  if (metric === 'sessions') return `${durationDays} Days of ${type}`;
+  const target = dailyTargetDisplay % 1 === 0 ? dailyTargetDisplay.toFixed(0) : dailyTargetDisplay.toFixed(1);
+  return `${durationDays} Days of ${target}${metric === 'distanceMeters' ? 'km' : ''} ${type}`;
+}
 
 function todayLocalDate(): string {
   const now = new Date();
@@ -209,20 +245,51 @@ function todayLocalDate(): string {
 
 function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof createChallenge>[2]) => void }) {
   const theme = useTheme();
-  const [exerciseType, setExerciseType] = useState(EXERCISE_PRESETS[0]!);
+  const [kind, setKind] = useState<SportActivityKind>('endurance');
+  const [exerciseType, setExerciseType] = useState(ENDURANCE_EXERCISE_PRESETS[0]!);
   const [customType, setCustomType] = useState('');
-  const [metric, setMetric] = useState<ChallengeMetric>('reps');
-  const [dailyTarget, setDailyTarget] = useState('100');
+  const [metric, setMetric] = useState<ChallengeMetric>('distanceMeters');
+  const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET_FOR_METRIC.distanceMeters);
   const [durationDays, setDurationDays] = useState('100');
   const [startDate, setStartDate] = useState(todayLocalDate());
 
   const type = customType.trim() || exerciseType;
-  const unit = METRICS.find((m) => m.id === metric)!.unit;
+  const presets = kind === 'endurance' ? ENDURANCE_EXERCISE_PRESETS : STRENGTH_EXERCISE_PRESETS;
+  const availableMetrics = METRICS.filter((m) => METRICS_FOR_KIND[kind].includes(m.id));
+
+  function handleKindChange(nextKind: SportActivityKind) {
+    setKind(nextKind);
+    setCustomType('');
+    setExerciseType(nextKind === 'endurance' ? ENDURANCE_EXERCISE_PRESETS[0]! : STRENGTH_EXERCISE_PRESETS[0]!);
+    const nextMetric = DEFAULT_METRIC_FOR_KIND[nextKind];
+    setMetric(nextMetric);
+    setDailyTarget(DEFAULT_TARGET_FOR_METRIC[nextMetric]);
+  }
+
+  function handleMetricChange(nextMetric: ChallengeMetric) {
+    setMetric(nextMetric);
+    setDailyTarget(DEFAULT_TARGET_FOR_METRIC[nextMetric]);
+  }
 
   return (
     <View style={[styles.form, { borderColor: theme.border }]}>
+      <View style={styles.chipRow}>
+        {(['endurance', 'strength'] as const).map((k) => {
+          const active = k === kind;
+          return (
+            <Pressable
+              key={k}
+              onPress={() => handleKindChange(k)}
+              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                {k === 'endurance' ? 'Endurance' : 'Strength'}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
       <View style={styles.chipRowWrap}>
-        {EXERCISE_PRESETS.map((p) => {
+        {presets.map((p) => {
           const active = p === exerciseType && !customType;
           return (
             <Pressable
@@ -245,12 +312,12 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRow}>
-        {METRICS.map((m) => {
+        {availableMetrics.map((m) => {
           const active = m.id === metric;
           return (
             <Pressable
               key={m.id}
-              onPress={() => setMetric(m.id)}
+              onPress={() => handleMetricChange(m.id)}
               style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {m.label}
@@ -262,12 +329,12 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
       <View style={styles.formRow}>
         <View style={styles.formField}>
           <ThemedText type="small" themeColor="textSecondary">
-            Daily target ({unit})
+            Daily target ({metricUnitLabel(metric)})
           </ThemedText>
           <TextInput
             value={dailyTarget}
             onChangeText={setDailyTarget}
-            keyboardType="number-pad"
+            keyboardType={metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
             style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
           />
         </View>
@@ -296,16 +363,17 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         </View>
       </View>
       <Pressable
-        onPress={() =>
+        onPress={() => {
+          const dailyTargetDisplay = Number(dailyTarget) || 1;
           onSubmit({
-            title: `${durationDays} Days of ${dailyTarget} ${type}`,
+            title: buildChallengeTitle(Number(durationDays) || 1, metric, dailyTargetDisplay, type),
             exerciseType: type,
             metric,
-            dailyTarget: Number(dailyTarget) || 1,
+            dailyTarget: metric === 'distanceMeters' ? Math.round(dailyTargetDisplay * 1000) : dailyTargetDisplay,
             durationDays: Number(durationDays) || 1,
             startDate,
-          })
-        }
+          });
+        }}
         style={[styles.logButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
         <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
           Start challenge
@@ -333,19 +401,22 @@ function ChallengeCard({
   const theme = useTheme();
   const progress = computeChallengeProgress(challenge, activities);
   const milestones = computeChallengeMilestones(challenge, progress);
-  const unit = METRICS.find((m) => m.id === challenge.metric)!.unit;
   const today = todayLocalDate();
   const todayEntry = progress.days.find((d) => d.date === today);
   const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;
 
+  // Daily target is stored in canonical units (meters for distance); edited/displayed in km for readability.
+  const dailyTargetToDisplay = (raw: number) => (challenge.metric === 'distanceMeters' ? raw / 1000 : raw);
+  const dailyTargetToStored = (display: number) => (challenge.metric === 'distanceMeters' ? Math.round(display * 1000) : display);
+
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
-  const [dailyTarget, setDailyTarget] = useState(String(challenge.dailyTarget));
+  const [dailyTarget, setDailyTarget] = useState(String(dailyTargetToDisplay(challenge.dailyTarget)));
   const [durationDays, setDurationDays] = useState(String(challenge.durationDays));
 
   function startEdit() {
     setTitle(challenge.title);
-    setDailyTarget(String(challenge.dailyTarget));
+    setDailyTarget(String(dailyTargetToDisplay(challenge.dailyTarget)));
     setDurationDays(String(challenge.durationDays));
     setEditing(true);
   }
@@ -353,7 +424,7 @@ function ChallengeCard({
   function save() {
     onSave({
       title: title.trim() || challenge.title,
-      dailyTarget: Number(dailyTarget) || challenge.dailyTarget,
+      dailyTarget: Number(dailyTarget) ? dailyTargetToStored(Number(dailyTarget)) : challenge.dailyTarget,
       durationDays: Number(durationDays) || challenge.durationDays,
     });
     setEditing(false);
@@ -372,12 +443,12 @@ function ChallengeCard({
             <View style={styles.formRow}>
               <View style={styles.formField}>
                 <ThemedText type="small" themeColor="textSecondary">
-                  Daily target
+                  Daily target ({metricUnitLabel(challenge.metric)})
                 </ThemedText>
                 <TextInput
                   value={dailyTarget}
                   onChangeText={setDailyTarget}
-                  keyboardType="number-pad"
+                  keyboardType={challenge.metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
                   style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
                 />
               </View>
@@ -410,7 +481,7 @@ function ChallengeCard({
           <Pressable style={{ flex: 1 }} onPress={startEdit}>
             <ThemedText type="smallBold">{challenge.title}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              {challenge.exerciseType} · {challenge.dailyTarget} {unit}/day
+              {challenge.exerciseType} · {formatMetricValue(challenge.metric, challenge.dailyTarget)}/day
             </ThemedText>
           </Pressable>
         )}
