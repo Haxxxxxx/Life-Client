@@ -21,6 +21,14 @@ function isAllDay(event: CalendarEvent): boolean {
   return !event.start.includes('T');
 }
 
+// Deleting a past event through Google's API is unreliable (already-elapsed
+// events can fail in ways that surface as a 500) and there's no real need to
+// manage them here — just don't show them.
+function isPast(event: CalendarEvent): boolean {
+  if (isAllDay(event)) return new Date(`${event.start}T23:59:59`).getTime() < Date.now();
+  return new Date(event.end).getTime() < Date.now();
+}
+
 function dayKey(event: CalendarEvent): string {
   return isAllDay(event) ? event.start : event.start.slice(0, 10);
 }
@@ -193,7 +201,7 @@ export default function AgendaScreen() {
   }
 
   const groups: EventGroup[] = [];
-  for (const event of events) {
+  for (const event of events.filter((e) => !isPast(e))) {
     const key = dayKey(event);
     const group = groups.at(-1);
     if (group && group.key === key) group.events.push(event);
