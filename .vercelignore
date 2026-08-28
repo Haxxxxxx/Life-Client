@@ -1,8 +1,10 @@
 .claude
 node_modules
 apps/*/node_modules
-apps/mobile
-apps/knowledge
+# apps/mobile's native ios/android projects (gitignored, generated locally via
+# `expo run:*`) can contain thousands of Pods/Gradle files — always exclude.
+apps/mobile/ios
+apps/mobile/android
 **/.next
 **/.expo
 *.log
