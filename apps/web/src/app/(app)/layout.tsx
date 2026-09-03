@@ -57,14 +57,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <span>Search…</span>
             <span className="rounded border-2 border-foreground/30 px-1.5 py-0.5 text-[10px]">⌘K</span>
           </button>
-          <nav className="flex flex-wrap gap-2 md:flex-col">
+          <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
             {NAV_ITEMS.map((item) => {
               const active = pathname?.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-md border-2 px-3 py-2 font-mono text-xs font-bold tracking-wide uppercase transition ${
+                  className={`shrink-0 rounded-md border-2 px-3 py-2 font-mono text-xs font-bold tracking-wide uppercase transition ${
                     active
                       ? "border-foreground bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)]"
                       : "border-transparent text-muted hover:border-foreground/30 hover:text-foreground"
@@ -79,14 +79,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 href={KNOWLEDGE_APP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md border-2 border-transparent px-3 py-2 font-mono text-xs font-bold tracking-wide text-muted uppercase transition hover:border-foreground/30 hover:text-foreground"
+                className="shrink-0 rounded-md border-2 border-transparent px-3 py-2 font-mono text-xs font-bold tracking-wide text-muted uppercase transition hover:border-foreground/30 hover:text-foreground"
               >
                 Knowledge ↗
               </a>
             )}
           </nav>
         </div>
-        <div className="mt-6 hidden items-center gap-3 md:flex">
+        <div className="mt-4 flex items-center gap-3 md:mt-6">
           {user.photoURL && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
