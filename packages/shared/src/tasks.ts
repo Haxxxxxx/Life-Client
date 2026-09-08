@@ -35,6 +35,20 @@ export function subscribeTasks(
   );
 }
 
+export function subscribeTask(
+  db: Firestore,
+  uid: string,
+  taskId: string,
+  onChange: (task: Task | null) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  return onSnapshot(
+    doc(db, "users", uid, "tasks", taskId),
+    (snapshot) => onChange(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Task) : null),
+    (error) => onError?.(error),
+  );
+}
+
 export async function createTask(db: Firestore, uid: string, task: NewTask): Promise<string> {
   const ref = await addDoc(tasksCollection(db, uid), {
     ...task,
