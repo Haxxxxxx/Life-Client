@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
+import { webApiClient } from "@/lib/webApiClient";
 
 const PROVIDER_META: Record<
   IntegrationProvider,
@@ -44,17 +45,53 @@ const PROVIDER_META: Record<
 
 const PROVIDER_ORDER: IntegrationProvider[] = ["github", "gitlab", "google_calendar", "strava", "spotify"];
 
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.round(diffMs / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.round(hr / 24)}d ago`;
+}
+
 export default function IntegrationsPage() {
   const { user } = useAuth();
   const [connections, setConnections] = useState<Record<
     IntegrationProvider,
     IntegrationConnection
   > | null>(null);
+  const [syncing, setSyncing] = useState<IntegrationProvider | null>(null);
+  const [syncResult, setSyncResult] = useState<{
+    provider: IntegrationProvider;
+    ok: boolean;
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!user || !db) return;
     return subscribeIntegrations(db, user.uid, setConnections);
   }, [user]);
+
+  async function handleSync(provider: IntegrationProvider) {
+    setSyncing(provider);
+    setSyncResult(null);
+    try {
+      const token = await webApiClient.getIdToken();
+      const res = await fetch("/api/integrations/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ provider }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? `Sync failed (${res.status})`);
+      setSyncResult({ provider, ok: true, text: "Synced — check your Tasks" });
+    } catch (err) {
+      setSyncResult({ provider, ok: false, text: err instanceof Error ? err.message : "Sync failed" });
+    } finally {
+      setSyncing(null);
+    }
+  }
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -102,27 +139,47 @@ export default function IntegrationsPage() {
                       ? "Connection failed"
                       : "Not connected"}
                 </span>
-                <a
-                  href={
-                    !user
-                      ? undefined
-                      : connected
-                        ? buildDisconnectUrl(origin, provider, user.uid, "/integrations")
-                        : buildConnectUrl(origin, provider, user.uid, "/integrations")
-                  }
-                  aria-disabled={!user}
-                  className={`shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition ${
-                    !user
-                      ? "pointer-events-none opacity-40"
-                      : connected
-                        ? "bg-surface hover:bg-red-600/10"
-                        : "bg-primary text-primary-foreground hover:-translate-y-0.5"
-                  }`}
-                >
-                  {connected ? "Disconnect" : errored ? "Retry" : "Connect"}
-                </a>
+                <div className="flex shrink-0 items-center gap-2">
+                  {connected && (
+                    <button
+                      type="button"
+                      onClick={() => handleSync(provider)}
+                      disabled={!user || syncing === provider}
+                      className="rounded-md border-2 border-foreground bg-surface px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition hover:bg-accent/20 disabled:opacity-50"
+                    >
+                      {syncing === provider ? "Syncing…" : "Sync now"}
+                    </button>
+                  )}
+                  <a
+                    href={
+                      !user
+                        ? undefined
+                        : connected
+                          ? buildDisconnectUrl(origin, provider, user.uid, "/integrations")
+                          : buildConnectUrl(origin, provider, user.uid, "/integrations")
+                    }
+                    aria-disabled={!user}
+                    className={`rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition ${
+                      !user
+                        ? "pointer-events-none opacity-40"
+                        : connected
+                          ? "bg-surface hover:bg-red-600/10"
+                          : "bg-primary text-primary-foreground hover:-translate-y-0.5"
+                    }`}
+                  >
+                    {connected ? "Disconnect" : errored ? "Retry" : "Connect"}
+                  </a>
+                </div>
               </div>
-              {errored && connection?.lastError && (
+              {connected && connection?.lastSyncAt && syncResult?.provider !== provider && (
+                <p className="text-[10px] text-muted">Last synced {relativeTime(connection.lastSyncAt)}</p>
+              )}
+              {syncResult?.provider === provider && (
+                <p className={`text-[10px] ${syncResult.ok ? "text-primary" : "text-red-600"}`}>
+                  {syncResult.text}
+                </p>
+              )}
+              {errored && connection?.lastError && syncResult?.provider !== provider && (
                 <p className="truncate text-[10px] text-red-600" title={connection.lastError}>
                   {connection.lastError}
                 </p>
