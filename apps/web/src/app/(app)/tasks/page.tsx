@@ -25,6 +25,7 @@ import {
   STATUS_LABEL,
   nextStatus,
   prMetaOf,
+  shortDateTime,
 } from "./_shared";
 
 export default function TasksPage() {
@@ -145,6 +146,8 @@ export default function TasksPage() {
             meta && (meta.additions != null || meta.deletions != null)
               ? `+${meta.additions ?? 0} −${meta.deletions ?? 0}`
               : null;
+          const prTime = meta ? shortDateTime(meta.resolvedAt ?? meta.prUpdatedAt) : "";
+          const prTimeLabel = meta?.resolvedAt ? "resolved" : "updated";
           return (
             <li
               key={task.id}
@@ -165,6 +168,7 @@ export default function TasksPage() {
                       {task.sourceRef ?? task.source}
                       {diff && ` · ${diff}`}
                       {` · ${STATUS_LABEL[task.status]}`}
+                      {prTime && ` · ${prTimeLabel} ${prTime}`}
                     </>
                   ) : (
                     <>

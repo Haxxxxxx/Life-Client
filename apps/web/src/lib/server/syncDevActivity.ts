@@ -36,6 +36,7 @@ interface GithubPrNode {
   url: string;
   isDraft: boolean;
   state: "OPEN" | "CLOSED" | "MERGED";
+  createdAt: string;
   updatedAt: string;
   additions: number;
   deletions: number;
@@ -51,7 +52,7 @@ interface GithubPrNode {
 /** Field selection shared by both queries. `repository` comes back on search
  * results directly; the repo walk attaches it while flattening. */
 const GITHUB_PR_FIELDS = `
-  number title url isDraft state updatedAt additions deletions reviewDecision
+  number title url isDraft state createdAt updatedAt additions deletions reviewDecision
   baseRefName headRefName
   repository { nameWithOwner }
   author { login __typename }
@@ -183,6 +184,7 @@ function toGithubPR(node: GithubPrNode, isAuthor: boolean, isReviewRequested: bo
     url: node.url,
     isAuthor,
     isReviewRequested,
+    createdAt: node.createdAt,
     updatedAt: node.updatedAt,
     state,
     checks: mapGithubChecks(node.commits.nodes[0]?.commit.statusCheckRollup?.state),
@@ -241,6 +243,7 @@ interface GitlabMergeRequest {
   iid: number;
   title: string;
   web_url: string;
+  created_at: string;
   updated_at: string;
   state: "opened" | "closed" | "merged" | "locked";
   draft?: boolean;
@@ -341,6 +344,7 @@ async function fetchGitlabMRs(accessToken: string): Promise<DevPullRequest[]> {
         url: mr.web_url,
         isAuthor: mr.isAuthor,
         isReviewRequested: mr.isReviewRequested,
+        createdAt: mr.created_at,
         updatedAt: mr.updated_at,
         state,
         checks: await fetchGitlabPipeline(accessToken, projectPath, mr.iid),
@@ -420,6 +424,7 @@ function buildPrMeta(pr: DevPullRequest): TaskPrMeta {
     deletions: pr.deletions ?? null,
     baseRef: pr.baseRef ?? null,
     headRef: pr.headRef ?? null,
+    prCreatedAt: pr.createdAt ?? null,
     prUpdatedAt: pr.updatedAt ?? null,
     resolvedAt: null,
   };
