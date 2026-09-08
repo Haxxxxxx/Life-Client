@@ -20,3 +20,6 @@ export * from "./recurrence";
 export * from "./finance";
 export * from "./streaks";
 export * from "./vices";
+// Supabase data layer (migration in progress — docs/supabase-migration-plan.md).
+// Names are `*Sb`-suffixed so they sit alongside the Firestore helpers.
+export * from "./supabase";
