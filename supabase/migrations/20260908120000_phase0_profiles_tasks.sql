@@ -1,6 +1,6 @@
 -- Phase 0 of the Firebase → Supabase migration: enough schema to run the Tasks
 -- feature end-to-end on Supabase behind a flag and validate the realtime rebuild.
--- See docs/supabase-migration-plan.md.
+-- See docs/supabase-migration-plan.md. Written to be safely re-runnable.
 
 -- ---------------------------------------------------------------------------
 -- helpers
@@ -31,6 +31,9 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "profiles: read own"   on public.profiles;
+drop policy if exists "profiles: update own" on public.profiles;
+drop policy if exists "profiles: insert own" on public.profiles;
 create policy "profiles: read own"   on public.profiles for select using (id = auth.uid());
 create policy "profiles: update own" on public.profiles for update using (id = auth.uid());
 create policy "profiles: insert own" on public.profiles for insert with check (id = auth.uid());
@@ -91,16 +94,24 @@ create table if not exists public.tasks (
 create index if not exists tasks_user_id_created_at_idx on public.tasks (user_id, created_at desc);
 create index if not exists tasks_user_id_source_idx     on public.tasks (user_id, source);
 
+drop trigger if exists tasks_set_updated_at on public.tasks;
 create trigger tasks_set_updated_at
   before update on public.tasks
   for each row execute function public.set_updated_at();
 
 alter table public.tasks enable row level security;
 
+drop policy if exists "tasks: own rows" on public.tasks;
 create policy "tasks: own rows" on public.tasks
   for all
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
--- realtime: stream row changes for the subscribeTasks() rebuild
-alter publication supabase_realtime add table public.tasks;
+-- realtime: stream row changes for the subscribeTasks() rebuild (idempotent)
+do $$
+begin
+  alter publication supabase_realtime add table public.tasks;
+exception
+  when duplicate_object then null;
+end
+$$;
