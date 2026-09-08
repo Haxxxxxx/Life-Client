@@ -77,6 +77,9 @@ function PrBadges({ meta }: { meta: TaskPrMeta }) {
       {check && <span className={`${PILL} ${check.cls}`}>{check.label}</span>}
       {review && <span className={`${PILL} ${review.cls}`}>{review.label}</span>}
       {meta.isBot && <span className={`${PILL} border-amber-500 bg-amber-500/10 text-amber-700`}>Bot</span>}
+      {!meta.mine && !meta.isBot && (
+        <span className={`${PILL} border-foreground/30 text-muted`}>@{meta.author}</span>
+      )}
     </div>
   );
 }
@@ -312,10 +315,17 @@ export default function TasksPage() {
     return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]!;
   }
 
-  // Keep the createdAt-desc order from Firestore, but sink Dependabot/Renovate
-  // PRs below real work and done tasks below everything (sort is stable).
+  // Keep the createdAt-desc order from Firestore, but layer it: my work first,
+  // then teammates' PRs, then bot bumps, then done — sort is stable so order
+  // within each band is preserved.
   const sortedTasks = useMemo(() => {
-    const rank = (t: Task) => (t.status === "done" ? 2 : prMetaOf(t)?.isBot ? 1 : 0);
+    const rank = (t: Task) => {
+      if (t.status === "done") return 3;
+      const meta = prMetaOf(t);
+      if (meta?.isBot) return 2;
+      if (meta && !meta.mine) return 1;
+      return 0;
+    };
     return [...tasks].sort((a, b) => rank(a) - rank(b));
   }, [tasks]);
 
@@ -326,7 +336,8 @@ export default function TasksPage() {
         <h1 className="mt-1 text-2xl font-bold tracking-tight">Tasks</h1>
         <p className="text-sm text-muted">
           Everything you need to do — added by hand, or pulled in from GitHub, GitLab, and your
-          calendar once connected.
+          calendar once connected. Your work sits up top; teammates&rsquo; open PRs and bot bumps
+          sink below it.
         </p>
       </div>
 

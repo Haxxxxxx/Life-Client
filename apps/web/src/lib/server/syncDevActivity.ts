@@ -22,8 +22,10 @@ function looksAutomated(login: string, isBotType: boolean, labels: string[]): bo
 }
 
 // ---------------------------------------------------------------------------
-// GitHub — one GraphQL round-trip per bucket gets draft/merged/CI/author/review
-// in a single call (the old REST search couldn't return any of that).
+// GitHub — GraphQL. Two searches surface "my" work (authored, or my review is
+// requested); a third pass walks every non-archived repo I own or belong to
+// (needs read:org) and pulls its open PRs, so Tasks mirrors the whole team's
+// board. One call gets draft/merged/CI/author/review per PR.
 // ---------------------------------------------------------------------------
 
 interface GithubPrNode {
@@ -42,16 +44,39 @@ interface GithubPrNode {
   commits: { nodes: { commit: { statusCheckRollup: { state: string } | null } }[] };
 }
 
-const GITHUB_PR_QUERY = `
+/** Field selection shared by both queries. `repository` comes back on search
+ * results directly; the repo walk attaches it while flattening. */
+const GITHUB_PR_FIELDS = `
+  number title url isDraft state updatedAt additions deletions reviewDecision
+  repository { nameWithOwner }
+  author { login __typename }
+  labels(first: 20) { nodes { name } }
+  commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+`;
+
+const GITHUB_SEARCH_QUERY = `
   query($q: String!) {
     search(query: $q, type: ISSUE, first: 50) {
-      nodes {
-        ... on PullRequest {
-          number title url isDraft state updatedAt additions deletions reviewDecision
-          repository { nameWithOwner }
-          author { login __typename }
-          labels(first: 20) { nodes { name } }
-          commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+      nodes { ... on PullRequest { ${GITHUB_PR_FIELDS} } }
+    }
+  }
+`;
+
+const GITHUB_REPOS_QUERY = `
+  query {
+    viewer {
+      login
+      repositories(
+        first: 100
+        affiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]
+        orderBy: { field: PUSHED_AT, direction: DESC }
+      ) {
+        nodes {
+          nameWithOwner
+          isArchived
+          pullRequests(states: OPEN, first: 30, orderBy: { field: UPDATED_AT, direction: DESC }) {
+            nodes { ${GITHUB_PR_FIELDS} }
+          }
         }
       }
     }
@@ -86,7 +111,11 @@ function mapGithubReview(decision: GithubPrNode["reviewDecision"]): PrReviewDeci
   }
 }
 
-async function githubGraphql(accessToken: string, q: string): Promise<GithubPrNode[]> {
+async function githubGraphql<T>(
+  accessToken: string,
+  query: string,
+  variables: Record<string, unknown> = {},
+): Promise<T> {
   const response = await fetch("https://api.github.com/graphql", {
     method: "POST",
     headers: {
@@ -94,17 +123,47 @@ async function githubGraphql(accessToken: string, q: string): Promise<GithubPrNo
       "Content-Type": "application/json",
       "User-Agent": "life-client",
     },
-    body: JSON.stringify({ query: GITHUB_PR_QUERY, variables: { q } }),
+    body: JSON.stringify({ query, variables }),
   });
   if (!response.ok) throw new Error(`GitHub GraphQL failed: ${response.status} ${await response.text()}`);
-  const json = (await response.json()) as {
-    data?: { search?: { nodes?: (GithubPrNode | Record<string, never>)[] } };
-    errors?: { message: string }[];
-  };
+  const json = (await response.json()) as { data?: T; errors?: { message: string }[] };
   if (json.errors?.length) throw new Error(`GitHub GraphQL errors: ${json.errors.map((e) => e.message).join("; ")}`);
-  const nodes = json.data?.search?.nodes ?? [];
-  // A `search` on ISSUE type can return Issues too — those come back as `{}` here.
-  return nodes.filter((n): n is GithubPrNode => typeof (n as GithubPrNode).number === "number");
+  if (!json.data) throw new Error("GitHub GraphQL returned no data");
+  return json.data;
+}
+
+// A `search` on ISSUE type can also return Issues — those come back as `{}`.
+function isPrNode(n: unknown): n is GithubPrNode {
+  return typeof (n as GithubPrNode)?.number === "number";
+}
+
+async function searchGithubPRs(accessToken: string, q: string): Promise<GithubPrNode[]> {
+  const data = await githubGraphql<{ search: { nodes: (GithubPrNode | Record<string, never>)[] } }>(
+    accessToken,
+    GITHUB_SEARCH_QUERY,
+    { q: `${q} archived:false` },
+  );
+  return data.search.nodes.filter(isPrNode);
+}
+
+async function fetchViewerRepoPRs(accessToken: string): Promise<{ viewerLogin: string; prs: GithubPrNode[] }> {
+  const data = await githubGraphql<{
+    viewer: {
+      login: string;
+      repositories: {
+        nodes: { nameWithOwner: string; isArchived: boolean; pullRequests: { nodes: GithubPrNode[] } }[];
+      };
+    };
+  }>(accessToken, GITHUB_REPOS_QUERY);
+
+  const prs: GithubPrNode[] = [];
+  for (const repo of data.viewer.repositories.nodes) {
+    if (repo.isArchived) continue;
+    for (const pr of repo.pullRequests.nodes) {
+      prs.push({ ...pr, repository: { nameWithOwner: repo.nameWithOwner } });
+    }
+  }
+  return { viewerLogin: data.viewer.login, prs };
 }
 
 function toGithubPR(node: GithubPrNode, isAuthor: boolean, isReviewRequested: boolean): DevPullRequest {
@@ -132,16 +191,24 @@ function toGithubPR(node: GithubPrNode, isAuthor: boolean, isReviewRequested: bo
 }
 
 async function fetchGithubPRs(accessToken: string): Promise<DevPullRequest[]> {
-  const [authoredNodes, reviewNodes] = await Promise.all([
-    githubGraphql(accessToken, "is:pr is:open author:@me archived:false"),
-    githubGraphql(accessToken, "is:pr is:open review-requested:@me archived:false"),
+  const [authored, reviewRequested, repoWalk] = await Promise.all([
+    searchGithubPRs(accessToken, "is:pr is:open author:@me"),
+    searchGithubPRs(accessToken, "is:pr is:open review-requested:@me"),
+    fetchViewerRepoPRs(accessToken),
   ]);
 
   const byUrl = new Map<string, DevPullRequest>();
-  for (const node of authoredNodes) {
-    byUrl.set(node.url, toGithubPR(node, true, false));
+  // Team board first: every open PR in a repo I own or belong to.
+  for (const node of repoWalk.prs) {
+    byUrl.set(node.url, toGithubPR(node, node.author?.login === repoWalk.viewerLogin, false));
   }
-  for (const node of reviewNodes) {
+  // Then let the personal searches assert the "mine" flags — and add any PR the
+  // repo walk's top-100-repos / first-30-PRs caps didn't reach.
+  for (const node of authored) {
+    const existing = byUrl.get(node.url);
+    byUrl.set(node.url, existing ? { ...existing, isAuthor: true } : toGithubPR(node, true, false));
+  }
+  for (const node of reviewRequested) {
     const existing = byUrl.get(node.url);
     byUrl.set(node.url, existing ? { ...existing, isReviewRequested: true } : toGithubPR(node, false, true));
   }
@@ -300,6 +367,7 @@ function buildPrMeta(pr: DevPullRequest) {
     state: pr.state,
     checks: pr.checks,
     isBot: pr.isBot,
+    mine: pr.isAuthor || pr.isReviewRequested,
     author: pr.author,
     reviewDecision: pr.reviewDecision ?? null,
     additions: pr.additions ?? null,
@@ -346,10 +414,11 @@ async function syncTasksFromPullRequests(
       batch.set(ref, {
         title: pr.title,
         status: "todo",
-        // Dependabot/Renovate bumps are low-effort chores; review requests are the
-        // real work; everything else is a normal authored PR.
-        priority: pr.isBot ? "low" : pr.isReviewRequested ? "high" : "medium",
-        difficulty: pr.isBot ? "easy" : "medium",
+        // Review requests are the real work; my own PRs are medium; teammates'
+        // PRs (mirrored for the board view) and bot bumps are low / easy so they
+        // don't dominate the list or inflate category XP much when they close.
+        priority: pr.isReviewRequested ? "high" : pr.isAuthor && !pr.isBot ? "medium" : "low",
+        difficulty: pr.isAuthor && !pr.isBot ? "medium" : "easy",
         category: "code",
         source: provider,
         sourceRef: `${pr.repo}#${pr.number}`,

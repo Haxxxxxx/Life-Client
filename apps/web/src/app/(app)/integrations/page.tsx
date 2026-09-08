@@ -18,7 +18,7 @@ const PROVIDER_META: Record<
 > = {
   github: {
     label: "GitHub",
-    description: "Pull open PRs/issues assigned to you across your repos into Tasks.",
+    description: "Mirror every open PR across the repos you own or belong to into Tasks — reconnect to grant org access.",
     badge: "GH",
   },
   gitlab: {
