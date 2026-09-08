@@ -10,29 +10,20 @@ import {
   type VocabMastery,
   type VocabWord,
   computeInsightXp,
-  createReadingListItem,
   dailyLessonStreak,
   deleteCodeDrill,
-  deleteReadingListItem,
   gradeDrillAnswer,
   gradeVocabSentence,
   generateCodeDrill,
   generateDailyLesson,
   generateVocabWord,
-  getTodayLesson,
   levelFromXp,
-  markReadingListItemRead,
   requestReadingSummary,
-  setVocabMastery,
-  subscribeCodeDrills,
-  subscribeDailyLessons,
-  subscribeReadingList,
-  subscribeVocabWords,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 import { knowledgeApiClient } from "@/lib/knowledgeClient";
 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
@@ -52,8 +43,8 @@ function DailyLessonSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    getTodayLesson(db, user.uid)
+    if (!user) return;
+    data.getTodayLesson(user.uid)
       .then(setLesson)
       .finally(() => setLoading(false));
   }, [user]);
@@ -452,8 +443,8 @@ function CodeDrillsSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeCodeDrills(db, user.uid, setDrills);
+    if (!user) return;
+    return data.subscribeCodeDrills(user.uid, setDrills);
   }, [user]);
 
   async function handleGenerate() {
@@ -583,7 +574,7 @@ function VocabCard({ w }: { w: VocabWord }) {
             <button
               key={m}
               type="button"
-              onClick={() => user && db && setVocabMastery(db, user.uid, w.id, m)}
+              onClick={() => user && data.setVocabMastery(user.uid, w.id, m)}
               className={`rounded-full border-2 border-foreground px-2 py-1 font-mono text-[10px] font-bold uppercase ${
                 w.mastery === m ? "bg-accent" : ""
               }`}
@@ -645,8 +636,8 @@ function VocabularySection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeVocabWords(db, user.uid, setWords);
+    if (!user) return;
+    return data.subscribeVocabWords(user.uid, setWords);
   }, [user]);
 
   async function handleGenerate() {
@@ -717,17 +708,17 @@ function ReadingListSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeReadingList(db, user.uid, setItems);
+    if (!user) return;
+    return data.subscribeReadingList(user.uid, setItems);
   }, [user]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !db || !url.trim()) return;
+    if (!user || !url.trim()) return;
     setAdding(true);
     setError(null);
     try {
-      await createReadingListItem(db, user.uid, { url: url.trim() });
+      await data.createReadingListItem(user.uid, { url: url.trim() });
       setUrl("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add this link");
@@ -799,7 +790,7 @@ function ReadingListSection() {
                 {item.status === "summarized" && (
                   <button
                     type="button"
-                    onClick={() => user && db && markReadingListItemRead(db, user.uid, item.id)}
+                    onClick={() => user && data.markReadingListItemRead(user.uid, item.id)}
                     className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20"
                   >
                     Mark read
@@ -807,7 +798,7 @@ function ReadingListSection() {
                 )}
                 <button
                   type="button"
-                  onClick={() => user && db && deleteReadingListItem(db, user.uid, item.id)}
+                  onClick={() => user && data.deleteReadingListItem(user.uid, item.id)}
                   className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
                 >
                   Delete
@@ -839,12 +830,12 @@ export default function KnowledgeHomePage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
     const unsubs = [
-      subscribeDailyLessons(db, user.uid, setLessons, undefined, 400),
-      subscribeCodeDrills(db, user.uid, setDrills),
-      subscribeVocabWords(db, user.uid, setVocabWords),
-      subscribeReadingList(db, user.uid, setReadingItems),
+      data.subscribeDailyLessons(user.uid, setLessons, undefined, 400),
+      data.subscribeCodeDrills(user.uid, setDrills),
+      data.subscribeVocabWords(user.uid, setVocabWords),
+      data.subscribeReadingList(user.uid, setReadingItems),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
