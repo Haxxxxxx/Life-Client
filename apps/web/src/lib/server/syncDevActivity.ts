@@ -2,8 +2,10 @@ import type {
   DevPullRequest,
   IntegrationProvider,
   PrCheckStatus,
+  PrEvent,
   PrReviewDecision,
   PrState,
+  TaskPrMeta,
 } from "@life-client/shared";
 import { adminDb } from "./admin";
 import { setIntegrationStatus } from "./integrationStatus";
@@ -38,6 +40,8 @@ interface GithubPrNode {
   additions: number;
   deletions: number;
   reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+  baseRefName: string;
+  headRefName: string;
   repository: { nameWithOwner: string };
   author: { login: string; __typename: string } | null;
   labels: { nodes: { name: string }[] };
@@ -48,6 +52,7 @@ interface GithubPrNode {
  * results directly; the repo walk attaches it while flattening. */
 const GITHUB_PR_FIELDS = `
   number title url isDraft state updatedAt additions deletions reviewDecision
+  baseRefName headRefName
   repository { nameWithOwner }
   author { login __typename }
   labels(first: 20) { nodes { name } }
@@ -187,6 +192,8 @@ function toGithubPR(node: GithubPrNode, isAuthor: boolean, isReviewRequested: bo
     additions: node.additions,
     deletions: node.deletions,
     labels,
+    baseRef: node.baseRefName,
+    headRef: node.headRefName,
   };
 }
 
@@ -241,6 +248,8 @@ interface GitlabMergeRequest {
   author: { username: string };
   references: { full: string };
   labels?: string[];
+  source_branch?: string;
+  target_branch?: string;
 }
 
 async function ensureFreshGitlabToken(uid: string, tokens: StoredTokens): Promise<StoredTokens> {
@@ -338,6 +347,8 @@ async function fetchGitlabMRs(accessToken: string): Promise<DevPullRequest[]> {
         author: mr.author.username,
         isBot: looksAutomated(mr.author.username, false, labels),
         labels,
+        baseRef: mr.target_branch,
+        headRef: mr.source_branch,
       } satisfies DevPullRequest;
     }),
   );
@@ -359,10 +370,45 @@ function taskDocId(provider: "github" | "gitlab", pr: DevPullRequest): string {
   return `${provider}_${pr.repo.replace(/[^a-zA-Z0-9_-]/g, "-")}_${pr.number}`;
 }
 
+/** Final state of a PR that has dropped out of the open set. */
+interface PrOutcome {
+  state: "merged" | "closed";
+  resolvedAt: string | null;
+}
+
+/** `owner/repo#123` -> `["owner/repo", 123]`. */
+function parseSourceRef(ref: string | undefined): { repo: string; number: number } | null {
+  const m = /^(.+)#(\d+)$/.exec(ref ?? "");
+  return m ? { repo: m[1]!, number: Number(m[2]) } : null;
+}
+
+async function resolveGithubOutcome(token: string, repo: string, number: number): Promise<PrOutcome> {
+  const res = await fetch(`https://api.github.com/repos/${repo}/pulls/${number}`, {
+    headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "User-Agent": "life-client" },
+  });
+  if (!res.ok) return { state: "closed", resolvedAt: null };
+  const pr = (await res.json()) as { merged?: boolean; merged_at?: string | null; closed_at?: string | null };
+  return pr.merged
+    ? { state: "merged", resolvedAt: pr.merged_at ?? null }
+    : { state: "closed", resolvedAt: pr.closed_at ?? null };
+}
+
+async function resolveGitlabOutcome(token: string, projectPath: string, iid: number): Promise<PrOutcome> {
+  const res = await fetch(
+    `https://gitlab.com/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${iid}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) return { state: "closed", resolvedAt: null };
+  const mr = (await res.json()) as { state?: string; merged_at?: string | null; closed_at?: string | null };
+  return mr.state === "merged"
+    ? { state: "merged", resolvedAt: mr.merged_at ?? null }
+    : { state: "closed", resolvedAt: mr.closed_at ?? null };
+}
+
 /** Denormalised PR snapshot stored on the task. All keys are always written (null
  * rather than omitted) so Firestore's deep merge on re-sync can't leave a stale
  * sub-field behind. */
-function buildPrMeta(pr: DevPullRequest) {
+function buildPrMeta(pr: DevPullRequest): TaskPrMeta {
   return {
     state: pr.state,
     checks: pr.checks,
@@ -372,42 +418,107 @@ function buildPrMeta(pr: DevPullRequest) {
     reviewDecision: pr.reviewDecision ?? null,
     additions: pr.additions ?? null,
     deletions: pr.deletions ?? null,
+    baseRef: pr.baseRef ?? null,
+    headRef: pr.headRef ?? null,
+    prUpdatedAt: pr.updatedAt ?? null,
+    resolvedAt: null,
   };
+}
+
+/** Events to append given the previous vs. next snapshot of a PR. */
+function diffPrEvents(prev: TaskPrMeta | undefined, next: TaskPrMeta, at: string): PrEvent[] {
+  if (!prev) {
+    const seed: PrEvent[] = [{ at, kind: "state", detail: next.state === "draft" ? "opened (draft)" : "opened" }];
+    if (next.checks !== "none") seed.push({ at, kind: "checks", detail: `ci: ${next.checks}` });
+    if (next.reviewDecision) seed.push({ at, kind: "review", detail: next.reviewDecision });
+    return seed;
+  }
+  const events: PrEvent[] = [];
+  if (prev.state !== next.state) events.push({ at, kind: "state", detail: next.state });
+  if (prev.checks !== next.checks && next.checks !== "none")
+    events.push({ at, kind: "checks", detail: `ci: ${next.checks}` });
+  if ((prev.reviewDecision ?? null) !== (next.reviewDecision ?? null) && next.reviewDecision)
+    events.push({ at, kind: "review", detail: next.reviewDecision });
+  return events;
+}
+
+function appendEvents(existing: unknown, added: PrEvent[]): PrEvent[] {
+  const prior = Array.isArray(existing) ? (existing as PrEvent[]) : [];
+  return [...prior, ...added].slice(-25);
 }
 
 /**
  * Mirrors currently-open PRs/MRs into `users/{uid}/tasks` (source: "github"/"gitlab"),
  * using a deterministic doc ID per PR so re-syncing updates the same task rather than
- * duplicating it. A synced task that's no longer in the open set (merged/closed
- * elsewhere) is marked "done" here rather than deleted, so its category XP still
- * counts and any user edits (priority/category/difficulty) aren't touched — only
- * title/sourceUrl/prMeta are kept in sync on existing tasks.
+ * duplicating it. A synced task no longer in the open set is resolved to
+ * merged/closed (one API call via `resolveOutcome`) and marked "done" — its category
+ * XP still counts and user edits (priority/category/difficulty) aren't touched. Each
+ * run also appends any observed state/CI/review changes to `prEvents`.
  */
 async function syncTasksFromPullRequests(
   uid: string,
   provider: "github" | "gitlab",
   pullRequests: DevPullRequest[],
+  resolveOutcome: (repo: string, number: number) => Promise<PrOutcome>,
 ): Promise<void> {
   const tasksRef = adminDb.collection("users").doc(uid).collection("tasks");
   const existingSnap = await tasksRef.where("source", "==", provider).get();
   const desiredIds = new Set(pullRequests.map((pr) => taskDocId(provider, pr)));
   const nowIso = new Date().toISOString();
+  const prevById = new Map(existingSnap.docs.map((d) => [d.id, d.data()]));
   const batch = adminDb.batch();
 
+  // PRs that left the open set — resolve merged vs. closed and record it once.
   for (const doc of existingSnap.docs) {
-    if (!desiredIds.has(doc.id) && doc.data().status !== "done") {
-      batch.update(doc.ref, { status: "done", updatedAt: nowIso });
+    const data = doc.data();
+    const prevMeta = data.prMeta as TaskPrMeta | undefined;
+    const alreadyResolved = prevMeta?.state === "merged" || prevMeta?.state === "closed";
+    if (desiredIds.has(doc.id) || alreadyResolved) continue;
+
+    // No snapshot to fold the outcome into — just close it out.
+    if (!prevMeta) {
+      if (data.status !== "done") batch.update(doc.ref, { status: "done", updatedAt: nowIso });
+      continue;
     }
+
+    const parsed = parseSourceRef(data.sourceRef as string | undefined);
+    const outcome = parsed
+      ? await resolveOutcome(parsed.repo, parsed.number).catch(() => ({ state: "closed", resolvedAt: null }) as PrOutcome)
+      : ({ state: "closed", resolvedAt: null } as PrOutcome);
+
+    const nextMeta: TaskPrMeta = {
+      ...prevMeta,
+      state: outcome.state,
+      resolvedAt: outcome.resolvedAt ?? nowIso,
+    };
+    batch.set(
+      doc.ref,
+      {
+        status: "done",
+        prMeta: nextMeta,
+        prEvents: appendEvents(data.prEvents, [{ at: nowIso, kind: "state", detail: outcome.state }]),
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
   }
 
   const existingIds = new Set(existingSnap.docs.map((d) => d.id));
   for (const pr of pullRequests) {
     const id = taskDocId(provider, pr);
     const ref = tasksRef.doc(id);
+    const nextMeta = buildPrMeta(pr);
     if (existingIds.has(id)) {
+      const prev = prevById.get(id);
       batch.set(
         ref,
-        { title: pr.title, sourceUrl: pr.url, prMeta: buildPrMeta(pr), updatedAt: nowIso },
+        {
+          title: pr.title,
+          sourceUrl: pr.url,
+          prMeta: nextMeta,
+          prEvents: appendEvents(prev?.prEvents, diffPrEvents(prev?.prMeta as TaskPrMeta | undefined, nextMeta, nowIso)),
+          updatedAt: nowIso,
+        },
         { merge: true },
       );
     } else {
@@ -423,7 +534,8 @@ async function syncTasksFromPullRequests(
         source: provider,
         sourceRef: `${pr.repo}#${pr.number}`,
         sourceUrl: pr.url,
-        prMeta: buildPrMeta(pr),
+        prMeta: nextMeta,
+        prEvents: diffPrEvents(undefined, nextMeta, nowIso),
         tags: [],
         createdAt: nowIso,
         updatedAt: nowIso,
@@ -447,7 +559,11 @@ async function syncFor(uid: string, provider: Extract<IntegrationProvider, "gith
         ? await Promise.all([fetchGithubPRs(freshAccessToken), fetchGithubMergedCount(freshAccessToken)])
         : await Promise.all([fetchGitlabMRs(freshAccessToken), fetchGitlabMergedCount(freshAccessToken)]);
 
-    await syncTasksFromPullRequests(uid, provider, pullRequests);
+    const resolveOutcome = (repo: string, number: number) =>
+      provider === "github"
+        ? resolveGithubOutcome(freshAccessToken, repo, number)
+        : resolveGitlabOutcome(freshAccessToken, repo, number);
+    await syncTasksFromPullRequests(uid, provider, pullRequests, resolveOutcome);
 
     await adminDb
       .collection("users")

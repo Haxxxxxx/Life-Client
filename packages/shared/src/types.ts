@@ -77,6 +77,7 @@ export interface Task {
   recurrence?: Recurrence; // when set, completing this task creates the next occurrence
   viceLogId?: string; // reverse link — completing this task marks the linked ViceLog compensated
   prMeta?: TaskPrMeta; // present only on github/gitlab-sourced tasks — drives the PR badges
+  prEvents?: PrEvent[]; // append-only (capped) log of PR changes the sync has observed
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }
@@ -90,9 +91,22 @@ export interface TaskPrMeta {
   isBot: boolean; // Dependabot / Renovate / any automated author
   mine: boolean; // authored by the connected user, or their review is requested
   author: string; // author login, e.g. "dependabot[bot]" or a username
-  reviewDecision?: PrReviewDecision; // GitHub only; undefined when not computable
-  additions?: number;
-  deletions?: number;
+  reviewDecision?: PrReviewDecision | null; // GitHub only; null when not computable
+  additions?: number | null;
+  deletions?: number | null;
+  baseRef?: string | null; // branch the PR merges into, e.g. "main"
+  headRef?: string | null; // branch the PR is from, e.g. "fix/courses"
+  prUpdatedAt?: string | null; // the PR's own updatedAt (ISO)
+  resolvedAt?: string | null; // when it was merged or closed (ISO); null while open
+}
+
+/** A change the sync observed on a mirrored PR between two runs — powers the
+ * activity log on the task details page. `at` is when the sync saw it, not the
+ * exact GitHub/GitLab event time. */
+export interface PrEvent {
+  at: string; // ISO
+  kind: "state" | "checks" | "review";
+  detail: string; // "merged", "closed", "ci: success", "approved", …
 }
 
 export type NewTask = Omit<Task, "id" | "createdAt" | "updatedAt">;
@@ -239,6 +253,8 @@ export interface DevPullRequest {
   additions?: number;
   deletions?: number;
   labels?: string[];
+  baseRef?: string; // branch the PR merges into
+  headRef?: string; // branch the PR is from
 }
 
 export interface DevActivitySummary {
