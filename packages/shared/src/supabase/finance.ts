@@ -9,6 +9,7 @@ import type {
   TransactionType,
 } from "../types";
 import { subscribeCollection } from "./realtime";
+import { randomId } from "./id";
 
 interface TransactionRow {
   id: string;
@@ -70,7 +71,7 @@ export async function createTransactionSb(
   userId: string,
   t: NewTransaction,
 ): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client.from("transactions").insert({
     id,
     user_id: userId,
@@ -119,7 +120,7 @@ export function subscribeBudgetsSb(
 }
 
 export async function createBudgetSb(client: SupabaseClient, userId: string, b: NewBudget): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client
     .from("budgets")
     .insert({ id, user_id: userId, category: b.category, monthly_limit: b.monthlyLimit });

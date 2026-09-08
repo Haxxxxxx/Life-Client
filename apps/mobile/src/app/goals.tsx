@@ -5,18 +5,8 @@ import {
   type Task,
   type ViceLog,
   computeGoalProgress,
-  createGoal,
-  createTask,
-  deleteGoal,
-  deleteViceLog,
-  logVice,
-  setGoalStatus,
-  subscribeGoals,
-  subscribeTasks,
-  subscribeViceLogs,
-  updateGoal,
-  updateTask,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { ScrollView, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,7 +16,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 
 function daysUntil(dateStr: string): number {
   const msPerDay = 24 * 60 * 60 * 1000;
@@ -323,25 +312,25 @@ export default function GoalsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeGoals(db, user.uid, setGoals, (err) => setError(err.message));
+    if (!user) return;
+    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeTasks(db, user.uid, setTasks);
+    if (!user) return;
+    return data.subscribeTasks(user.uid, setTasks);
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeViceLogs(db, user.uid, setViceLogs);
+    if (!user) return;
+    return data.subscribeViceLogs(user.uid, setViceLogs);
   }, [user]);
 
   async function handleCreate(input: NewGoal) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createGoal(db, user.uid, input);
+      await data.createGoal(user.uid, input);
       setFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create goal');
@@ -349,10 +338,10 @@ export default function GoalsScreen() {
   }
 
   async function handleLogVice(vicePresetId: string) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await logVice(db, user.uid, vicePresetId);
+      await data.logVice(user.uid, vicePresetId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not log slip');
     }
@@ -376,16 +365,16 @@ export default function GoalsScreen() {
         key={goal.id}
         goal={goal}
         tasks={tasks}
-        onEdit={(patch) => user && db && updateGoal(db, user.uid, goal.id, patch)}
-        onComplete={() => user && db && setGoalStatus(db, user.uid, goal.id, 'completed')}
-        onArchive={() => user && db && setGoalStatus(db, user.uid, goal.id, 'archived')}
-        onDelete={() => user && db && deleteGoal(db, user.uid, goal.id)}
-        onLinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: goal.id })}
-        onUnlinkTask={(taskId) => user && db && updateTask(db, user.uid, taskId, { goalId: undefined })}
+        onEdit={(patch) => user && data.updateGoal(user.uid, goal.id, patch)}
+        onComplete={() => user && data.setGoalStatus(user.uid, goal.id, 'completed')}
+        onArchive={() => user && data.setGoalStatus(user.uid, goal.id, 'archived')}
+        onDelete={() => user && data.deleteGoal(user.uid, goal.id)}
+        onLinkTask={(taskId) => user && data.updateTask(user.uid, taskId, { goalId: goal.id })}
+        onUnlinkTask={(taskId) => user && data.updateTask(user.uid, taskId, { goalId: undefined })}
         onNewTask={(title) =>
           user &&
-          db &&
-          createTask(db, user.uid, {
+
+          data.createTask(user.uid, {
             title,
             status: 'todo',
             priority: 'medium',
@@ -504,7 +493,7 @@ export default function GoalsScreen() {
                           -{v.penaltyXp} XP · {task ? `${task.title} (${task.status})` : 'Task missing'}
                         </ThemedText>
                       </View>
-                      <Pressable onPress={() => user && db && deleteViceLog(db, user.uid, v.id)}>
+                      <Pressable onPress={() => user && data.deleteViceLog(user.uid, v.id)}>
                         <ThemedText type="small" style={styles.deleteText}>
                           Dismiss
                         </ThemedText>

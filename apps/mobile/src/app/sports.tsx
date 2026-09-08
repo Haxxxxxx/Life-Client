@@ -5,17 +5,12 @@ import {
   type ChallengeMetric,
   type SportActivity,
   type SportActivityKind,
-  archiveChallenge,
   computeChallengeMilestones,
   computeChallengeProgress,
   createChallenge,
-  createManualSportActivity,
-  deleteChallenge,
-  deleteSportActivity,
-  subscribeChallenges,
-  subscribeSportActivities,
   updateChallenge,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,7 +20,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 
 function formatDistance(meters?: number): string {
   if (!meters) return '—';
@@ -585,15 +579,15 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeChallenges(db, user.uid, setChallenges, (err) => setError(err.message));
+    if (!user) return;
+    return data.subscribeChallenges(user.uid, setChallenges, (err) => setError(err.message));
   }, [user]);
 
   async function handleCreate(input: Parameters<typeof createChallenge>[2]) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createChallenge(db, user.uid, input);
+      await data.createChallenge(user.uid, input);
       setFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start challenge');
@@ -603,11 +597,11 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   // Logs an activity that matches this challenge's own exerciseType/metric —
   // avoids the user having to guess the exact type string themselves.
   async function handleLogToday(challenge: Challenge) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     const kind: SportActivityKind = challenge.metric === 'distanceMeters' ? 'endurance' : 'strength';
     try {
-      await createManualSportActivity(db, user.uid, {
+      await data.createManualSportActivity(user.uid, {
         kind,
         type: challenge.exerciseType,
         name: challenge.exerciseType,
@@ -655,9 +649,9 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               key={challenge.id}
               challenge={challenge}
               activities={activities}
-              onArchive={() => user && db && archiveChallenge(db, user.uid, challenge.id)}
-              onDelete={() => user && db && deleteChallenge(db, user.uid, challenge.id)}
-              onSave={(patch) => user && db && updateChallenge(db, user.uid, challenge.id, patch)}
+              onArchive={() => user && data.archiveChallenge(user.uid, challenge.id)}
+              onDelete={() => user && data.deleteChallenge(user.uid, challenge.id)}
+              onSave={(patch) => user && data.updateChallenge(user.uid, challenge.id, patch)}
               onLogToday={() => handleLogToday(challenge)}
             />
           ))}
@@ -684,15 +678,15 @@ export default function SportsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeSportActivities(db, user.uid, setActivities);
+    if (!user) return;
+    return data.subscribeSportActivities(user.uid, setActivities);
   }, [user]);
 
   async function handleLog(input: LogInput) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createManualSportActivity(db, user.uid, {
+      await data.createManualSportActivity(user.uid, {
         kind: input.kind,
         type: input.type,
         name: input.type,
@@ -792,8 +786,8 @@ export default function SportsScreen() {
                     </View>
                   </>
                 )}
-                {item.provider === 'manual' && user && db && (
-                  <Pressable onPress={() => deleteSportActivity(db!, user.uid, item.id)}>
+                {item.provider === 'manual' && user && (
+                  <Pressable onPress={() => data.deleteSportActivity(user.uid, item.id)}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>

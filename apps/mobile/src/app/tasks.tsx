@@ -3,13 +3,7 @@ import {
   TASK_DIFFICULTIES,
   TASK_PRIORITIES,
   WEEKDAY_LABELS,
-  advanceTaskStatus,
-  createTask,
-  deleteTask,
   describeRecurrence,
-  subscribeGoals,
-  subscribeTasks,
-  updateTask,
   type Goal,
   type Recurrence,
   type RecurrenceFreq,
@@ -19,6 +13,7 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,7 +23,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 
 const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'done'];
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -267,20 +261,20 @@ export default function TasksScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeTasks(db, user.uid, setTasks, (err) => setError(err.message));
+    if (!user) return;
+    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeGoals(db, user.uid, setGoals);
+    if (!user) return;
+    return data.subscribeGoals(user.uid, setGoals);
   }, [user]);
 
   async function handleAdd() {
-    if (!user || !db || !title.trim()) return;
+    if (!user || !title.trim()) return;
     setError(null);
     try {
-      await createTask(db, user.uid, {
+      await data.createTask(user.uid, {
         title: title.trim(),
         status: 'todo',
         priority: 'medium',
@@ -383,7 +377,7 @@ export default function TasksScreen() {
                   task={item}
                   goals={goals}
                   onSave={(patch) => {
-                    updateTask(db!, user!.uid, item.id, patch);
+                    data.updateTask(user!.uid, item.id, patch);
                     setEditingId(null);
                   }}
                   onCancel={() => setEditingId(null)}
@@ -415,11 +409,11 @@ export default function TasksScreen() {
                     </Pressable>
                   )}
                   <Pressable
-                    onPress={() => advanceTaskStatus(db!, user!.uid, item, nextStatus(item.status))}
+                    onPress={() => data.advanceTaskStatus(user!.uid, item, nextStatus(item.status))}
                     style={[styles.pillButton, { borderColor: theme.border }]}>
                     <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
                   </Pressable>
-                  <Pressable onPress={() => deleteTask(db!, user!.uid, item.id)} style={styles.deleteButton}>
+                  <Pressable onPress={() => data.deleteTask(user!.uid, item.id)} style={styles.deleteButton}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>

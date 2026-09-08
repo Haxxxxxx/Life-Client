@@ -3,15 +3,9 @@ import {
   WEEKDAY_LABELS,
   computeBudgetStatus,
   computeMonthlySpend,
-  createBudget,
-  createTransaction,
-  deleteBudget,
-  deleteTransaction,
   describeRecurrence,
   monthKey,
   nextOccurrenceDate,
-  subscribeBudgets,
-  subscribeTransactions,
   type Budget,
   type NewBudget,
   type NewTransaction,
@@ -21,6 +15,7 @@ import {
   type TransactionCategory,
   type TransactionType,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,7 +25,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 
 const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.id, c.label])) as Record<
   TransactionCategory,
@@ -257,20 +251,20 @@ export default function MoneyScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeTransactions(db, user.uid, setTransactions, (err) => setError(err.message));
+    if (!user) return;
+    return data.subscribeTransactions(user.uid, setTransactions, (err) => setError(err.message));
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeBudgets(db, user.uid, setBudgets);
+    if (!user) return;
+    return data.subscribeBudgets(user.uid, setBudgets);
   }, [user]);
 
   async function handleAddTransaction(input: NewTransaction) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createTransaction(db, user.uid, input);
+      await data.createTransaction(user.uid, input);
       setTxFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not log transaction');
@@ -278,10 +272,10 @@ export default function MoneyScreen() {
   }
 
   async function handleAddBudget(input: NewBudget) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createBudget(db, user.uid, input);
+      await data.createBudget(user.uid, input);
       setBudgetFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not set budget');
@@ -373,7 +367,7 @@ export default function MoneyScreen() {
                       <ThemedText type="code" style={over ? { color: '#dc2626' } : undefined} themeColor={over ? undefined : 'textSecondary'}>
                         {formatMoney(status.spent)} / {formatMoney(status.limit)}
                       </ThemedText>
-                      <Pressable onPress={() => user && db && deleteBudget(db, user.uid, budget.id)}>
+                      <Pressable onPress={() => user && data.deleteBudget(user.uid, budget.id)}>
                         <ThemedText type="small" style={styles.deleteText}>
                           Delete
                         </ThemedText>
@@ -431,7 +425,7 @@ export default function MoneyScreen() {
                     {tx.type === 'expense' ? '-' : '+'}
                     {formatMoney(tx.amount)}
                   </ThemedText>
-                  <Pressable onPress={() => user && db && deleteTransaction(db, user.uid, tx.id)}>
+                  <Pressable onPress={() => user && data.deleteTransaction(user.uid, tx.id)}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>

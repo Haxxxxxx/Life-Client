@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Challenge, NewChallenge } from "../types";
 import { subscribeCollection } from "./realtime";
+import { randomId } from "./id";
 
 interface ChallengeRow {
   id: string;
@@ -53,7 +54,7 @@ export async function createChallengeSb(
   userId: string,
   c: NewChallenge,
 ): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client.from("challenges").insert({
     id,
     user_id: userId,

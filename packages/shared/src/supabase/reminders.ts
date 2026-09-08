@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NewReminder, Recurrence, Reminder } from "../types";
 import { subscribeCollection } from "./realtime";
+import { randomId } from "./id";
 
 interface ReminderRow {
   id: string;
@@ -60,7 +61,7 @@ export async function createReminderSb(
   userId: string,
   reminder: NewReminder,
 ): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client
     .from("reminders")
     .insert({ id, user_id: userId, ...reminderToRow(reminder) });

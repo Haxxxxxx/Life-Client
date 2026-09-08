@@ -3,8 +3,8 @@ import {
   buildDisconnectUrl,
   type IntegrationConnection,
   type IntegrationProvider,
-  subscribeIntegrations,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -15,7 +15,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db, WEB_APP_URL } from '@/lib/firebase';
+import { WEB_APP_URL } from '@/lib/firebase';
 
 const PROVIDER_META: Record<IntegrationProvider, { label: string; description: string; badge: string }> = {
   github: { label: 'GitHub', description: 'Open PRs/issues assigned to you, in Tasks.', badge: 'GH' },
@@ -33,8 +33,8 @@ export default function IntegrationsScreen() {
   const [connections, setConnections] = useState<Record<IntegrationProvider, IntegrationConnection> | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeIntegrations(db, user.uid, setConnections);
+    if (!user) return;
+    return data.subscribeIntegrations(user.uid, setConnections);
   }, [user]);
 
   const missingWebAppUrl = !WEB_APP_URL;

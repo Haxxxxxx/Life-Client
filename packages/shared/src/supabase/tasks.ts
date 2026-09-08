@@ -13,6 +13,7 @@ import type {
   TaskStatus,
 } from "../types";
 import { subscribeCollection } from "./realtime";
+import { randomId } from "./id";
 
 /** Raw `public.tasks` row shape (snake_case columns). */
 interface TaskRow {
@@ -127,7 +128,7 @@ export function subscribeTaskSb(
 }
 
 export async function createTaskSb(client: SupabaseClient, userId: string, task: NewTask): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client.from("tasks").insert({ id, user_id: userId, ...taskToRow(task) });
   if (error) throw new Error(error.message);
   return id;

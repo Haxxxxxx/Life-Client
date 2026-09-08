@@ -1,11 +1,9 @@
 import {
-  subscribeGoals,
-  subscribeReminders,
-  subscribeTasks,
   type Goal,
   type Reminder,
   type Task,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -16,7 +14,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 
 interface SearchResult {
   id: string;
@@ -34,11 +31,11 @@ export default function SearchScreen() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
     const unsubs = [
-      subscribeTasks(db, user.uid, setTasks),
-      subscribeGoals(db, user.uid, setGoals),
-      subscribeReminders(db, user.uid, setReminders),
+      data.subscribeTasks(user.uid, setTasks),
+      data.subscribeGoals(user.uid, setGoals),
+      data.subscribeReminders(user.uid, setReminders),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
