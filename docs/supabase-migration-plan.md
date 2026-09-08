@@ -1,6 +1,6 @@
 # Firebase → Supabase Migration Plan
 
-**Status:** proposal / not started
+**Status:** Phase 0 in progress
 **Driver:** stack preference (Postgres + Supabase). No hard blocker on Firebase today.
 **Bottom line:** ~3–4 weeks of focused work for one dev. Two hard parts: rebuilding the
 realtime layer, and the live data cutover. Everything else is mechanical.
@@ -216,7 +216,7 @@ are lost, hence the write freeze).
 
 | Phase | Work | Est. |
 |---|---|---|
-| **0 — Provision & spike** | Supabase project via Vercel Marketplace; schema + RLS migrations; wire `@supabase/supabase-js`; build the realtime helper; port **tasks** end-to-end on web behind a flag; validate realtime DX | 2–3 d |
+| **0 — Provision & spike** *(in progress)* | Supabase project via Vercel Marketplace; schema + RLS migrations; wire `@supabase/supabase-js`; build the realtime helper; port **tasks** end-to-end on web behind a flag; validate realtime DX | 2–3 d |
 | **1 — Shared data layer** | Port all of `packages/shared` reads/writes/subscriptions; keep exported signatures identical | 5–7 d |
 | **2 — Auth** | Supabase Auth in all 3 apps; `requireUid` rewrite; user pre-migration script + mapping | 3–4 d |
 | **3 — Server** | sync services, push, digests, cron → service-role client | 2–3 d |
@@ -225,6 +225,28 @@ are lost, hence the write freeze).
 
 **Total: ~15–20 working days.** Risk concentrated in Phase 1 (realtime parity) and Phase 4
 (data correctness).
+
+### Phase 0 progress
+
+Landed in `feature/supabase-phase-0`:
+
+- `supabase/migrations/20260908120000_phase0_profiles_tasks.sql` — `profiles` + `tasks`
+  tables, RLS, `updated_at` + new-user→profile triggers, realtime publication for `tasks`.
+- `packages/shared/src/supabase/` — `createSupabase{Browser,Service}Client`,
+  `subscribeCollection` (the generic `onSnapshot` replacement), and a `tasks` module
+  (`subscribeTasksSb`, `subscribeTaskSb`, `createTaskSb`, `updateTaskSb`, `setTaskStatusSb`,
+  `deleteTaskSb`, `advanceTaskStatusSb`) mirroring the Firestore signatures.
+- `@supabase/supabase-js` added to `@life-client/shared`; exported from the barrel.
+- `NEXT_PUBLIC_DATA_BACKEND` flag documented in `apps/web/.env.example`.
+
+Blocked on the account owner:
+
+1. `vercel integration add supabase` (Free plan, all environments).
+2. `vercel env pull` + add the `NEXT_PUBLIC_SUPABASE_*` copies.
+3. `npx supabase link --project-ref <ref> && npx supabase db push`.
+
+Then: a `/lab/supabase-tasks` web page wired to `subscribeTasksSb` + CRUD to watch
+realtime work against the live project → sign-off → Phase 1.
 
 ---
 
