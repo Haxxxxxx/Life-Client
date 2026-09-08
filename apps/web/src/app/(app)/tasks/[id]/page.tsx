@@ -29,6 +29,7 @@ import {
   STATUS_ORDER,
   prMetaOf,
   relativeTime,
+  shortDateTime,
 } from "../_shared";
 
 function PrPanel({ task }: { task: Task }) {
@@ -71,8 +72,33 @@ function PrPanel({ task }: { task: Task }) {
       ),
     });
   rows.push({ label: "Author", value: <span className="font-mono text-xs">@{meta.author}</span> });
+  if (meta.prCreatedAt)
+    rows.push({
+      label: "Opened",
+      value: (
+        <span className="text-xs">
+          {shortDateTime(meta.prCreatedAt)} <span className="text-muted">· {relativeTime(meta.prCreatedAt)}</span>
+        </span>
+      ),
+    });
   if (meta.prUpdatedAt)
-    rows.push({ label: "PR updated", value: <span className="text-xs text-muted">{relativeTime(meta.prUpdatedAt)}</span> });
+    rows.push({
+      label: "Updated",
+      value: (
+        <span className="text-xs">
+          {shortDateTime(meta.prUpdatedAt)} <span className="text-muted">· {relativeTime(meta.prUpdatedAt)}</span>
+        </span>
+      ),
+    });
+  if (meta.resolvedAt)
+    rows.push({
+      label: meta.state === "merged" ? "Merged" : "Closed",
+      value: (
+        <span className="text-xs">
+          {shortDateTime(meta.resolvedAt)} <span className="text-muted">· {relativeTime(meta.resolvedAt)}</span>
+        </span>
+      ),
+    });
 
   const events = [...((task.prEvents as PrEvent[] | undefined) ?? [])].reverse();
 
@@ -107,7 +133,9 @@ function PrPanel({ task }: { task: Task }) {
           <ul className="flex flex-col gap-1.5">
             {events.map((e, i) => (
               <li key={i} className="flex items-baseline gap-2 text-xs">
-                <span className="w-16 shrink-0 text-muted">{relativeTime(e.at)}</span>
+                <span className="w-28 shrink-0 text-muted" title={new Date(e.at).toLocaleString()}>
+                  {shortDateTime(e.at)}
+                </span>
                 <span className="font-mono">{e.detail}</span>
               </li>
             ))}

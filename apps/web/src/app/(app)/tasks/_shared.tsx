@@ -48,6 +48,17 @@ export function relativeTime(iso: string | null | undefined): string {
   return `${Math.round(hr / 24)}d ago`;
 }
 
+/** "8 Sep, 14:32" — absolute date + time in the viewer's locale/zone. */
+export function shortDateTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const PILL = "rounded-full border-2 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide";
 
 export const PR_STATE_STYLE: Record<PrState, { label: string; cls: string }> = {

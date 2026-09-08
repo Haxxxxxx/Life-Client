@@ -96,6 +96,7 @@ export interface TaskPrMeta {
   deletions?: number | null;
   baseRef?: string | null; // branch the PR merges into, e.g. "main"
   headRef?: string | null; // branch the PR is from, e.g. "fix/courses"
+  prCreatedAt?: string | null; // when the PR was opened (ISO)
   prUpdatedAt?: string | null; // the PR's own updatedAt (ISO)
   resolvedAt?: string | null; // when it was merged or closed (ISO); null while open
 }
@@ -244,6 +245,7 @@ export interface DevPullRequest {
   url: string;
   isReviewRequested: boolean;
   isAuthor: boolean;
+  createdAt?: string; // when the PR was opened (ISO)
   updatedAt: string;
   state: PrState;
   checks: PrCheckStatus;
