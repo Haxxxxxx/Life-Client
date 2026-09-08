@@ -1,6 +1,6 @@
 # Firebase → Supabase Migration Plan
 
-**Status:** Phase 0 in progress
+**Status:** Phase 0 ✓ · Phase 1 in progress (schema landed, shared modules next)
 **Driver:** stack preference (Postgres + Supabase). No hard blocker on Firebase today.
 **Bottom line:** ~3–4 weeks of focused work for one dev. Two hard parts: rebuilding the
 realtime layer, and the live data cutover. Everything else is mechanical.
@@ -226,9 +226,31 @@ are lost, hence the write freeze).
 **Total: ~15–20 working days.** Risk concentrated in Phase 1 (realtime parity) and Phase 4
 (data correctness).
 
-### Phase 0 progress
+### Progress log
 
-Landed in `feature/supabase-phase-0`:
+**Phase 0 — done.** `/lab/supabase-tasks` (anon session) confirmed the
+`subscribeCollection` helper: initial load, live INSERT/UPDATE propagation across
+tabs, RLS scoping. Realtime rebuild approach is validated.
+
+**Phase 1 — in progress.**
+
+- [x] `supabase/migrations/…_phase1_full_schema.sql` — every remaining collection:
+  `goals`, `challenges`, `sport_activities`, `reminders`, `transactions`, `budgets`,
+  `vice_logs`, `manual_progress`, `reading_list`, `vocab_words` (own-rows RLS);
+  `integrations`, `dev_activity`, `calendar_events`, `spotify_summary`,
+  `daily_lessons`, `code_drills` (read-own, server-written); `push_tokens`;
+  `oauth_state` + `integration_tokens` (no policy — service-role only). Realtime
+  publication for all client-subscribed tables. Re-runnable.
+- [ ] Port `packages/shared` domain modules → `*Sb` (goals, sports, challenges,
+  reminders, finance, vices, knowledge, integrations, devActivity, calendar,
+  spotify, characteristics, pushTokens)
+- [ ] Backend switch so apps flip on `NEXT_PUBLIC_DATA_BACKEND` without rewriting
+  every call site
+- [ ] `integration_tokens` encryption-at-rest (pgsodium/Vault) — before cutover
+
+<details><summary>Phase 0 detail</summary>
+
+Landed in `feature/supabase-phase-0` / `feature/supabase-lab`:
 
 - `supabase/migrations/20260908120000_phase0_profiles_tasks.sql` — `profiles` + `tasks`
   tables, RLS, `updated_at` + new-user→profile triggers, realtime publication for `tasks`.
@@ -247,6 +269,8 @@ Blocked on the account owner:
 
 Then: a `/lab/supabase-tasks` web page wired to `subscribeTasksSb` + CRUD to watch
 realtime work against the live project → sign-off → Phase 1.
+
+</details>
 
 ---
 
