@@ -76,8 +76,22 @@ export interface Task {
   goalId?: string; // links this task to a parent Goal
   recurrence?: Recurrence; // when set, completing this task creates the next occurrence
   viceLogId?: string; // reverse link — completing this task marks the linked ViceLog compensated
+  prMeta?: TaskPrMeta; // present only on github/gitlab-sourced tasks — drives the PR badges
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
+}
+
+/** Snapshot of a mirrored PR/MR, denormalised onto the task so the Tasks list can
+ * render state/CI/author badges without also subscribing to `devActivity`. Kept in
+ * sync by `syncDevActivity` on every run. */
+export interface TaskPrMeta {
+  state: PrState;
+  checks: PrCheckStatus;
+  isBot: boolean; // Dependabot / Renovate / any automated author
+  author: string; // author login, e.g. "dependabot[bot]" or a username
+  reviewDecision?: PrReviewDecision; // GitHub only; undefined when not computable
+  additions?: number;
+  deletions?: number;
 }
 
 export type NewTask = Omit<Task, "id" | "createdAt" | "updatedAt">;
@@ -200,6 +214,13 @@ export interface IntegrationConnection {
   lastError?: string;
 }
 
+/** "draft" takes precedence over "open"; merged/closed only show up briefly while a
+ * synced task flips to done. */
+export type PrState = "open" | "draft" | "merged" | "closed";
+/** CI / pipeline rollup for the PR's head commit. "none" = no checks configured. */
+export type PrCheckStatus = "success" | "failure" | "pending" | "none";
+export type PrReviewDecision = "approved" | "changes_requested" | "review_required";
+
 export interface DevPullRequest {
   provider: "github" | "gitlab";
   repo: string;
@@ -209,6 +230,14 @@ export interface DevPullRequest {
   isReviewRequested: boolean;
   isAuthor: boolean;
   updatedAt: string;
+  state: PrState;
+  checks: PrCheckStatus;
+  author: string; // author login
+  isBot: boolean; // Dependabot / Renovate / any automated author
+  reviewDecision?: PrReviewDecision; // GitHub only
+  additions?: number;
+  deletions?: number;
+  labels?: string[];
 }
 
 export interface DevActivitySummary {

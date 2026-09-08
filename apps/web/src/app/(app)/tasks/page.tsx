@@ -13,15 +13,19 @@ import {
   subscribeTasks,
   updateTask,
   type Goal,
+  type PrCheckStatus,
+  type PrReviewDecision,
+  type PrState,
   type Recurrence,
   type RecurrenceFreq,
   type Task,
   type TaskCategory,
   type TaskDifficulty,
   type TaskPriority,
+  type TaskPrMeta,
   type TaskStatus,
 } from "@life-client/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 
@@ -40,6 +44,47 @@ const DIFFICULTY_LABEL = Object.fromEntries(TASK_DIFFICULTIES.map((d) => [d.id, 
   TaskDifficulty,
   string
 >;
+
+const PILL = "rounded-full border-2 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide";
+
+const PR_STATE_STYLE: Record<PrState, { label: string; cls: string }> = {
+  open: { label: "Open", cls: "border-sky-500 text-sky-600" },
+  draft: { label: "Draft", cls: "border-foreground/40 text-muted" },
+  merged: { label: "Merged", cls: "border-purple-500 text-purple-600" },
+  closed: { label: "Closed", cls: "border-red-500 text-red-600" },
+};
+
+const PR_CHECK_STYLE: Record<PrCheckStatus, { label: string; cls: string } | null> = {
+  success: { label: "✓ CI", cls: "border-green-600 text-green-700" },
+  failure: { label: "✗ CI", cls: "border-red-500 text-red-600" },
+  pending: { label: "● CI", cls: "border-amber-500 text-amber-600" },
+  none: null,
+};
+
+const PR_REVIEW_STYLE: Record<PrReviewDecision, { label: string; cls: string }> = {
+  approved: { label: "Approved", cls: "border-green-600 text-green-700" },
+  changes_requested: { label: "Changes", cls: "border-red-500 text-red-600" },
+  review_required: { label: "Review", cls: "border-amber-500 text-amber-600" },
+};
+
+function PrBadges({ meta }: { meta: TaskPrMeta }) {
+  const state = PR_STATE_STYLE[meta.state];
+  const check = PR_CHECK_STYLE[meta.checks];
+  const review = meta.reviewDecision ? PR_REVIEW_STYLE[meta.reviewDecision] : null;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+      <span className={`${PILL} ${state.cls}`}>{state.label}</span>
+      {check && <span className={`${PILL} ${check.cls}`}>{check.label}</span>}
+      {review && <span className={`${PILL} ${review.cls}`}>{review.label}</span>}
+      {meta.isBot && <span className={`${PILL} border-amber-500 bg-amber-500/10 text-amber-700`}>Bot</span>}
+    </div>
+  );
+}
+
+/** github/gitlab-sourced tasks carry a prMeta snapshot; everything else doesn't. */
+function prMetaOf(task: Task): TaskPrMeta | null {
+  return (task.source === "github" || task.source === "gitlab") && task.prMeta ? task.prMeta : null;
+}
 
 function RecurrencePicker({
   value,
@@ -267,6 +312,13 @@ export default function TasksPage() {
     return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]!;
   }
 
+  // Keep the createdAt-desc order from Firestore, but sink Dependabot/Renovate
+  // PRs below real work and done tasks below everything (sort is stable).
+  const sortedTasks = useMemo(() => {
+    const rank = (t: Task) => (t.status === "done" ? 2 : prMetaOf(t)?.isBot ? 1 : 0);
+    return [...tasks].sort((a, b) => rank(a) - rank(b));
+  }, [tasks]);
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
@@ -321,10 +373,17 @@ export default function TasksPage() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <ul className="flex flex-col gap-2">
-        {tasks.map((task) => (
+        {sortedTasks.map((task) => {
+          const meta = prMetaOf(task);
+          const diff = meta && (meta.additions != null || meta.deletions != null)
+            ? `+${meta.additions ?? 0} −${meta.deletions ?? 0}`
+            : null;
+          return (
           <li
             key={task.id}
-            className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-3"
+            className={`flex flex-col gap-3 rounded-md border-2 bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+              meta?.isBot ? "border-amber-500 bg-amber-500/5" : "border-foreground"
+            }`}
           >
             {editingId === task.id ? (
               <EditTaskForm
@@ -344,15 +403,26 @@ export default function TasksPage() {
                   >
                     {task.title}
                   </p>
-                  <p className="font-mono text-xs tracking-wide text-muted uppercase">
-                    {STATUS_LABEL[task.status]} · {task.source}
-                    {task.category && ` · ${CATEGORY_LABEL[task.category]}`}
-                    {task.difficulty && ` · ${DIFFICULTY_LABEL[task.difficulty]}`}
-                    {task.goalId && ` · ${goals.find((g) => g.id === task.goalId)?.title ?? "Goal"}`}
-                    {task.recurrence && ` · ↻ ${describeRecurrence(task.recurrence)}`}
+                  {meta && <PrBadges meta={meta} />}
+                  <p className="mt-1 font-mono text-xs tracking-wide text-muted uppercase">
+                    {meta ? (
+                      <>
+                        {task.sourceRef ?? task.source}
+                        {diff && ` · ${diff}`}
+                        {` · ${STATUS_LABEL[task.status]}`}
+                      </>
+                    ) : (
+                      <>
+                        {STATUS_LABEL[task.status]} · {task.source}
+                        {task.category && ` · ${CATEGORY_LABEL[task.category]}`}
+                        {task.difficulty && ` · ${DIFFICULTY_LABEL[task.difficulty]}`}
+                        {task.goalId && ` · ${goals.find((g) => g.id === task.goalId)?.title ?? "Goal"}`}
+                        {task.recurrence && ` · ↻ ${describeRecurrence(task.recurrence)}`}
+                      </>
+                    )}
                   </p>
                 </button>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   {task.sourceUrl && (
                     <a
                       href={task.sourceUrl}
@@ -381,7 +451,8 @@ export default function TasksPage() {
               </>
             )}
           </li>
-        ))}
+          );
+        })}
         {tasks.length === 0 && (
           <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
             No tasks yet — add your first one above.

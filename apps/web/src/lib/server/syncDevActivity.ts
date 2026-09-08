@@ -1,56 +1,151 @@
-import type { IntegrationProvider } from "@life-client/shared";
+import type {
+  DevPullRequest,
+  IntegrationProvider,
+  PrCheckStatus,
+  PrReviewDecision,
+  PrState,
+} from "@life-client/shared";
 import { adminDb } from "./admin";
 import { setIntegrationStatus } from "./integrationStatus";
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
 
-interface DevPullRequest {
-  provider: "github" | "gitlab";
-  repo: string;
+/** Author logins that mean "this PR is an automated dependency bump", so the Tasks
+ * list can colour it apart from real code review work. Matched against the bare
+ * login and the `login[bot]` form. */
+const BOT_LOGINS = /^(dependabot|dependabot-preview|renovate|renovate-bot|snyk-bot|github-actions|mend-bolt-for-github|greenkeeper)(\[bot\])?$/i;
+const DEPENDENCY_LABELS = new Set(["dependencies", "dependency", "dependency-update", "renovate"]);
+
+function looksAutomated(login: string, isBotType: boolean, labels: string[]): boolean {
+  if (isBotType || BOT_LOGINS.test(login)) return true;
+  return labels.some((l) => DEPENDENCY_LABELS.has(l.toLowerCase()));
+}
+
+// ---------------------------------------------------------------------------
+// GitHub — one GraphQL round-trip per bucket gets draft/merged/CI/author/review
+// in a single call (the old REST search couldn't return any of that).
+// ---------------------------------------------------------------------------
+
+interface GithubPrNode {
   number: number;
   title: string;
   url: string;
-  isReviewRequested: boolean;
-  isAuthor: boolean;
+  isDraft: boolean;
+  state: "OPEN" | "CLOSED" | "MERGED";
   updatedAt: string;
+  additions: number;
+  deletions: number;
+  reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+  repository: { nameWithOwner: string };
+  author: { login: string; __typename: string } | null;
+  labels: { nodes: { name: string }[] };
+  commits: { nodes: { commit: { statusCheckRollup: { state: string } | null } }[] };
 }
 
-interface GithubSearchItem {
-  number: number;
-  title: string;
-  html_url: string;
-  repository_url: string;
-  updated_at: string;
-  pull_request?: unknown;
+const GITHUB_PR_QUERY = `
+  query($q: String!) {
+    search(query: $q, type: ISSUE, first: 50) {
+      nodes {
+        ... on PullRequest {
+          number title url isDraft state updatedAt additions deletions reviewDecision
+          repository { nameWithOwner }
+          author { login __typename }
+          labels(first: 20) { nodes { name } }
+          commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+        }
+      }
+    }
+  }
+`;
+
+function mapGithubChecks(state: string | undefined): PrCheckStatus {
+  switch (state) {
+    case "SUCCESS":
+      return "success";
+    case "FAILURE":
+    case "ERROR":
+      return "failure";
+    case "PENDING":
+    case "EXPECTED":
+      return "pending";
+    default:
+      return "none";
+  }
+}
+
+function mapGithubReview(decision: GithubPrNode["reviewDecision"]): PrReviewDecision | undefined {
+  switch (decision) {
+    case "APPROVED":
+      return "approved";
+    case "CHANGES_REQUESTED":
+      return "changes_requested";
+    case "REVIEW_REQUIRED":
+      return "review_required";
+    default:
+      return undefined;
+  }
+}
+
+async function githubGraphql(accessToken: string, q: string): Promise<GithubPrNode[]> {
+  const response = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: {
+      Authorization: `bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "User-Agent": "life-client",
+    },
+    body: JSON.stringify({ query: GITHUB_PR_QUERY, variables: { q } }),
+  });
+  if (!response.ok) throw new Error(`GitHub GraphQL failed: ${response.status} ${await response.text()}`);
+  const json = (await response.json()) as {
+    data?: { search?: { nodes?: (GithubPrNode | Record<string, never>)[] } };
+    errors?: { message: string }[];
+  };
+  if (json.errors?.length) throw new Error(`GitHub GraphQL errors: ${json.errors.map((e) => e.message).join("; ")}`);
+  const nodes = json.data?.search?.nodes ?? [];
+  // A `search` on ISSUE type can return Issues too — those come back as `{}` here.
+  return nodes.filter((n): n is GithubPrNode => typeof (n as GithubPrNode).number === "number");
+}
+
+function toGithubPR(node: GithubPrNode, isAuthor: boolean, isReviewRequested: boolean): DevPullRequest {
+  const login = node.author?.login ?? "unknown";
+  const labels = node.labels.nodes.map((l) => l.name);
+  const state: PrState = node.state === "MERGED" ? "merged" : node.state === "CLOSED" ? "closed" : node.isDraft ? "draft" : "open";
+  return {
+    provider: "github",
+    repo: node.repository.nameWithOwner,
+    number: node.number,
+    title: node.title,
+    url: node.url,
+    isAuthor,
+    isReviewRequested,
+    updatedAt: node.updatedAt,
+    state,
+    checks: mapGithubChecks(node.commits.nodes[0]?.commit.statusCheckRollup?.state),
+    author: login,
+    isBot: looksAutomated(login, node.author?.__typename === "Bot", labels),
+    reviewDecision: mapGithubReview(node.reviewDecision),
+    additions: node.additions,
+    deletions: node.deletions,
+    labels,
+  };
 }
 
 async function fetchGithubPRs(accessToken: string): Promise<DevPullRequest[]> {
-  const headers = {
-    Authorization: `token ${accessToken}`,
-    Accept: "application/vnd.github+json",
-  };
-
-  const [authored, reviewRequested] = await Promise.all([
-    fetch("https://api.github.com/search/issues?q=is:pr+is:open+author:@me", { headers }),
-    fetch("https://api.github.com/search/issues?q=is:pr+is:open+review-requested:@me", { headers }),
+  const [authoredNodes, reviewNodes] = await Promise.all([
+    githubGraphql(accessToken, "is:pr is:open author:@me archived:false"),
+    githubGraphql(accessToken, "is:pr is:open review-requested:@me archived:false"),
   ]);
 
-  if (!authored.ok || !reviewRequested.ok) {
-    throw new Error(`GitHub PR search failed: ${authored.status}/${reviewRequested.status}`);
+  const byUrl = new Map<string, DevPullRequest>();
+  for (const node of authoredNodes) {
+    byUrl.set(node.url, toGithubPR(node, true, false));
   }
-
-  const authoredItems = ((await authored.json()) as { items: GithubSearchItem[] }).items;
-  const reviewItems = ((await reviewRequested.json()) as { items: GithubSearchItem[] }).items;
-
-  const byNumberUrl = new Map<string, DevPullRequest>();
-  for (const item of authoredItems) {
-    byNumberUrl.set(item.html_url, toGithubPR(item, true, false));
+  for (const node of reviewNodes) {
+    const existing = byUrl.get(node.url);
+    byUrl.set(node.url, existing ? { ...existing, isReviewRequested: true } : toGithubPR(node, false, true));
   }
-  for (const item of reviewItems) {
-    const existing = byNumberUrl.get(item.html_url);
-    byNumberUrl.set(item.html_url, existing ? { ...existing, isReviewRequested: true } : toGithubPR(item, false, true));
-  }
-  return [...byNumberUrl.values()];
+  return [...byUrl.values()];
 }
 
 async function fetchGithubMergedCount(accessToken: string): Promise<number> {
@@ -63,27 +158,22 @@ async function fetchGithubMergedCount(accessToken: string): Promise<number> {
   return data.total_count;
 }
 
-function toGithubPR(item: GithubSearchItem, isAuthor: boolean, isReviewRequested: boolean): DevPullRequest {
-  const repo = item.repository_url.replace("https://api.github.com/repos/", "");
-  return {
-    provider: "github",
-    repo,
-    number: item.number,
-    title: item.title,
-    url: item.html_url,
-    isAuthor,
-    isReviewRequested,
-    updatedAt: item.updated_at,
-  };
-}
+// ---------------------------------------------------------------------------
+// GitLab — REST list for authored + assigned MRs, then one call per MR for the
+// head pipeline status.
+// ---------------------------------------------------------------------------
 
 interface GitlabMergeRequest {
   iid: number;
   title: string;
   web_url: string;
   updated_at: string;
+  state: "opened" | "closed" | "merged" | "locked";
+  draft?: boolean;
+  work_in_progress?: boolean;
   author: { username: string };
   references: { full: string };
+  labels?: string[];
 }
 
 async function ensureFreshGitlabToken(uid: string, tokens: StoredTokens): Promise<StoredTokens> {
@@ -104,23 +194,86 @@ async function ensureFreshGitlabToken(uid: string, tokens: StoredTokens): Promis
   return next;
 }
 
-async function fetchGitlabMRs(accessToken: string): Promise<DevPullRequest[]> {
+function mapGitlabChecks(status: string | undefined): PrCheckStatus {
+  switch (status) {
+    case "success":
+      return "success";
+    case "failed":
+      return "failure";
+    case "created":
+    case "waiting_for_resource":
+    case "preparing":
+    case "pending":
+    case "running":
+    case "scheduled":
+      return "pending";
+    default:
+      return "none"; // canceled / skipped / manual / no pipeline
+  }
+}
+
+async function fetchGitlabMRList(accessToken: string, scope: string): Promise<GitlabMergeRequest[]> {
   const response = await fetch(
-    "https://gitlab.com/api/v4/merge_requests?scope=assigned_to_me&state=opened&per_page=50",
+    `https://gitlab.com/api/v4/merge_requests?scope=${scope}&state=opened&per_page=50&with_labels_details=false`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
-  if (!response.ok) throw new Error(`GitLab MR fetch failed: ${response.status} ${await response.text()}`);
-  const items = (await response.json()) as GitlabMergeRequest[];
-  return items.map((mr) => ({
-    provider: "gitlab" as const,
-    repo: mr.references.full.split("!")[0] ?? "",
-    number: mr.iid,
-    title: mr.title,
-    url: mr.web_url,
-    isAuthor: false,
-    isReviewRequested: true,
-    updatedAt: mr.updated_at,
-  }));
+  if (!response.ok) throw new Error(`GitLab MR fetch (${scope}) failed: ${response.status} ${await response.text()}`);
+  return (await response.json()) as GitlabMergeRequest[];
+}
+
+/** GitLab's list endpoint doesn't include the pipeline, so pull the head pipeline
+ * status per MR. Best-effort — a failure here just leaves checks as "none". */
+async function fetchGitlabPipeline(accessToken: string, projectPath: string, iid: number): Promise<PrCheckStatus> {
+  try {
+    const response = await fetch(
+      `https://gitlab.com/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${iid}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!response.ok) return "none";
+    const detail = (await response.json()) as { head_pipeline?: { status?: string } | null };
+    return mapGitlabChecks(detail.head_pipeline?.status);
+  } catch {
+    return "none";
+  }
+}
+
+async function fetchGitlabMRs(accessToken: string): Promise<DevPullRequest[]> {
+  const [authored, assigned] = await Promise.all([
+    fetchGitlabMRList(accessToken, "created_by_me"),
+    fetchGitlabMRList(accessToken, "assigned_to_me"),
+  ]);
+
+  const byUrl = new Map<string, GitlabMergeRequest & { isAuthor: boolean; isReviewRequested: boolean }>();
+  for (const mr of authored) byUrl.set(mr.web_url, { ...mr, isAuthor: true, isReviewRequested: false });
+  for (const mr of assigned) {
+    const existing = byUrl.get(mr.web_url);
+    byUrl.set(mr.web_url, existing ? { ...existing, isReviewRequested: true } : { ...mr, isAuthor: false, isReviewRequested: true });
+  }
+
+  return Promise.all(
+    [...byUrl.values()].map(async (mr) => {
+      const projectPath = mr.references.full.split("!")[0] ?? "";
+      const labels = mr.labels ?? [];
+      const isDraft = mr.draft ?? mr.work_in_progress ?? /^\s*(draft|wip):/i.test(mr.title);
+      const state: PrState =
+        mr.state === "merged" ? "merged" : mr.state === "closed" || mr.state === "locked" ? "closed" : isDraft ? "draft" : "open";
+      return {
+        provider: "gitlab" as const,
+        repo: projectPath,
+        number: mr.iid,
+        title: mr.title,
+        url: mr.web_url,
+        isAuthor: mr.isAuthor,
+        isReviewRequested: mr.isReviewRequested,
+        updatedAt: mr.updated_at,
+        state,
+        checks: await fetchGitlabPipeline(accessToken, projectPath, mr.iid),
+        author: mr.author.username,
+        isBot: looksAutomated(mr.author.username, false, labels),
+        labels,
+      } satisfies DevPullRequest;
+    }),
+  );
 }
 
 async function fetchGitlabMergedCount(accessToken: string): Promise<number> {
@@ -139,13 +292,28 @@ function taskDocId(provider: "github" | "gitlab", pr: DevPullRequest): string {
   return `${provider}_${pr.repo.replace(/[^a-zA-Z0-9_-]/g, "-")}_${pr.number}`;
 }
 
+/** Denormalised PR snapshot stored on the task. All keys are always written (null
+ * rather than omitted) so Firestore's deep merge on re-sync can't leave a stale
+ * sub-field behind. */
+function buildPrMeta(pr: DevPullRequest) {
+  return {
+    state: pr.state,
+    checks: pr.checks,
+    isBot: pr.isBot,
+    author: pr.author,
+    reviewDecision: pr.reviewDecision ?? null,
+    additions: pr.additions ?? null,
+    deletions: pr.deletions ?? null,
+  };
+}
+
 /**
  * Mirrors currently-open PRs/MRs into `users/{uid}/tasks` (source: "github"/"gitlab"),
  * using a deterministic doc ID per PR so re-syncing updates the same task rather than
  * duplicating it. A synced task that's no longer in the open set (merged/closed
  * elsewhere) is marked "done" here rather than deleted, so its category XP still
  * counts and any user edits (priority/category/difficulty) aren't touched — only
- * title/sourceUrl are kept in sync on existing tasks.
+ * title/sourceUrl/prMeta are kept in sync on existing tasks.
  */
 async function syncTasksFromPullRequests(
   uid: string,
@@ -169,17 +337,24 @@ async function syncTasksFromPullRequests(
     const id = taskDocId(provider, pr);
     const ref = tasksRef.doc(id);
     if (existingIds.has(id)) {
-      batch.set(ref, { title: pr.title, sourceUrl: pr.url, updatedAt: nowIso }, { merge: true });
+      batch.set(
+        ref,
+        { title: pr.title, sourceUrl: pr.url, prMeta: buildPrMeta(pr), updatedAt: nowIso },
+        { merge: true },
+      );
     } else {
       batch.set(ref, {
         title: pr.title,
         status: "todo",
-        priority: pr.isReviewRequested ? "high" : "medium",
-        difficulty: "medium",
+        // Dependabot/Renovate bumps are low-effort chores; review requests are the
+        // real work; everything else is a normal authored PR.
+        priority: pr.isBot ? "low" : pr.isReviewRequested ? "high" : "medium",
+        difficulty: pr.isBot ? "easy" : "medium",
         category: "code",
         source: provider,
         sourceRef: `${pr.repo}#${pr.number}`,
         sourceUrl: pr.url,
+        prMeta: buildPrMeta(pr),
         tags: [],
         createdAt: nowIso,
         updatedAt: nowIso,
