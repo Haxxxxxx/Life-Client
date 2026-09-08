@@ -14,43 +14,21 @@ import {
   type SportActivity,
   type SpotifySummary,
   type Task,
-  advanceTaskStatus,
-  archiveChallenge,
   computeChallengeProgress,
   computeGoalProgress,
   computeInsightXp,
-  createReminder,
   daysUntil,
-  deleteChallenge,
-  deleteGoal,
   deleteReminderEverywhere,
-  deleteTask,
   describeRecurrence,
   isDueSoon,
   levelFromXp,
   nextOccurrenceDate,
   reminderUrgency,
-  setGoalStatus,
-  subscribeCalendarEvents,
-  subscribeChallenges,
-  subscribeCodeDrills,
-  subscribeDailyLessons,
-  subscribeDevActivity,
-  subscribeGoals,
-  subscribeReadingList,
-  subscribeReminders,
-  subscribeSportActivities,
-  subscribeSpotifySummary,
-  subscribeTasks,
-  subscribeVocabWords,
   syncReminderToCalendar,
   todayLessonId,
-  updateChallenge,
-  updateGoal,
-  updateReminder,
-  updateTask,
   type VocabWord,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { Link, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -160,7 +138,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
     await Promise.all(
       [...selected].map((id) => {
         const task = tasks.find((t) => t.id === id);
-        return task ? advanceTaskStatus(db!, uid, task, 'done') : undefined;
+        return task ? data.advanceTaskStatus(uid, task, 'done') : undefined;
       }),
     );
     setSelected(new Set());
@@ -168,14 +146,14 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
 
   async function bulkDelete() {
     if (!db) return;
-    await Promise.all([...selected].map((id) => deleteTask(db!, uid, id)));
+    await Promise.all([...selected].map((id) => data.deleteTask(uid, id)));
     setSelected(new Set());
   }
 
   async function clearCompleted() {
     if (!db) return;
     const done = tasks.filter((t) => t.status === 'done');
-    await Promise.all(done.map((t) => deleteTask(db!, uid, t.id)));
+    await Promise.all(done.map((t) => data.deleteTask(uid, t.id)));
   }
 
   return (
@@ -231,7 +209,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
             />
             <RenameField
               value={task.title}
-              onSave={(next) => db && updateTask(db, uid, task.id, { title: next })}
+              onSave={(next) => db && data.updateTask(uid, task.id, { title: next })}
               style={task.status === 'done' ? styles.doneText : undefined}
             />
             <ThemedText type="code" themeColor="textSecondary">
@@ -244,7 +222,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
                 </ThemedText>
               </Pressable>
             )}
-            <Pressable onPress={() => db && deleteTask(db, uid, task.id)}>
+            <Pressable onPress={() => db && data.deleteTask(uid, task.id)}>
               <ThemedText type="small" style={styles.deleteText}>
                 Delete
               </ThemedText>
@@ -281,23 +259,23 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
           const progress = computeGoalProgress(goal, tasks);
           return (
             <View key={goal.id} style={[styles.row, { borderColor: theme.border }]}>
-              <RenameField value={goal.title} onSave={(next) => db && updateGoal(db, uid, goal.id, { title: next })} />
+              <RenameField value={goal.title} onSave={(next) => db && data.updateGoal(uid, goal.id, { title: next })} />
               <ThemedText type="code" themeColor="textSecondary">
                 {progress.completedTaskCount}/{progress.linkedTaskCount} · {goal.status}
               </ThemedText>
               {goal.status === 'active' && (
-                <Pressable onPress={() => db && setGoalStatus(db, uid, goal.id, 'completed')}>
+                <Pressable onPress={() => db && data.setGoalStatus(uid, goal.id, 'completed')}>
                   <ThemedText type="small" themeColor="primary">
                     Complete
                   </ThemedText>
                 </Pressable>
               )}
-              <Pressable onPress={() => db && setGoalStatus(db, uid, goal.id, 'archived')}>
+              <Pressable onPress={() => db && data.setGoalStatus(uid, goal.id, 'archived')}>
                 <ThemedText type="small" themeColor="textSecondary">
                   Archive
                 </ThemedText>
               </Pressable>
-              <Pressable onPress={() => db && deleteGoal(db, uid, goal.id)}>
+              <Pressable onPress={() => db && data.deleteGoal(uid, goal.id)}>
                 <ThemedText type="small" style={styles.deleteText}>
                   Delete
                 </ThemedText>
@@ -345,19 +323,19 @@ function ChallengesSection({
             <View key={challenge.id} style={[styles.row, { borderColor: theme.border }]}>
               <RenameField
                 value={challenge.title}
-                onSave={(next) => db && updateChallenge(db, uid, challenge.id, { title: next })}
+                onSave={(next) => db && data.updateChallenge(uid, challenge.id, { title: next })}
               />
               <ThemedText type="code" themeColor="textSecondary">
                 {progress.currentStreak}d{challenge.archived ? ' · archived' : ''}
               </ThemedText>
               {!challenge.archived && (
-                <Pressable onPress={() => db && archiveChallenge(db, uid, challenge.id)}>
+                <Pressable onPress={() => db && data.archiveChallenge(uid, challenge.id)}>
                   <ThemedText type="small" themeColor="textSecondary">
                     Archive
                   </ThemedText>
                 </Pressable>
               )}
-              <Pressable onPress={() => db && deleteChallenge(db, uid, challenge.id)}>
+              <Pressable onPress={() => db && data.deleteChallenge(uid, challenge.id)}>
                 <ThemedText type="small" style={styles.deleteText}>
                   Delete
                 </ThemedText>
@@ -559,7 +537,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
     setError(null);
     try {
       const deadline = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
-      const reminderId = await createReminder(db, uid, {
+      const reminderId = await data.createReminder(uid, {
         title: title.trim(),
         note: note.trim() || undefined,
         deadline: deadline.toISOString(),
@@ -580,7 +558,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
   async function handleDelete(reminder: Reminder) {
     try {
       if (db && reminder.recurrence) {
-        await createReminder(db, uid, {
+        await data.createReminder(uid, {
           title: reminder.title,
           note: reminder.note,
           deadline: nextOccurrenceDate(reminder.deadline, reminder.recurrence),
@@ -599,7 +577,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
   ) {
     if (!db) return;
     try {
-      await updateReminder(db, uid, reminderId, patch);
+      await data.updateReminder(uid, reminderId, patch);
       setEditingId(null);
       syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
         console.error('Could not sync reminder to Google Calendar', err),
@@ -754,21 +732,21 @@ export default function DashboardScreen() {
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
     const unsubs = [
-      subscribeTasks(db, user.uid, setTasks),
-      subscribeGoals(db, user.uid, setGoals),
-      subscribeChallenges(db, user.uid, setChallenges),
-      subscribeSportActivities(db, user.uid, setActivities),
-      subscribeCalendarEvents(db, user.uid, setEvents, undefined, 3),
-      subscribeDevActivity(db, user.uid, 'github', setGithub),
-      subscribeDevActivity(db, user.uid, 'gitlab', setGitlab),
-      subscribeReminders(db, user.uid, setReminders),
-      subscribeSpotifySummary(db, user.uid, setSpotify),
-      subscribeDailyLessons(db, user.uid, setLessons),
-      subscribeCodeDrills(db, user.uid, setDrills),
-      subscribeVocabWords(db, user.uid, setVocabWords),
-      subscribeReadingList(db, user.uid, setReadingItems),
+      data.subscribeTasks(user.uid, setTasks),
+      data.subscribeGoals(user.uid, setGoals),
+      data.subscribeChallenges(user.uid, setChallenges),
+      data.subscribeSportActivities(user.uid, setActivities),
+      data.subscribeCalendarEvents(user.uid, setEvents, undefined, 3),
+      data.subscribeDevActivity(user.uid, 'github', setGithub),
+      data.subscribeDevActivity(user.uid, 'gitlab', setGitlab),
+      data.subscribeReminders(user.uid, setReminders),
+      data.subscribeSpotifySummary(user.uid, setSpotify),
+      data.subscribeDailyLessons(user.uid, setLessons),
+      data.subscribeCodeDrills(user.uid, setDrills),
+      data.subscribeVocabWords(user.uid, setVocabWords),
+      data.subscribeReadingList(user.uid, setReadingItems),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);

@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { registerExpoPushToken } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
@@ -36,7 +36,7 @@ export function usePushRegistration(uid: string | undefined) {
 
       const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync({ projectId });
       if (!cancelled && db) {
-        await registerExpoPushToken(db, currentUid, expoPushToken);
+        await data.registerExpoPushToken(currentUid, expoPushToken);
       }
     }
 

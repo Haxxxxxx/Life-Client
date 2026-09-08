@@ -2,9 +2,9 @@ import {
   type NowPlayingTrack,
   type SpotifySummary,
   getNowPlaying,
-  subscribeSpotifySummary,
   syncSpotifyNow,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,7 +14,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 import { webApiClient } from '@/lib/webApiClient';
 
 const NOW_PLAYING_POLL_MS = 15_000;
@@ -238,8 +237,8 @@ export default function MusicScreen() {
   const [summary, setSummary] = useState<SpotifySummary | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeSpotifySummary(db, user.uid, setSummary);
+    if (!user) return;
+    return data.subscribeSpotifySummary(user.uid, setSummary);
   }, [user]);
 
   return (

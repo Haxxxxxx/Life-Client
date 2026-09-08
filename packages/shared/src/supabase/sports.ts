@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NewManualSportActivity } from "../sports";
 import type { SportActivity } from "../types";
 import { subscribeCollection } from "./realtime";
+import { randomId } from "./id";
 
 interface SportRow {
   id: string;
@@ -48,7 +49,7 @@ export async function createManualSportActivitySb(
   userId: string,
   a: NewManualSportActivity,
 ): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client.from("sport_activities").insert({
     id,
     user_id: userId,

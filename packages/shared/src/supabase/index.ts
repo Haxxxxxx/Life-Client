@@ -2,6 +2,7 @@
 // migration (docs/supabase-migration-plan.md). `*Sb`-suffixed exports.
 export * from "./client";
 export * from "./realtime";
+export * from "./id";
 export * from "./tasks";
 export * from "./goals";
 export * from "./sports";

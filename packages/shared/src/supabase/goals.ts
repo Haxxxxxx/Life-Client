@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Goal, GoalStatus, NewGoal } from "../types";
 import { subscribeCollection } from "./realtime";
+import { randomId } from "./id";
 
 interface GoalRow {
   id: string;
@@ -54,7 +55,7 @@ export function subscribeGoalsSb(
 }
 
 export async function createGoalSb(client: SupabaseClient, userId: string, goal: NewGoal): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client
     .from("goals")
     .insert({ id, user_id: userId, status: "active" satisfies GoalStatus, ...goalToRow(goal) });

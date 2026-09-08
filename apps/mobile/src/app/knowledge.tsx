@@ -8,25 +8,17 @@ import {
   type VocabMastery,
   type VocabWord,
   computeInsightXp,
-  createReadingListItem,
   dailyLessonStreak,
   deleteCodeDrill,
-  deleteReadingListItem,
   gradeDrillAnswer,
   gradeVocabSentence,
   generateCodeDrill,
   generateDailyLesson,
   generateVocabWord,
-  getTodayLesson,
   levelFromXp,
-  markReadingListItemRead,
   requestReadingSummary,
-  setVocabMastery,
-  subscribeCodeDrills,
-  subscribeDailyLessons,
-  subscribeReadingList,
-  subscribeVocabWords,
 } from '@life-client/shared';
+import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,7 +28,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 import { knowledgeApiClient } from '@/lib/knowledgeClient';
 
 const CORRECT_COLOR = '#16a34a';
@@ -62,8 +53,8 @@ function DailyLessonSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    getTodayLesson(db, user.uid)
+    if (!user) return;
+    data.getTodayLesson(user.uid)
       .then(setLesson)
       .finally(() => setLoading(false));
   }, [user]);
@@ -360,8 +351,8 @@ function CodeDrillsSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeCodeDrills(db, user.uid, setDrills);
+    if (!user) return;
+    return data.subscribeCodeDrills(user.uid, setDrills);
   }, [user]);
 
   async function handleGenerate() {
@@ -498,7 +489,7 @@ function VocabCard({ w }: { w: VocabWord }) {
           {MASTERY_ORDER.map((m) => (
             <Pressable
               key={m}
-              onPress={() => user && db && setVocabMastery(db, user.uid, w.id, m)}
+              onPress={() => user && data.setVocabMastery(user.uid, w.id, m)}
               style={[styles.chip, { borderColor: theme.border, backgroundColor: w.mastery === m ? theme.accent : 'transparent' }]}>
               <ThemedText type="code">{MASTERY_LABEL[m]}</ThemedText>
             </Pressable>
@@ -574,8 +565,8 @@ function VocabularySection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeVocabWords(db, user.uid, setWords);
+    if (!user) return;
+    return data.subscribeVocabWords(user.uid, setWords);
   }, [user]);
 
   async function handleGenerate() {
@@ -647,16 +638,16 @@ function ReadingListSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeReadingList(db, user.uid, setItems);
+    if (!user) return;
+    return data.subscribeReadingList(user.uid, setItems);
   }, [user]);
 
   async function handleAdd() {
-    if (!user || !db || !url.trim()) return;
+    if (!user || !url.trim()) return;
     setAdding(true);
     setError(null);
     try {
-      await createReadingListItem(db, user.uid, { url: url.trim() });
+      await data.createReadingListItem(user.uid, { url: url.trim() });
       setUrl('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add this link');
@@ -736,12 +727,12 @@ function ReadingListSection() {
               )}
               {item.status === 'summarized' && (
                 <Pressable
-                  onPress={() => user && db && markReadingListItemRead(db, user.uid, item.id)}
+                  onPress={() => user && data.markReadingListItemRead(user.uid, item.id)}
                   style={[styles.pillButton, { borderColor: theme.border }]}>
                   <ThemedText type="small">Mark read</ThemedText>
                 </Pressable>
               )}
-              <Pressable onPress={() => user && db && deleteReadingListItem(db, user.uid, item.id)}>
+              <Pressable onPress={() => user && data.deleteReadingListItem(user.uid, item.id)}>
                 <ThemedText type="small" style={styles.errorText}>
                   Delete
                 </ThemedText>
@@ -768,12 +759,12 @@ export default function KnowledgeScreen() {
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
     const unsubs = [
-      subscribeDailyLessons(db, user.uid, setLessons, undefined, 400),
-      subscribeCodeDrills(db, user.uid, setDrills),
-      subscribeVocabWords(db, user.uid, setVocabWords),
-      subscribeReadingList(db, user.uid, setReadingItems),
+      data.subscribeDailyLessons(user.uid, setLessons, undefined, 400),
+      data.subscribeCodeDrills(user.uid, setDrills),
+      data.subscribeVocabWords(user.uid, setVocabWords),
+      data.subscribeReadingList(user.uid, setReadingItems),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);

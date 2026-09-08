@@ -7,6 +7,7 @@ import {
   type User,
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
+import "./data-backend"; // configures the shared data.* facade on load
 import { auth, GOOGLE_WEB_CLIENT_ID } from "./firebase";
 
 interface AuthContextValue {

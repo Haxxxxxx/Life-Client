@@ -9,6 +9,7 @@ import type {
   VocabWord,
 } from "../types";
 import { subscribeCollection } from "./realtime";
+import { randomId } from "./id";
 
 // -------- daily lessons --------
 interface DailyLessonRow {
@@ -242,7 +243,7 @@ export async function createReadingListItemSb(
   userId: string,
   item: NewReadingListItem,
 ): Promise<string> {
-  const id = globalThis.crypto.randomUUID();
+  const id = randomId();
   const { error } = await client
     .from("reading_list")
     .insert({ id, user_id: userId, url: item.url, status: "pending" });
