@@ -14,7 +14,10 @@ export const PROVIDER_CONFIG: Record<IntegrationProvider, ProviderOAuthConfig> =
   github: {
     authorizeUrl: "https://github.com/login/oauth/authorize",
     tokenUrl: "https://github.com/login/oauth/access_token",
-    scope: "repo read:user",
+    // read:org lets the sync enumerate every repo in your orgs (not just ones
+    // you've personally touched) so Tasks can mirror the whole team's open PRs.
+    // Users connected before this must reconnect to grant it.
+    scope: "repo read:user read:org",
   },
   gitlab: {
     authorizeUrl: "https://gitlab.com/oauth/authorize",

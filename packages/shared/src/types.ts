@@ -88,6 +88,7 @@ export interface TaskPrMeta {
   state: PrState;
   checks: PrCheckStatus;
   isBot: boolean; // Dependabot / Renovate / any automated author
+  mine: boolean; // authored by the connected user, or their review is requested
   author: string; // author login, e.g. "dependabot[bot]" or a username
   reviewDecision?: PrReviewDecision; // GitHub only; undefined when not computable
   additions?: number;
