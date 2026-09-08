@@ -13,3 +13,9 @@ functions/lib/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# native app config (contains project-specific API keys; regenerate per-developer via Firebase Console)
+GoogleService-Info.plist
+google-services.json
+.vercel
+.env*
