@@ -1,22 +1,17 @@
 "use client";
 
 import {
-  advanceTaskStatus,
-  deleteTask,
   describeRecurrence,
-  subscribeGoals,
-  subscribeTask,
-  updateTask,
   type Goal,
   type PrEvent,
   type Task,
   type TaskStatus,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 import { EditTaskForm } from "../_components";
 import {
   CATEGORY_LABEL,
@@ -158,16 +153,16 @@ export default function TaskDetailPage() {
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    if (!user || !db || !taskId) return;
-    return subscribeTask(db, user.uid, taskId, (t) => {
+    if (!user || !taskId) return;
+    return data.subscribeTask(user.uid, taskId, (t) => {
       setTask(t);
       setLoading(false);
     });
   }, [user, taskId]);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeGoals(db, user.uid, setGoals);
+    if (!user) return;
+    return data.subscribeGoals(user.uid, setGoals);
   }, [user]);
 
   if (!user) return null;
@@ -207,7 +202,7 @@ export default function TaskDetailPage() {
             <button
               key={s}
               type="button"
-              onClick={() => advanceTaskStatus(db!, user.uid, task, s)}
+              onClick={() => data.advanceTaskStatus(user.uid, task, s)}
               disabled={task.status === s}
               className={`rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase transition ${
                 task.status === s
@@ -253,7 +248,7 @@ export default function TaskDetailPage() {
             task={task}
             goals={goals}
             onSave={(patch) => {
-              updateTask(db!, user.uid, task.id, patch);
+              data.updateTask(user.uid, task.id, patch);
               setEditing(false);
             }}
             onCancel={() => setEditing(false)}
@@ -277,7 +272,7 @@ export default function TaskDetailPage() {
         <button
           type="button"
           onClick={async () => {
-            await deleteTask(db!, user.uid, task.id);
+            await data.deleteTask(user.uid, task.id);
             router.push("/tasks");
           }}
           className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"

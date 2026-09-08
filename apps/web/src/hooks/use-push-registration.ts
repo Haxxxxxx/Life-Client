@@ -1,6 +1,6 @@
 "use client";
 
-import { registerWebPushSubscription } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useEffect } from "react";
 import { db } from "@/lib/firebase";
 
@@ -41,7 +41,7 @@ export function usePushRegistration(uid: string | undefined) {
 
       const json = subscription.toJSON();
       if (!cancelled && db && json.endpoint && json.keys?.p256dh && json.keys?.auth) {
-        await registerWebPushSubscription(db, currentUid, {
+        await data.registerWebPushSubscription(currentUid, {
           endpoint: json.endpoint,
           keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
         });

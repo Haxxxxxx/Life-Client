@@ -1,17 +1,14 @@
 "use client";
 
 import {
-  subscribeGoals,
-  subscribeReminders,
-  subscribeTasks,
   type Goal,
   type Reminder,
   type Task,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 
 interface SearchResult {
   id: string;
@@ -59,11 +56,11 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
   }, [open]);
 
   useEffect(() => {
-    if (!open || !user || !db) return;
+    if (!open || !user) return;
     const unsubs = [
-      subscribeTasks(db, user.uid, setTasks),
-      subscribeGoals(db, user.uid, setGoals),
-      subscribeReminders(db, user.uid, setReminders),
+      data.subscribeTasks(user.uid, setTasks),
+      data.subscribeGoals(user.uid, setGoals),
+      data.subscribeReminders(user.uid, setReminders),
     ];
     return () => unsubs.forEach((u) => u());
   }, [open, user]);

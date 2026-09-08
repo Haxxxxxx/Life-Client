@@ -26,3 +26,5 @@ export * from "./supabase";
 // Backend-agnostic facade — `data.subscribeTasks(uid, cb)` etc. Namespaced to
 // avoid clashing with the direct Firestore exports during the transition.
 export * as data from "./data";
+// Setup entry points are also top-level (like initFirebaseApp) — no name clash.
+export { configureDataBackend, isDataBackendConfigured, type DataBackend } from "./data/backend";

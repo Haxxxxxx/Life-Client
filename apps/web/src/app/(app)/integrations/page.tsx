@@ -5,11 +5,10 @@ import {
   buildDisconnectUrl,
   type IntegrationConnection,
   type IntegrationProvider,
-  subscribeIntegrations,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
 
 const PROVIDER_META: Record<
@@ -69,8 +68,8 @@ export default function IntegrationsPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeIntegrations(db, user.uid, setConnections);
+    if (!user) return;
+    return data.subscribeIntegrations(user.uid, setConnections);
   }, [user]);
 
   async function handleSync(provider: IntegrationProvider) {

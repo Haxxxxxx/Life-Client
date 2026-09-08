@@ -17,41 +17,19 @@ import {
   type SpotifySummary,
   type Task,
   type VocabWord,
-  advanceTaskStatus,
-  archiveChallenge,
   computeChallengeProgress,
   computeGoalProgress,
   computeInsightXp,
-  createReminder,
   daysUntil,
-  deleteChallenge,
-  deleteGoal,
   deleteReminderEverywhere,
-  deleteTask,
   describeRecurrence,
   levelFromXp,
   nextOccurrenceDate,
   reminderUrgency,
-  setGoalStatus,
-  subscribeCalendarEvents,
-  subscribeChallenges,
-  subscribeCodeDrills,
-  subscribeDailyLessons,
-  subscribeDevActivity,
-  subscribeGoals,
-  subscribeReadingList,
-  subscribeReminders,
-  subscribeSportActivities,
-  subscribeSpotifySummary,
-  subscribeTasks,
-  subscribeVocabWords,
   syncReminderToCalendar,
   todayLessonId,
-  updateChallenge,
-  updateGoal,
-  updateReminder,
-  updateTask,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -155,7 +133,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
     await Promise.all(
       [...selected].map((id) => {
         const task = tasks.find((t) => t.id === id);
-        return task ? advanceTaskStatus(db!, uid, task, "done") : undefined;
+        return task ? data.advanceTaskStatus(uid, task, "done") : undefined;
       }),
     );
     setSelected(new Set());
@@ -163,14 +141,14 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
 
   async function bulkDelete() {
     if (!db) return;
-    await Promise.all([...selected].map((id) => deleteTask(db!, uid, id)));
+    await Promise.all([...selected].map((id) => data.deleteTask(uid, id)));
     setSelected(new Set());
   }
 
   async function clearCompleted() {
     if (!db) return;
     const done = tasks.filter((t) => t.status === "done");
-    await Promise.all(done.map((t) => deleteTask(db!, uid, t.id)));
+    await Promise.all(done.map((t) => data.deleteTask(uid, t.id)));
   }
 
   return (
@@ -217,7 +195,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
             <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggle(task.id)} />
             <RenameField
               value={task.title}
-              onSave={(next) => db && updateTask(db, uid, task.id, { title: next })}
+              onSave={(next) => db && data.updateTask(uid, task.id, { title: next })}
               className={`min-w-0 flex-1 truncate text-sm ${task.status === "done" ? "text-muted line-through" : ""}`}
             />
             <span className="shrink-0 font-mono text-[10px] text-muted uppercase">{task.status}</span>
@@ -233,7 +211,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
             )}
             <button
               type="button"
-              onClick={() => db && deleteTask(db, uid, task.id)}
+              onClick={() => db && data.deleteTask(uid, task.id)}
               className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
             >
               Delete
@@ -262,7 +240,7 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
             <li key={goal.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
               <RenameField
                 value={goal.title}
-                onSave={(next) => db && updateGoal(db, uid, goal.id, { title: next })}
+                onSave={(next) => db && data.updateGoal(uid, goal.id, { title: next })}
                 className="min-w-0 flex-1 truncate text-sm"
               />
               <span className="shrink-0 font-mono text-[10px] text-muted uppercase">
@@ -271,7 +249,7 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
               {goal.status === "active" && (
                 <button
                   type="button"
-                  onClick={() => db && setGoalStatus(db, uid, goal.id, "completed")}
+                  onClick={() => db && data.setGoalStatus(uid, goal.id, "completed")}
                   className="shrink-0 font-mono text-xs font-bold text-primary uppercase hover:underline"
                 >
                   Complete
@@ -279,14 +257,14 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
               )}
               <button
                 type="button"
-                onClick={() => db && setGoalStatus(db, uid, goal.id, "archived")}
+                onClick={() => db && data.setGoalStatus(uid, goal.id, "archived")}
                 className="shrink-0 font-mono text-xs font-bold text-muted uppercase hover:underline"
               >
                 Archive
               </button>
               <button
                 type="button"
-                onClick={() => db && deleteGoal(db, uid, goal.id)}
+                onClick={() => db && data.deleteGoal(uid, goal.id)}
                 className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
               >
                 Delete
@@ -316,7 +294,7 @@ function ChallengesSection({ challenges, activities, uid }: { challenges: Challe
             <li key={challenge.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
               <RenameField
                 value={challenge.title}
-                onSave={(next) => db && updateChallenge(db, uid, challenge.id, { title: next })}
+                onSave={(next) => db && data.updateChallenge(uid, challenge.id, { title: next })}
                 className="min-w-0 flex-1 truncate text-sm"
               />
               <span className="shrink-0 font-mono text-[10px] text-muted uppercase">
@@ -325,7 +303,7 @@ function ChallengesSection({ challenges, activities, uid }: { challenges: Challe
               {!challenge.archived && (
                 <button
                   type="button"
-                  onClick={() => db && archiveChallenge(db, uid, challenge.id)}
+                  onClick={() => db && data.archiveChallenge(uid, challenge.id)}
                   className="shrink-0 font-mono text-xs font-bold text-muted uppercase hover:underline"
                 >
                   Archive
@@ -333,7 +311,7 @@ function ChallengesSection({ challenges, activities, uid }: { challenges: Challe
               )}
               <button
                 type="button"
-                onClick={() => db && deleteChallenge(db, uid, challenge.id)}
+                onClick={() => db && data.deleteChallenge(uid, challenge.id)}
                 className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
               >
                 Delete
@@ -514,7 +492,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
     setSubmitting(true);
     setError(null);
     try {
-      const reminderId = await createReminder(db, uid, {
+      const reminderId = await data.createReminder(uid, {
         title: title.trim(),
         note: note.trim() || undefined,
         deadline: new Date(deadline).toISOString(),
@@ -537,7 +515,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
   async function handleDelete(reminder: Reminder) {
     try {
       if (db && reminder.recurrence) {
-        await createReminder(db, uid, {
+        await data.createReminder(uid, {
           title: reminder.title,
           note: reminder.note,
           deadline: nextOccurrenceDate(reminder.deadline, reminder.recurrence),
@@ -556,7 +534,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
   ) {
     if (!db) return;
     try {
-      await updateReminder(db, uid, reminderId, patch);
+      await data.updateReminder(uid, reminderId, patch);
       setEditingId(null);
       syncReminderToCalendar(webApiClient, reminderId).catch((err) =>
         console.error("Could not sync reminder to Google Calendar", err),
@@ -694,21 +672,21 @@ export default function DashboardPage() {
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
     const unsubs = [
-      subscribeTasks(db, user.uid, setTasks),
-      subscribeGoals(db, user.uid, setGoals),
-      subscribeChallenges(db, user.uid, setChallenges),
-      subscribeSportActivities(db, user.uid, setActivities),
-      subscribeCalendarEvents(db, user.uid, setEvents, undefined, 3),
-      subscribeDevActivity(db, user.uid, "github", setGithub),
-      subscribeDevActivity(db, user.uid, "gitlab", setGitlab),
-      subscribeReminders(db, user.uid, setReminders),
-      subscribeSpotifySummary(db, user.uid, setSpotify),
-      subscribeDailyLessons(db, user.uid, setLessons),
-      subscribeCodeDrills(db, user.uid, setDrills),
-      subscribeVocabWords(db, user.uid, setVocabWords),
-      subscribeReadingList(db, user.uid, setReadingItems),
+      data.subscribeTasks(user.uid, setTasks),
+      data.subscribeGoals(user.uid, setGoals),
+      data.subscribeChallenges(user.uid, setChallenges),
+      data.subscribeSportActivities(user.uid, setActivities),
+      data.subscribeCalendarEvents(user.uid, setEvents, undefined, 3),
+      data.subscribeDevActivity(user.uid, "github", setGithub),
+      data.subscribeDevActivity(user.uid, "gitlab", setGitlab),
+      data.subscribeReminders(user.uid, setReminders),
+      data.subscribeSpotifySummary(user.uid, setSpotify),
+      data.subscribeDailyLessons(user.uid, setLessons),
+      data.subscribeCodeDrills(user.uid, setDrills),
+      data.subscribeVocabWords(user.uid, setVocabWords),
+      data.subscribeReadingList(user.uid, setReadingItems),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
