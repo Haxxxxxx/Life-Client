@@ -23,3 +23,6 @@ export * from "./vices";
 // Supabase data layer (migration in progress — docs/supabase-migration-plan.md).
 // Names are `*Sb`-suffixed so they sit alongside the Firestore helpers.
 export * from "./supabase";
+// Backend-agnostic facade — `data.subscribeTasks(uid, cb)` etc. Namespaced to
+// avoid clashing with the direct Firestore exports during the transition.
+export * as data from "./data";

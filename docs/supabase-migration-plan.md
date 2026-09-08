@@ -241,11 +241,16 @@ tabs, RLS scoping. Realtime rebuild approach is validated.
   `daily_lessons`, `code_drills` (read-own, server-written); `push_tokens`;
   `oauth_state` + `integration_tokens` (no policy — service-role only). Realtime
   publication for all client-subscribed tables. Re-runnable.
-- [ ] Port `packages/shared` domain modules → `*Sb` (goals, sports, challenges,
-  reminders, finance, vices, knowledge, integrations, devActivity, calendar,
-  spotify, characteristics, pushTokens)
-- [ ] Backend switch so apps flip on `NEXT_PUBLIC_DATA_BACKEND` without rewriting
-  every call site
+- [x] **Backend switch** — `packages/shared/src/data/`: `configureDataBackend({ provider,
+  firestore | client })` once at startup, then `data.subscribeTasks(uid, cb)` etc.
+  dispatch to Firestore or Supabase. Namespaced (`export * as data`) to coexist with
+  the direct Firestore exports during the transition.
+- [~] Port `packages/shared` domain modules → `*Sb` + facade:
+  - [x] tasks, goals
+  - [ ] sports, challenges, reminders, finance, vices, knowledge, integrations,
+    devActivity, calendar, spotify, characteristics, pushTokens
+- [ ] Rewrite app call sites: `subscribeX(db, uid, …)` → `data.subscribeX(uid, …)`
+  (once enough domains are ported to convert a whole page at once)
 - [ ] `integration_tokens` encryption-at-rest (pgsodium/Vault) — before cutover
 
 <details><summary>Phase 0 detail</summary>
