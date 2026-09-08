@@ -5,15 +5,9 @@ import {
   WEEKDAY_LABELS,
   computeBudgetStatus,
   computeMonthlySpend,
-  createBudget,
-  createTransaction,
-  deleteBudget,
-  deleteTransaction,
   describeRecurrence,
   monthKey,
   nextOccurrenceDate,
-  subscribeBudgets,
-  subscribeTransactions,
   type Budget,
   type NewBudget,
   type NewTransaction,
@@ -23,9 +17,9 @@ import {
   type TransactionCategory,
   type TransactionType,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 
 const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.id, c.label])) as Record<
   TransactionCategory,
@@ -237,20 +231,20 @@ export default function MoneyPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeTransactions(db, user.uid, setTransactions, (err) => setError(err.message));
+    if (!user) return;
+    return data.subscribeTransactions(user.uid, setTransactions, (err) => setError(err.message));
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeBudgets(db, user.uid, setBudgets);
+    if (!user) return;
+    return data.subscribeBudgets(user.uid, setBudgets);
   }, [user]);
 
   async function handleAddTransaction(input: NewTransaction) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createTransaction(db, user.uid, input);
+      await data.createTransaction(user.uid, input);
       setTxFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not log transaction");
@@ -258,10 +252,10 @@ export default function MoneyPage() {
   }
 
   async function handleAddBudget(input: NewBudget) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createBudget(db, user.uid, input);
+      await data.createBudget(user.uid, input);
       setBudgetFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not set budget");
@@ -340,7 +334,7 @@ export default function MoneyPage() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => user && db && deleteBudget(db, user.uid, budget.id)}
+                      onClick={() => user && data.deleteBudget(user.uid, budget.id)}
                       className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
                     >
                       Delete
@@ -406,7 +400,7 @@ export default function MoneyPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => user && db && deleteTransaction(db, user.uid, tx.id)}
+                  onClick={() => user && data.deleteTransaction(user.uid, tx.id)}
                   className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
                 >
                   Delete

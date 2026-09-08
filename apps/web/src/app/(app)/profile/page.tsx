@@ -27,19 +27,9 @@ import {
   computeRhythmXp,
   computeVicePenalty,
   levelFromXp,
-  logManualEvent,
   taskCategoryRoast,
-  subscribeCodeDrills,
-  subscribeDailyLessons,
-  subscribeDevActivity,
-  subscribeManualProgress,
-  subscribeReadingList,
-  subscribeSportActivities,
-  subscribeSpotifySummary,
-  subscribeTasks,
-  subscribeViceLogs,
-  subscribeVocabWords,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -216,20 +206,20 @@ export default function ProfilePage() {
   const [viceLogs, setViceLogs] = useState<ViceLog[]>([]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
     const unsubs = [
-      subscribeTasks(db, user.uid, setTasks),
-      subscribeSportActivities(db, user.uid, setActivities),
-      subscribeDevActivity(db, user.uid, "github", setGithub),
-      subscribeDevActivity(db, user.uid, "gitlab", setGitlab),
-      subscribeManualProgress(db, user.uid, "focus", setFocusProgress),
-      subscribeManualProgress(db, user.uid, "social", setSocialProgress),
-      subscribeSpotifySummary(db, user.uid, setSpotify),
-      subscribeDailyLessons(db, user.uid, setLessons),
-      subscribeCodeDrills(db, user.uid, setDrills),
-      subscribeVocabWords(db, user.uid, setVocabWords),
-      subscribeReadingList(db, user.uid, setReadingItems),
-      subscribeViceLogs(db, user.uid, setViceLogs),
+      data.subscribeTasks(user.uid, setTasks),
+      data.subscribeSportActivities(user.uid, setActivities),
+      data.subscribeDevActivity(user.uid, "github", setGithub),
+      data.subscribeDevActivity(user.uid, "gitlab", setGitlab),
+      data.subscribeManualProgress(user.uid, "focus", setFocusProgress),
+      data.subscribeManualProgress(user.uid, "social", setSocialProgress),
+      data.subscribeSpotifySummary(user.uid, setSpotify),
+      data.subscribeDailyLessons(user.uid, setLessons),
+      data.subscribeCodeDrills(user.uid, setDrills),
+      data.subscribeVocabWords(user.uid, setVocabWords),
+      data.subscribeReadingList(user.uid, setReadingItems),
+      data.subscribeViceLogs(user.uid, setViceLogs),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -313,7 +303,7 @@ export default function ProfilePage() {
               manualProgress={manualProgressByCharacteristic[def.id]}
               onLogEvent={
                 def.source === "manual" && user && db
-                  ? (input) => logManualEvent(db!, user.uid, def.id, input)
+                  ? (input) => data.logManualEvent(user.uid, def.id, input)
                   : undefined
               }
             />

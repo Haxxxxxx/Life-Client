@@ -4,12 +4,11 @@ import {
   type NowPlayingTrack,
   type SpotifySummary,
   getNowPlaying,
-  subscribeSpotifySummary,
   syncSpotifyNow,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
 
 const NOW_PLAYING_POLL_MS = 15_000;
@@ -215,8 +214,8 @@ export default function MusicPage() {
   const [summary, setSummary] = useState<SpotifySummary | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeSpotifySummary(db, user.uid, setSummary);
+    if (!user) return;
+    return data.subscribeSpotifySummary(user.uid, setSummary);
   }, [user]);
 
   return (

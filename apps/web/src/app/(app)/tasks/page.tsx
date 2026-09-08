@@ -3,21 +3,16 @@
 import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
-  advanceTaskStatus,
-  createTask,
-  deleteTask,
   describeRecurrence,
-  subscribeGoals,
-  subscribeTasks,
   type Goal,
   type Task,
   type TaskCategory,
   type TaskDifficulty,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 import {
   CATEGORY_LABEL,
   DIFFICULTY_LABEL,
@@ -39,22 +34,22 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeTasks(db, user.uid, setTasks, (err) => setError(err.message));
+    if (!user) return;
+    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeGoals(db, user.uid, setGoals);
+    if (!user) return;
+    return data.subscribeGoals(user.uid, setGoals);
   }, [user]);
 
   async function handleAddTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !db || !title.trim()) return;
+    if (!user || !title.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
-      await createTask(db, user.uid, {
+      await data.createTask(user.uid, {
         title: title.trim(),
         status: "todo",
         priority: "medium",
@@ -194,14 +189,14 @@ export default function TasksPage() {
                 )}
                 <button
                   type="button"
-                  onClick={() => advanceTaskStatus(db!, user!.uid, task, nextStatus(task.status))}
+                  onClick={() => data.advanceTaskStatus(user!.uid, task, nextStatus(task.status))}
                   className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
                 >
                   Mark {STATUS_LABEL[nextStatus(task.status)]}
                 </button>
                 <button
                   type="button"
-                  onClick={() => deleteTask(db!, user!.uid, task.id)}
+                  onClick={() => data.deleteTask(user!.uid, task.id)}
                   className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
                 >
                   Delete

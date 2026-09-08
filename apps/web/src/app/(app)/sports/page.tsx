@@ -7,21 +7,15 @@ import {
   type ChallengeMetric,
   type SportActivity,
   type SportActivityKind,
-  archiveChallenge,
   computeChallengeMilestones,
   computeChallengeProgress,
   createChallenge,
-  createManualSportActivity,
-  deleteChallenge,
-  deleteSportActivity,
-  subscribeChallenges,
-  subscribeSportActivities,
   updateChallenge,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 
 function formatDistance(meters?: number): string {
   if (!meters) return "—";
@@ -547,15 +541,15 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeChallenges(db, user.uid, setChallenges, (err) => setError(err.message));
+    if (!user) return;
+    return data.subscribeChallenges(user.uid, setChallenges, (err) => setError(err.message));
   }, [user]);
 
   async function handleCreate(input: Parameters<typeof createChallenge>[2]) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createChallenge(db, user.uid, input);
+      await data.createChallenge(user.uid, input);
       setFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start challenge");
@@ -565,11 +559,11 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   // Logs an activity that matches this challenge's own exerciseType/metric —
   // avoids the user having to guess the exact type string themselves.
   async function handleLogToday(challenge: Challenge) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     const kind: SportActivityKind = challenge.metric === "distanceMeters" ? "endurance" : "strength";
     try {
-      await createManualSportActivity(db, user.uid, {
+      await data.createManualSportActivity(user.uid, {
         kind,
         type: challenge.exerciseType,
         name: challenge.exerciseType,
@@ -611,9 +605,9 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               key={challenge.id}
               challenge={challenge}
               activities={activities}
-              onArchive={() => user && db && archiveChallenge(db, user.uid, challenge.id)}
-              onDelete={() => user && db && deleteChallenge(db, user.uid, challenge.id)}
-              onSave={(patch) => user && db && updateChallenge(db, user.uid, challenge.id, patch)}
+              onArchive={() => user && data.archiveChallenge(user.uid, challenge.id)}
+              onDelete={() => user && data.deleteChallenge(user.uid, challenge.id)}
+              onSave={(patch) => user && data.updateChallenge(user.uid, challenge.id, patch)}
               onLogToday={() => handleLogToday(challenge)}
             />
           ))}
@@ -638,8 +632,8 @@ export default function SportsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeSportActivities(db, user.uid, (a) => {
+    if (!user) return;
+    return data.subscribeSportActivities(user.uid, (a) => {
       setActivities(a);
       setLoaded(true);
     });
@@ -654,10 +648,10 @@ export default function SportsPage() {
     sets: number;
     weightKg: number;
   }) {
-    if (!user || !db) return;
+    if (!user) return;
     setError(null);
     try {
-      await createManualSportActivity(db, user.uid, {
+      await data.createManualSportActivity(user.uid, {
         kind: input.kind,
         type: input.type,
         name: input.type,
@@ -740,10 +734,10 @@ export default function SportsPage() {
                   </div>
                 </>
               )}
-              {activity.provider === "manual" && user && db && (
+              {activity.provider === "manual" && user && (
                 <button
                   type="button"
-                  onClick={() => deleteSportActivity(db!, user.uid, activity.id)}
+                  onClick={() => data.deleteSportActivity(user.uid, activity.id)}
                   className="text-red-600 hover:underline"
                 >
                   Delete

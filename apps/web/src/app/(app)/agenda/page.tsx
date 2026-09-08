@@ -3,13 +3,12 @@
 import {
   createCalendarEvent,
   deleteCalendarEvent,
-  subscribeCalendarEvents,
   updateCalendarEvent,
   type CalendarEvent,
 } from "@life-client/shared";
+import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
 
 function isAllDay(event: CalendarEvent): boolean {
@@ -151,8 +150,8 @@ export default function AgendaPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
-    return subscribeCalendarEvents(db, user.uid, setEvents, (err) => setError(err.message), 50);
+    if (!user) return;
+    return data.subscribeCalendarEvents(user.uid, setEvents, (err) => setError(err.message), 50);
   }, [user]);
 
   async function handleCreate(input: { title: string; start: string; end: string; location?: string }) {
