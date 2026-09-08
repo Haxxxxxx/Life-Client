@@ -245,12 +245,17 @@ tabs, RLS scoping. Realtime rebuild approach is validated.
   firestore | client })` once at startup, then `data.subscribeTasks(uid, cb)` etc.
   dispatch to Firestore or Supabase. Namespaced (`export * as data`) to coexist with
   the direct Firestore exports during the transition.
-- [~] Port `packages/shared` domain modules → `*Sb` + facade:
-  - [x] tasks, goals
-  - [ ] sports, challenges, reminders, finance, vices, knowledge, integrations,
-    devActivity, calendar, spotify, characteristics, pushTokens
+- [x] Port all 14 `packages/shared` domain modules → `supabase/*.ts` + `data/*.ts`
+  facade: tasks, goals, sports, challenges, reminders, finance, vices, calendar,
+  spotify, devActivity, integrations, pushTokens, knowledge, characteristics.
+- [x] Schema follow-up (`…_phase1_fixes_and_functions.sql`): composite PKs
+  `(user_id, id)` on tasks / sport_activities / calendar_events / daily_lessons
+  (two users can share an id); `log_vice()` RPC for the atomic slip + task write.
 - [ ] Rewrite app call sites: `subscribeX(db, uid, …)` → `data.subscribeX(uid, …)`
-  (once enough domains are ported to convert a whole page at once)
+  — per app: web (~12 pages), then knowledge, then mobile
+- [ ] `configureDataBackend(...)` at each app's startup, driven by
+  `NEXT_PUBLIC_DATA_BACKEND`
+- [ ] `integration_tokens` encryption-at-rest (pgsodium/Vault) — before cutover
 - [ ] `integration_tokens` encryption-at-rest (pgsodium/Vault) — before cutover
 
 <details><summary>Phase 0 detail</summary>
