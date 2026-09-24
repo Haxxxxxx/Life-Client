@@ -8,6 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -81,42 +82,21 @@ function EventForm({
   });
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-4">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Event title"
-        className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
-      />
-      <input
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        placeholder="Location (optional)"
-        className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted"
-      />
+    <Card className="flex flex-col gap-2">
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" />
+      <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" />
       <div className="flex gap-2">
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
           Start
-          <input
-            type="datetime-local"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
-          />
+          <Input type="datetime-local" size="sm" value={start} onChange={(e) => setStart(e.target.value)} />
         </label>
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
           End
-          <input
-            type="datetime-local"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
-          />
+          <Input type="datetime-local" size="sm" value={end} onChange={(e) => setEnd(e.target.value)} />
         </label>
       </div>
       <div className="flex gap-3">
-        <button
-          type="button"
+        <Button
           disabled={!title.trim() || !start || !end}
           onClick={() =>
             onSubmit({
@@ -126,19 +106,14 @@ function EventForm({
               location: location.trim() || undefined,
             })
           }
-          className="rounded-md border-2 border-foreground bg-primary px-4 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
         >
           {submitLabel}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-muted uppercase hover:bg-foreground/5"
-        >
+        </Button>
+        <Button variant="ghost" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -193,27 +168,21 @@ export default function AgendaPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Agenda</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">Calendar</h1>
-          <p className="text-sm text-muted">
-            Upcoming events synced from Google Calendar, over the next 7 days.
-          </p>
-        </div>
-        {!formOpen && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="shrink-0 rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
-            New event
-          </button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Agenda"
+        title="Calendar"
+        description="Upcoming events synced from Google Calendar, over the next 7 days."
+        action={
+          !formOpen && (
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              New event
+            </Button>
+          )
+        }
+      />
 
       {formOpen && <EventForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} submitLabel="Create" />}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
 
       {groups.length === 0 && !formOpen && (
         <div className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
@@ -225,9 +194,7 @@ export default function AgendaPage() {
       <div className="flex flex-col gap-5">
         {groups.map((group) => (
           <div key={group.key} className="flex flex-col gap-2">
-            <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
-              {dayLabel(group.key)}
-            </p>
+            <Eyebrow>{dayLabel(group.key)}</Eyebrow>
             <ul className="flex flex-col gap-2">
               {group.events.map((event) =>
                 editingId === event.id ? (
@@ -263,7 +230,7 @@ export default function AgendaPage() {
                         <button
                           type="button"
                           onClick={() => handleDelete(event.id)}
-                          className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
+                          className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
                         >
                           Delete
                         </button>

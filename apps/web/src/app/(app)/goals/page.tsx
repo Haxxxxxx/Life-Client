@@ -11,6 +11,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function daysUntil(dateStr: string): number {
@@ -26,37 +27,22 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
   const [targetDate, setTargetDate] = useState("");
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
-      <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">New goal</p>
+    <Card className="flex flex-col gap-3">
+      <Eyebrow>New goal</Eyebrow>
 
       <label className="flex flex-col gap-1">
         <span className="font-mono text-xs text-muted uppercase">What are you working toward?</span>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Ship WeSplit v2"
-          className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
-        />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Ship WeSplit v2" />
       </label>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <label className="flex flex-1 flex-col gap-1">
           <span className="font-mono text-xs text-muted uppercase">Description</span>
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional context"
-            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
-          />
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional context" />
         </label>
         <label className="flex flex-col gap-1">
           <span className="font-mono text-xs text-muted uppercase">Target date</span>
-          <input
-            type="date"
-            value={targetDate}
-            onChange={(e) => setTargetDate(e.target.value)}
-            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm"
-          />
+          <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
         </label>
       </div>
 
@@ -77,8 +63,8 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
       )}
 
       <div className="flex gap-3">
-        <button
-          type="button"
+        <Button
+          size="sm"
           disabled={!title.trim()}
           onClick={() =>
             onSubmit({
@@ -87,19 +73,14 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
               targetDate: targetDate || undefined,
             })
           }
-          className="rounded-md border-2 border-foreground bg-primary px-4 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
         >
           Set goal
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-muted uppercase hover:bg-foreground/5"
-        >
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -138,7 +119,7 @@ function GoalCard({
   const days = goal.targetDate ? daysUntil(goal.targetDate) : null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
+    <Card className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         {editing ? (
           <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -188,7 +169,7 @@ function GoalCard({
             <p className="font-bold hover:underline">{goal.title}</p>
             {goal.description && <p className="text-xs text-muted">{goal.description}</p>}
             {days !== null && (
-              <p className={`font-mono text-xs uppercase ${days < 0 ? "text-red-600" : "text-muted"}`}>
+              <p className={`font-mono text-xs uppercase ${days < 0 ? "text-danger" : "text-muted"}`}>
                 {days < 0
                   ? `${Math.abs(days)}d overdue`
                   : days === 0
@@ -227,7 +208,7 @@ function GoalCard({
               <button
                 type="button"
                 onClick={onDelete}
-                className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                className="font-mono text-xs font-bold text-danger uppercase hover:underline"
               >
                 Delete
               </button>
@@ -315,7 +296,7 @@ function GoalCard({
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -406,42 +387,27 @@ export default function GoalsPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Long-term</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">Goals</h1>
-          <p className="text-sm text-muted">
-            Bigger objectives made up of several Tasks — progress tracks automatically as you complete them.
-          </p>
-        </div>
-        {!formOpen && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="shrink-0 rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
-            New goal
-          </button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Long-term"
+        title="Goals"
+        description="Bigger objectives made up of several Tasks — progress tracks automatically as you complete them."
+        action={
+          !formOpen && (
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              New goal
+            </Button>
+          )
+        }
+      />
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
-          <p className="text-2xl font-bold text-primary">{activeGoals.length}</p>
-          <p className="font-mono text-[10px] text-muted uppercase">Active</p>
-        </div>
-        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
-          <p className="text-2xl font-bold">{completedGoals.length}</p>
-          <p className="font-mono text-[10px] text-muted uppercase">Completed</p>
-        </div>
-        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
-          <p className="text-2xl font-bold">{overallPercent}%</p>
-          <p className="font-mono text-[10px] text-muted uppercase">Avg. progress</p>
-        </div>
+        <StatTile value={activeGoals.length} label="Active" tone="primary" />
+        <StatTile value={completedGoals.length} label="Completed" />
+        <StatTile value={`${overallPercent}%`} label="Avg. progress" />
       </div>
 
       {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
 
       {activeGoals.length > 0 && <div className="flex flex-col gap-3">{activeGoals.map(renderGoalCard)}</div>}
 
@@ -462,9 +428,8 @@ export default function GoalsPage() {
 
       <div className="flex flex-col gap-2 border-t-2 border-dashed border-foreground/20 pt-6">
         <div>
-          <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">Slipped up?</p>
-          <h2 className="text-lg font-bold tracking-tight">Log a slip</h2>
-          <p className="text-sm text-muted">
+          <SectionHeader eyebrow="Slipped up?" title="Log a slip" />
+          <p className="mt-1 text-sm text-muted">
             Docks XP from a relevant stat and auto-creates a compensating task — complete it to refund the XP.
           </p>
         </div>
@@ -503,7 +468,7 @@ export default function GoalsPage() {
                   <button
                     type="button"
                     onClick={() => user && data.deleteViceLog(user.uid, v.id)}
-                    className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                    className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
                   >
                     Dismiss
                   </button>

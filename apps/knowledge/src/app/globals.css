@@ -9,6 +9,10 @@
   --primary-foreground: #fff8ed;
   --accent: #efa63c;
   --border: rgba(43, 27, 18, 0.14);
+  --success: #3f7d3a;
+  --danger: #c23b2e;
+  --warning: #b9781f;
+  --info: #2c6e8e;
 }
 
 @theme inline {
@@ -20,6 +24,10 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-border: var(--border);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --font-sans: var(--font-display);
   --font-mono: var(--font-mono-retro);
 }
@@ -34,6 +42,10 @@
     --primary-foreground: #22140b;
     --accent: #f2b45c;
     --border: rgba(245, 232, 216, 0.14);
+    --success: #7ac36a;
+    --danger: #ef6b5a;
+    --warning: #f2b45c;
+    --info: #6fc1e0;
   }
 }
 
@@ -42,4 +54,11 @@ body {
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 45%),
     var(--background);
   color: var(--foreground);
+}
+
+/* Keyboard-focus ring — visible only for keyboard nav, matches the hard-shadow retro style. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }

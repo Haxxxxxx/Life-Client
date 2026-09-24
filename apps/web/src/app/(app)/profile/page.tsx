@@ -31,17 +31,9 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { Button, Card, Eyebrow, PageHeader, ProgressBar } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
-
-function ProgressBar({ progress }: { progress: number }) {
-  const pct = Math.min(100, Math.max(0, progress * 100));
-  return (
-    <div className="h-3 w-full overflow-hidden rounded-full border-2 border-foreground bg-surface">
-      <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
 
 const EVENT_TYPE_LABEL = Object.fromEntries(MANUAL_EVENT_TYPES.map((t) => [t.id, t.label])) as Record<
   ManualEventType,
@@ -116,12 +108,9 @@ function LogEventForm({
         placeholder={NOTE_PLACEHOLDER[characteristicId] ?? "Notes (optional)"}
         className="w-full rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm outline-none placeholder:text-muted"
       />
-      <button
-        type="submit"
-        className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-      >
+      <Button type="submit" size="sm">
         Log it
-      </button>
+      </Button>
     </form>
   );
 }
@@ -145,7 +134,7 @@ function CharacteristicCard({
       : taskCategoryRoast(def.id as TaskCategory, level.level);
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
+    <Card className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-bold">{def.label}</p>
@@ -161,13 +150,9 @@ function CharacteristicCard({
           {level.xpIntoLevel} / {level.xpForNextLevel} XP
         </p>
         {onLogEvent && !formOpen && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="rounded-md border-2 border-foreground px-3 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20"
-          >
+          <Button variant="secondary" size="sm" onClick={() => setFormOpen(true)}>
             Log event
-          </button>
+          </Button>
         )}
       </div>
       {manualProgress?.lastEventType && !formOpen && (
@@ -186,7 +171,7 @@ function CharacteristicCard({
           }}
         />
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -267,12 +252,9 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div>
-        <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">You</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Profile</h1>
-      </div>
+      <PageHeader eyebrow="You" title="Profile" />
 
-      <div className="flex items-center gap-4 rounded-md border-2 border-foreground bg-surface p-4">
+      <Card className="flex items-center gap-4">
         {user?.photoURL && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -288,12 +270,10 @@ export default function ProfilePage() {
             <p className="mt-1 font-mono text-xs text-muted uppercase">Member since {memberSince}</p>
           )}
         </div>
-      </div>
+      </Card>
 
       <div>
-        <p className="mb-3 font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
-          Core Stats
-        </p>
+        <Eyebrow className="mb-3">Core Stats</Eyebrow>
         <div className="grid gap-3 sm:grid-cols-2">
           {coreCharacteristics.map((def) => (
             <CharacteristicCard
@@ -312,9 +292,7 @@ export default function ProfilePage() {
       </div>
 
       <div>
-        <p className="mb-3 font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
-          Task Categories
-        </p>
+        <Eyebrow className="mb-3">Task Categories</Eyebrow>
         <div className="grid gap-3 sm:grid-cols-2">
           {categoryCharacteristics.map((def) => (
             <CharacteristicCard key={def.id} def={def} totalXp={xpByCharacteristic[def.id] ?? 0} />

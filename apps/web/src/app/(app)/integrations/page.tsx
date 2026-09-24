@@ -8,6 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { Button, Card, PageHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -96,13 +97,11 @@ export default function IntegrationsPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div>
-        <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Connect</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Integrations</h1>
-        <p className="text-sm text-muted">
-          Link the tools you already use so Life Client stays up to date on its own.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Connect"
+        title="Integrations"
+        description="Link the tools you already use so Life Client stays up to date on its own."
+      />
 
       <div className="grid gap-3 sm:grid-cols-2">
         {PROVIDER_ORDER.map((provider) => {
@@ -111,10 +110,7 @@ export default function IntegrationsPage() {
           const connected = connection?.status === "connected";
           const errored = connection?.status === "error";
           return (
-            <div
-              key={provider}
-              className="flex flex-col justify-between gap-4 rounded-md border-2 border-foreground bg-surface p-4"
-            >
+            <Card key={provider} className="flex flex-col justify-between gap-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -129,7 +125,7 @@ export default function IntegrationsPage() {
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <span
                   className={`min-w-0 flex-1 truncate font-mono text-[10px] font-bold tracking-wide uppercase ${
-                    connected ? "text-primary" : errored ? "text-red-600" : "text-muted"
+                    connected ? "text-primary" : errored ? "text-danger" : "text-muted"
                   }`}
                 >
                   {connected
@@ -140,14 +136,14 @@ export default function IntegrationsPage() {
                 </span>
                 <div className="flex shrink-0 items-center gap-2">
                   {connected && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => handleSync(provider)}
                       disabled={!user || syncing === provider}
-                      className="rounded-md border-2 border-foreground bg-surface px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition hover:bg-accent/20 disabled:opacity-50"
                     >
                       {syncing === provider ? "Syncing…" : "Sync now"}
-                    </button>
+                    </Button>
                   )}
                   <a
                     href={
@@ -162,7 +158,7 @@ export default function IntegrationsPage() {
                       !user
                         ? "pointer-events-none opacity-40"
                         : connected
-                          ? "bg-surface hover:bg-red-600/10"
+                          ? "bg-surface hover:bg-danger/10"
                           : "bg-primary text-primary-foreground hover:-translate-y-0.5"
                     }`}
                   >
@@ -174,16 +170,16 @@ export default function IntegrationsPage() {
                 <p className="text-[10px] text-muted">Last synced {relativeTime(connection.lastSyncAt)}</p>
               )}
               {syncResult?.provider === provider && (
-                <p className={`text-[10px] ${syncResult.ok ? "text-primary" : "text-red-600"}`}>
+                <p className={`text-[10px] ${syncResult.ok ? "text-primary" : "text-danger"}`}>
                   {syncResult.text}
                 </p>
               )}
               {errored && connection?.lastError && syncResult?.provider !== provider && (
-                <p className="truncate text-[10px] text-red-600" title={connection.lastError}>
+                <p className="truncate text-[10px] text-danger" title={connection.lastError}>
                   {connection.lastError}
                 </p>
               )}
-            </div>
+            </Card>
           );
         })}
       </div>

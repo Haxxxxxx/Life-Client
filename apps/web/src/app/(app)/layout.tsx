@@ -36,7 +36,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <main className="flex flex-1 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted">
+      <main className="flex flex-1 items-center justify-center gap-2 font-mono text-xs uppercase tracking-widest text-muted">
+        <span
+          aria-hidden
+          className="h-3 w-3 animate-pulse rounded-full border-2 border-foreground bg-primary"
+        />
         Loading…
       </main>
     );
@@ -46,9 +50,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-1 flex-col md:flex-row">
       <aside className="sticky top-0 z-10 flex max-h-screen shrink-0 flex-col justify-between overflow-y-auto border-b-2 border-foreground bg-surface p-4 md:h-screen md:w-56 md:border-b-0 md:border-r-2 md:p-6">
         <div>
-          <p className="mb-6 text-lg font-bold tracking-tight">
+          <Link href="/dashboard" className="mb-6 block text-lg font-bold tracking-tight">
             Life <span className="text-primary">Client</span>
-          </p>
+          </Link>
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
@@ -64,6 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={`shrink-0 rounded-md border-2 px-3 py-2 font-mono text-xs font-bold tracking-wide uppercase transition ${
                     active
                       ? "border-foreground bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)]"

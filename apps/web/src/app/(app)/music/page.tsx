@@ -8,19 +8,11 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { Button, Card, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
 const NOW_PLAYING_POLL_MS = 15_000;
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div>
-      <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">{eyebrow}</p>
-      <h2 className="mt-1 text-xl font-bold tracking-tight">{title}</h2>
-    </div>
-  );
-}
 
 function formatMs(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -85,9 +77,9 @@ function NowPlayingSection() {
   return (
     <section className="flex flex-col gap-3">
       <SectionHeader eyebrow="Live" title="Now Playing" />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
       {nowPlaying?.isPlaying && track ? (
-        <div className="flex items-center gap-4 rounded-md border-2 border-foreground bg-surface p-4">
+        <Card className="flex items-center gap-4">
           {track.albumArtUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -111,7 +103,7 @@ function NowPlayingSection() {
               </p>
             </div>
           </div>
-        </div>
+        </Card>
       ) : (
         <div className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
           Nothing playing right now.
@@ -141,16 +133,11 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <SectionHeader eyebrow="History" title="Recently Played" />
-        <button
-          type="button"
-          onClick={handleSync}
-          disabled={syncing}
-          className="shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
-        >
+        <Button variant="secondary" size="sm" onClick={handleSync} disabled={syncing}>
           {syncing ? "Syncing…" : "Sync now"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
       <ul className="flex max-h-[352px] flex-col gap-2 overflow-y-auto pr-1">
         {(summary?.recentTracks ?? []).map((track) => (
           <li
@@ -185,12 +172,12 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
     <section className="flex flex-col gap-3">
       <SectionHeader eyebrow="Stats" title="Top Artists" />
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-md border-2 border-foreground bg-surface p-4">
+        <Card>
           <p className="font-mono text-xs font-bold text-primary uppercase">Recent listening</p>
           <p className="mt-1 text-2xl font-bold">{summary?.totalMinutesRecent ?? 0} min</p>
           <p className="text-sm text-muted">across your last {summary?.recentTracks.length ?? 0} tracks</p>
-        </div>
-        <div className="rounded-md border-2 border-foreground bg-surface p-4">
+        </Card>
+        <Card>
           <p className="mb-2 font-mono text-xs font-bold text-primary uppercase">Top artists</p>
           <div className="flex flex-wrap gap-1.5">
             {(summary?.topArtists ?? []).map((artist) => (
@@ -203,7 +190,7 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
             ))}
             {(!summary || summary.topArtists.length === 0) && <p className="text-sm text-muted">Nothing yet.</p>}
           </div>
-        </div>
+        </Card>
       </div>
     </section>
   );
@@ -220,11 +207,7 @@ export default function MusicPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-10">
-      <div>
-        <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Listen</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Music</h1>
-        <p className="text-sm text-muted">Your Spotify listening — live, recent, and in aggregate.</p>
-      </div>
+      <PageHeader eyebrow="Listen" title="Music" description="Your Spotify listening — live, recent, and in aggregate." />
       <NowPlayingSection />
       <RecentTracksSection summary={summary} />
       <StatsSection summary={summary} />

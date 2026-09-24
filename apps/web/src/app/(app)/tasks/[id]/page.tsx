@@ -11,12 +11,12 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { Badge, Button, Card, Eyebrow } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { EditTaskForm } from "../_components";
 import {
   CATEGORY_LABEL,
   DIFFICULTY_LABEL,
-  PILL,
   PR_CHECK_STYLE,
   PR_REVIEW_STYLE,
   PR_STATE_STYLE,
@@ -39,14 +39,14 @@ function PrPanel({ task }: { task: Task }) {
       label: "State",
       value: (
         <span className="flex items-center gap-2">
-          <span className={`${PILL} ${state.cls}`}>{state.label}</span>
+          <Badge tone={state.tone}>{state.label}</Badge>
           {meta.resolvedAt && <span className="text-xs text-muted">{relativeTime(meta.resolvedAt)}</span>}
         </span>
       ),
     },
   ];
-  if (check) rows.push({ label: "CI", value: <span className={`${PILL} ${check.cls}`}>{check.label}</span> });
-  if (review) rows.push({ label: "Review", value: <span className={`${PILL} ${review.cls}`}>{review.label}</span> });
+  if (check) rows.push({ label: "CI", value: <Badge tone={check.tone}>{check.label}</Badge> });
+  if (review) rows.push({ label: "Review", value: <Badge tone={review.tone}>{review.label}</Badge> });
   if (meta.headRef || meta.baseRef)
     rows.push({
       label: "Branch",
@@ -61,8 +61,8 @@ function PrPanel({ task }: { task: Task }) {
       label: "Size",
       value: (
         <span className="font-mono text-xs">
-          <span className="text-green-700">+{meta.additions ?? 0}</span>{" "}
-          <span className="text-red-600">−{meta.deletions ?? 0}</span>
+          <span className="text-success">+{meta.additions ?? 0}</span>{" "}
+          <span className="text-danger">−{meta.deletions ?? 0}</span>
         </span>
       ),
     });
@@ -98,9 +98,9 @@ function PrPanel({ task }: { task: Task }) {
   const events = [...((task.prEvents as PrEvent[] | undefined) ?? [])].reverse();
 
   return (
-    <div className="flex flex-col gap-4 rounded-md border-2 border-foreground bg-surface p-4">
+    <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">Pull request</p>
+        <Eyebrow>Pull request</Eyebrow>
         {task.sourceUrl && (
           <a
             href={task.sourceUrl}
@@ -137,7 +137,7 @@ function PrPanel({ task }: { task: Task }) {
           </ul>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -199,19 +199,15 @@ export default function TaskDetailPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           {STATUS_ORDER.map((s: TaskStatus) => (
-            <button
+            <Button
               key={s}
-              type="button"
+              size="sm"
+              variant={task.status === s ? "primary" : "secondary"}
               onClick={() => data.advanceTaskStatus(user.uid, task, s)}
               disabled={task.status === s}
-              className={`rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase transition ${
-                task.status === s
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-surface hover:bg-accent/20"
-              }`}
             >
               {STATUS_LABEL[s]}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -230,9 +226,9 @@ export default function TaskDetailPage() {
 
       <PrPanel task={task} />
 
-      <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
+      <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">Edit</p>
+          <Eyebrow>Edit</Eyebrow>
           {!editing && (
             <button
               type="button"
@@ -256,7 +252,7 @@ export default function TaskDetailPage() {
         ) : (
           <p className="text-xs text-muted">Title, category, difficulty, priority, due date, goal and repeat.</p>
         )}
-      </div>
+      </Card>
 
       <div className="flex flex-wrap items-center gap-2">
         {task.sourceUrl && (
@@ -269,16 +265,16 @@ export default function TaskDetailPage() {
             View on {task.source === "gitlab" ? "GitLab" : "GitHub"} ↗
           </a>
         )}
-        <button
-          type="button"
+        <Button
+          variant="danger"
+          size="sm"
           onClick={async () => {
             await data.deleteTask(user.uid, task.id);
             router.push("/tasks");
           }}
-          className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
         >
           Delete task
-        </button>
+        </Button>
       </div>
     </div>
   );

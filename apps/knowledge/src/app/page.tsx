@@ -23,17 +23,9 @@ import {
 import { data } from "@life-client/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Badge, Button, Card, ErrorText, Eyebrow, Input, ProgressBar, SectionHeader, Textarea } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { knowledgeApiClient } from "@/lib/knowledgeClient";
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div>
-      <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">{eyebrow}</p>
-      <h2 className="mt-1 text-xl font-bold tracking-tight">{title}</h2>
-    </div>
-  );
-}
 
 function DailyLessonSection() {
   const { user } = useAuth();
@@ -68,20 +60,20 @@ function DailyLessonSection() {
         <p className="text-sm text-muted">Loading…</p>
       ) : lesson ? (
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-md border-2 border-foreground bg-surface p-4">
+          <Card>
             <p className="font-mono text-xs font-bold text-primary uppercase">Code Concept</p>
             <p className="mt-1 font-bold">{lesson.codeConcept}</p>
             <p className="mt-1 text-sm text-muted">{lesson.codeExplanation}</p>
-          </div>
-          <div className="rounded-md border-2 border-foreground bg-surface p-4">
+          </Card>
+          <Card>
             <p className="font-mono text-xs font-bold text-primary uppercase">
               New Word{lesson.wordLanguage ? ` · ${lesson.wordLanguage.toUpperCase()}` : ""}
             </p>
             <p className="mt-1 font-bold">{lesson.word}</p>
             <p className="mt-1 text-sm text-muted">{lesson.wordDefinition}</p>
             <p className="mt-1 text-sm italic text-muted">&ldquo;{lesson.wordExample}&rdquo;</p>
-          </div>
-          <div className="rounded-md border-2 border-foreground bg-surface p-4">
+          </Card>
+          <Card>
             <p className="font-mono text-xs font-bold text-primary uppercase">Read About</p>
             {lesson.articleSource && (
               <p className="mt-1 font-mono text-[10px] font-bold text-muted uppercase">{lesson.articleSource}</p>
@@ -98,22 +90,17 @@ function DailyLessonSection() {
                 Read the article →
               </a>
             )}
-          </div>
+          </Card>
         </div>
       ) : (
         <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center">
           <p className="mb-3 text-sm text-muted">No lesson generated yet today.</p>
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={generating}
-            className="rounded-md border-2 border-foreground bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-          >
+          <Button onClick={handleGenerate} disabled={generating}>
             {generating ? "Generating…" : "Generate today's lesson"}
-          </button>
+          </Button>
         </div>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
     </section>
   );
 }
@@ -200,21 +187,16 @@ function CodeRunner() {
   return (
     <div className="mt-3 flex flex-col gap-2 rounded-md border-2 border-foreground/20 bg-background p-3">
       <p className="font-mono text-xs font-bold text-primary uppercase">Try it — JS/TS scratchpad</p>
-      <textarea
+      <Textarea
         value={code}
         onChange={(e) => setCode(e.target.value)}
         spellCheck={false}
         rows={6}
-        className="w-full resize-y rounded-md border-2 border-foreground bg-surface px-3 py-2 font-mono text-sm outline-none focus:shadow-[2px_2px_0_0_var(--primary)]"
+        className="bg-surface font-mono"
       />
-      <button
-        type="button"
-        onClick={handleRun}
-        disabled={running}
-        className="self-start rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-      >
+      <Button size="sm" className="self-start" onClick={handleRun} disabled={running}>
         {running ? "Running…" : "Run"}
-      </button>
+      </Button>
       {(outcome || timedOut) && (
         <div className="rounded-md border-2 border-foreground/30 bg-black p-3 font-mono text-xs text-green-400">
           {timedOut && (
@@ -290,7 +272,7 @@ function DrillCard({
             type="button"
             onClick={onDelete}
             disabled={deleting}
-            className="font-mono text-xs font-bold text-red-600 uppercase hover:underline disabled:opacity-50"
+            className="font-mono text-xs font-bold text-danger uppercase hover:underline disabled:opacity-50"
           >
             {deleting ? "Deleting…" : "Delete"}
           </button>
@@ -300,22 +282,16 @@ function DrillCard({
 
       {!result && (
         <div className="mt-2 flex flex-col gap-2">
-          <textarea
+          <Textarea
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             placeholder="Type your answer or explanation…"
             rows={3}
-            className="w-full resize-y rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
           />
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting || !answer.trim()}
-              className="rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-            >
+            <Button size="sm" onClick={handleSubmit} disabled={submitting || !answer.trim()}>
               {submitting ? "Grading…" : "Submit answer"}
-            </button>
+            </Button>
             {!revealed && (
               <button
                 type="button"
@@ -337,12 +313,12 @@ function DrillCard({
         </div>
       )}
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      <ErrorText className="mt-2">{error}</ErrorText>
 
       {result && (
         <div
           className={`mt-2 rounded-md border-2 p-3 ${
-            result.correct ? "border-green-600 bg-green-600/10" : "border-red-600 bg-red-600/10"
+            result.correct ? "border-success bg-success/10" : "border-danger bg-danger/10"
           }`}
         >
           <p className="font-mono text-xs font-bold uppercase">
@@ -410,13 +386,9 @@ function PastDrillRow({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {drill.graded ? (
-          <span
-            className={`rounded-full border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
-              drill.correct ? "border-green-600 text-green-700" : "border-red-600 text-red-700"
-            }`}
-          >
+          <Badge tone={drill.correct ? "success" : "danger"}>
             {typeof drill.score === "number" ? `${drill.score}/10` : drill.correct ? "Correct" : "Missed"}
-          </span>
+          </Badge>
         ) : (
           <span className="font-mono text-[10px] font-bold text-muted uppercase">Skipped</span>
         )}
@@ -424,7 +396,7 @@ function PastDrillRow({
           type="button"
           onClick={onDelete}
           disabled={deleting}
-          className="font-mono text-[10px] font-bold text-red-600 uppercase hover:underline disabled:opacity-50"
+          className="font-mono text-[10px] font-bold text-danger uppercase hover:underline disabled:opacity-50"
         >
           {deleting ? "…" : "Delete"}
         </button>
@@ -475,12 +447,12 @@ function CodeDrillsSection() {
   return (
     <section className="flex flex-col gap-3">
       <SectionHeader eyebrow="Practice" title="Code Drills" />
-      <div className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-3">
-        <input
+      <Card padding="sm" className="flex flex-col gap-2">
+        <Input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="Topic (optional) — e.g. recursion, closures, Big O…"
-          className="min-w-0 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          className="min-w-0"
         />
         <div className="flex flex-wrap items-center gap-2">
           {DIFFICULTIES.map((d) => (
@@ -495,17 +467,12 @@ function CodeDrillsSection() {
               {d.label}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={generating}
-            className="ml-auto rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-          >
+          <Button size="sm" className="ml-auto" onClick={handleGenerate} disabled={generating}>
             {generating ? "Generating…" : "Generate drill"}
-          </button>
+          </Button>
         </div>
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      </Card>
+      <ErrorText>{error}</ErrorText>
       <ul className="flex flex-col gap-2">
         {drills[0] ? (
           <DrillCard
@@ -586,25 +553,19 @@ function VocabCard({ w }: { w: VocabWord }) {
       </div>
       <div className="mt-3 flex flex-col gap-2 border-t-2 border-foreground/10 pt-3">
         <p className="font-mono text-xs font-bold text-primary uppercase">Practice it</p>
-        <input
+        <Input
           value={sentence}
           onChange={(e) => setSentence(e.target.value)}
           placeholder={`Write a sentence using "${w.word}"…`}
-          className="w-full rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
         />
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={submitting || !sentence.trim()}
-          className="self-start rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-        >
+        <Button size="sm" className="self-start" onClick={handleSubmit} disabled={submitting || !sentence.trim()}>
           {submitting ? "Checking…" : "Check my sentence"}
-        </button>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        </Button>
+        <ErrorText>{error}</ErrorText>
         {result && (
           <div
             className={`rounded-md border-2 p-3 ${
-              result.correct ? "border-green-600 bg-green-600/10" : "border-red-600 bg-red-600/10"
+              result.correct ? "border-success bg-success/10" : "border-danger bg-danger/10"
             }`}
           >
             <p className="font-mono text-xs font-bold uppercase">{result.correct ? "Nice, that works" : "Not quite"}</p>
@@ -621,7 +582,7 @@ function DictionaryEntry({ w }: { w: VocabWord }) {
     <li className="rounded-md border-2 border-foreground/20 p-3">
       <div className="flex items-baseline justify-between gap-2">
         <p className="font-bold">{w.word}</p>
-        <span className="shrink-0 font-mono text-[10px] font-bold text-green-700 uppercase">Learned</span>
+        <span className="shrink-0 font-mono text-[10px] font-bold text-success uppercase">Learned</span>
       </div>
       <p className="mt-1 text-sm text-muted">{w.definition}</p>
       {w.practiceSentence && <p className="mt-1 text-sm italic text-muted">&ldquo;{w.practiceSentence}&rdquo;</p>}
@@ -662,16 +623,11 @@ function VocabularySection() {
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <SectionHeader eyebrow="Vocabulary" title="New Words" />
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={generating}
-          className="shrink-0 rounded-md border-2 border-foreground bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-        >
+        <Button onClick={handleGenerate} disabled={generating}>
           {generating ? "Generating…" : "New word"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
       <ul className="flex flex-col gap-2">
         {activeWords.map((w) => (
           <VocabCard key={w.id} w={w} />
@@ -743,21 +699,17 @@ function ReadingListSection() {
     <section className="flex flex-col gap-3">
       <SectionHeader eyebrow="Reading" title="Reading List" />
       <form onSubmit={handleAdd} className="flex gap-2">
-        <input
+        <Input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Paste a link to read later…"
-          className="min-w-0 flex-1 rounded-md border-2 border-foreground bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          className="min-w-0 flex-1 bg-surface"
         />
-        <button
-          type="submit"
-          disabled={adding || !url.trim()}
-          className="rounded-md border-2 border-foreground bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-        >
+        <Button type="submit" disabled={adding || !url.trim()}>
           Add
-        </button>
+        </Button>
       </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
       <ul className="flex flex-col gap-2">
         {items.map((item) => (
           <li key={item.id} className="rounded-md border-2 border-foreground bg-surface p-4">
@@ -773,7 +725,7 @@ function ReadingListSection() {
                     ))}
                   </ul>
                 )}
-                {item.status === "error" && <p className="mt-2 text-sm text-red-600">{item.error}</p>}
+                {item.status === "error" && <p className="mt-2 text-sm text-danger">{item.error}</p>}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
                 <span className="font-mono text-[10px] font-bold text-muted uppercase">{item.status}</span>
@@ -799,7 +751,7 @@ function ReadingListSection() {
                 <button
                   type="button"
                   onClick={() => user && data.deleteReadingListItem(user.uid, item.id)}
-                  className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                  className="font-mono text-xs font-bold text-danger uppercase hover:underline"
                 >
                   Delete
                 </button>
@@ -868,31 +820,20 @@ export default function KnowledgeHomePage() {
                 {streak}-day streak
               </span>
             )}
-            <button
-              type="button"
-              onClick={() => signOutUser()}
-              className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
-            >
+            <Button variant="secondary" size="sm" onClick={() => signOutUser()}>
               Sign out
-            </button>
+            </Button>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-md border-2 border-foreground bg-surface p-4">
+        <Card className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
-              Insight · Level {insightLevel.level}
-            </p>
+            <Eyebrow>Insight · Level {insightLevel.level}</Eyebrow>
             <p className="font-mono text-xs text-muted">
               {insightLevel.xpIntoLevel} / {insightLevel.xpForNextLevel} XP
             </p>
           </div>
-          <div className="h-3 w-full overflow-hidden rounded-full border-2 border-foreground bg-background">
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${Math.min(100, Math.max(0, insightLevel.progress * 100))}%` }}
-            />
-          </div>
-        </div>
+          <ProgressBar progress={insightLevel.progress} />
+        </Card>
       </div>
       <DailyLessonSection />
       <CodeDrillsSection />
