@@ -19,6 +19,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { Button, Card, ErrorText, Input, PageHeader, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.id, c.label])) as Record<
@@ -113,7 +114,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
   const canSubmit = amount.trim().length > 0 && parsedAmount > 0 && date;
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-4">
+    <Card className="flex flex-col gap-2">
       <div className="flex gap-2">
         {(["expense", "income"] as const).map((t) => (
           <button
@@ -129,14 +130,14 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         ))}
       </div>
       <div className="flex gap-2">
-        <input
+        <Input
           type="number"
           min={0}
           step="0.01"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Amount"
-          className="min-w-0 flex-1 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
+          className="min-w-0 flex-1"
         />
         <select
           value={category}
@@ -150,21 +151,11 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
           ))}
         </select>
       </div>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Note (optional)"
-        className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted"
-      />
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm"
-      />
+      <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" />
+      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
-      <button
-        type="button"
+      <Button
+        size="sm"
         disabled={!canSubmit}
         onClick={() =>
           onSubmit({
@@ -176,11 +167,10 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
             recurrence,
           })
         }
-        className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
       >
         Log it
-      </button>
-    </div>
+      </Button>
+    </Card>
   );
 }
 
@@ -202,22 +192,23 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
           </option>
         ))}
       </select>
-      <input
+      <Input
         type="number"
         min={0}
         value={monthlyLimit}
         onChange={(e) => setMonthlyLimit(e.target.value)}
         placeholder="Monthly limit"
-        className="w-32 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+        size="sm"
+        className="w-32"
       />
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="sm"
         disabled={!monthlyLimit.trim() || parsedLimit <= 0}
         onClick={() => onSubmit({ category, monthlyLimit: parsedLimit })}
-        className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
       >
         Set budget
-      </button>
+      </Button>
     </div>
   );
 }
@@ -271,36 +262,26 @@ export default function MoneyPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div>
-        <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Money</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Money</h1>
-        <p className="text-sm text-muted">Log expenses/income, track budgets by category, and watch subscriptions.</p>
-      </div>
+      <PageHeader
+        eyebrow="Money"
+        title="Money"
+        description="Log expenses/income, track budgets by category, and watch subscriptions."
+      />
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
-          <p className="text-2xl font-bold text-red-600">{formatMoney(monthlyExpense)}</p>
-          <p className="font-mono text-[10px] text-muted uppercase">Spent this month</p>
-        </div>
-        <div className="rounded-md border-2 border-foreground bg-surface p-3 text-center">
-          <p className="text-2xl font-bold text-primary">{formatMoney(monthlyIncome)}</p>
-          <p className="font-mono text-[10px] text-muted uppercase">Income this month</p>
-        </div>
+        <StatTile value={formatMoney(monthlyExpense)} label="Spent this month" tone="danger" />
+        <StatTile value={formatMoney(monthlyIncome)} label="Income this month" tone="primary" />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">Log a transaction</h2>
           {!txFormOpen && (
-            <button
-              type="button"
-              onClick={() => setTxFormOpen(true)}
-              className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-            >
+            <Button size="sm" onClick={() => setTxFormOpen(true)}>
               New transaction
-            </button>
+            </Button>
           )}
         </div>
         {txFormOpen && <TransactionForm onSubmit={handleAddTransaction} />}
@@ -310,13 +291,9 @@ export default function MoneyPage() {
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">Budgets</h2>
           {!budgetFormOpen && (
-            <button
-              type="button"
-              onClick={() => setBudgetFormOpen(true)}
-              className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
-            >
+            <Button variant="secondary" size="sm" onClick={() => setBudgetFormOpen(true)}>
               New budget
-            </button>
+            </Button>
           )}
         </div>
         {budgetFormOpen && <BudgetForm onSubmit={handleAddBudget} />}
@@ -325,17 +302,17 @@ export default function MoneyPage() {
             const status = computeBudgetStatus(budget, transactions, thisMonth);
             const over = status.percent > 1;
             return (
-              <div key={budget.id} className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-3">
+              <Card key={budget.id} padding="sm" className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-bold">{CATEGORY_LABEL[budget.category]}</p>
                   <div className="flex items-center gap-2">
-                    <p className={`font-mono text-xs ${over ? "text-red-600" : "text-muted"}`}>
+                    <p className={`font-mono text-xs ${over ? "text-danger" : "text-muted"}`}>
                       {formatMoney(status.spent)} / {formatMoney(status.limit)}
                     </p>
                     <button
                       type="button"
                       onClick={() => user && data.deleteBudget(user.uid, budget.id)}
-                      className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                      className="font-mono text-xs font-bold text-danger uppercase hover:underline"
                     >
                       Delete
                     </button>
@@ -343,11 +320,11 @@ export default function MoneyPage() {
                 </div>
                 <div className="h-2 overflow-hidden rounded-full border-2 border-foreground bg-background">
                   <div
-                    className={`h-full ${over ? "bg-red-600" : "bg-primary"}`}
+                    className={`h-full ${over ? "bg-danger" : "bg-primary"}`}
                     style={{ width: `${Math.min(100, Math.round(status.percent * 100))}%` }}
                   />
                 </div>
-              </div>
+              </Card>
             );
           })}
           {budgets.length === 0 && !budgetFormOpen && (
@@ -394,14 +371,14 @@ export default function MoneyPage() {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                <p className={`font-mono text-sm font-bold ${tx.type === "expense" ? "text-red-600" : "text-primary"}`}>
+                <p className={`font-mono text-sm font-bold ${tx.type === "expense" ? "text-danger" : "text-primary"}`}>
                   {tx.type === "expense" ? "-" : "+"}
                   {formatMoney(tx.amount)}
                 </p>
                 <button
                   type="button"
                   onClick={() => user && data.deleteTransaction(user.uid, tx.id)}
-                  className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                  className="font-mono text-xs font-bold text-danger uppercase hover:underline"
                 >
                   Delete
                 </button>

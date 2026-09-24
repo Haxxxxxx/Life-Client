@@ -105,7 +105,7 @@ export default function SupabaseTasksLab() {
       </div>
 
       {error && (
-        <p className="rounded-md border-2 border-red-500 bg-red-500/5 p-3 text-xs text-red-600">{error}</p>
+        <p className="rounded-md border-2 border-danger bg-danger/5 p-3 text-xs text-danger">{error}</p>
       )}
 
       <form onSubmit={add} className="flex gap-2">
@@ -142,7 +142,7 @@ export default function SupabaseTasksLab() {
               <button
                 type="button"
                 onClick={() => supabase && userId && deleteTaskSb(supabase, userId, t.id)}
-                className="rounded px-2 py-1 font-mono text-[10px] font-bold text-red-600 uppercase hover:bg-red-600/10"
+                className="rounded px-2 py-1 font-mono text-[10px] font-bold text-danger uppercase hover:bg-danger/10"
               >
                 del
               </button>

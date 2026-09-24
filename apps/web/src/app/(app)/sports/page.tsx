@@ -15,6 +15,7 @@ import {
 import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Button, Card, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function formatDistance(meters?: number): string {
@@ -159,15 +160,14 @@ function LogActivityForm({
         </div>
       )}
 
-      <button
-        type="button"
+      <Button
+        size="sm"
         onClick={() =>
           onSubmit({ kind, type: customType.trim() || type, distanceKm, durationMin, reps, sets, weightKg })
         }
-        className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
       >
         Log it
-      </button>
+      </Button>
     </div>
   );
 }
@@ -333,8 +333,8 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
           />
         </label>
       </div>
-      <button
-        type="button"
+      <Button
+        size="sm"
         onClick={() =>
           onSubmit({
             title: buildChallengeTitle(durationDays, metric, dailyTarget, type),
@@ -345,10 +345,9 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             startDate,
           })
         }
-        className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
       >
         Start challenge
-      </button>
+      </Button>
     </div>
   );
 }
@@ -400,7 +399,7 @@ function ChallengeCard({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-4">
+    <Card className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         {editing ? (
           <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -465,7 +464,7 @@ function ChallengeCard({
             <button
               type="button"
               onClick={onDelete}
-              className="font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+              className="font-mono text-xs font-bold text-danger uppercase hover:underline"
             >
               Delete
             </button>
@@ -493,13 +492,9 @@ function ChallengeCard({
           </span>
         )}
         {canLogToday && (
-          <button
-            type="button"
-            onClick={onLogToday}
-            className="ml-auto rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
+          <Button size="sm" className="ml-auto" onClick={onLogToday}>
             Log today
-          </button>
+          </Button>
         )}
         {!progress.isFinished && todayEntry?.completed && (
           <span className="ml-auto rounded-full border-2 border-foreground bg-primary px-2.5 py-1 font-mono text-xs font-bold text-primary-foreground uppercase">
@@ -530,7 +525,7 @@ function ChallengeCard({
           />
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -581,23 +576,19 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">Streaks</p>
-          <h2 className="text-lg font-bold tracking-tight">Challenges</h2>
-        </div>
-        {!formOpen && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="shrink-0 rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
-          >
-            New challenge
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        eyebrow="Streaks"
+        title="Challenges"
+        action={
+          !formOpen && (
+            <Button variant="secondary" size="sm" onClick={() => setFormOpen(true)}>
+              New challenge
+            </Button>
+          )
+        }
+      />
       {formOpen && <ChallengeForm onSubmit={handleCreate} />}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
       {activeChallenges.length > 0 ? (
         <div className="flex flex-col gap-3">
           {activeChallenges.map((challenge) => (
@@ -668,25 +659,21 @@ export default function SportsPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Performance</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">Sports</h1>
-          <p className="text-sm text-muted">Synced from Strava, or logged by hand.</p>
-        </div>
-        {!formOpen && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="shrink-0 rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
-            Log activity
-          </button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Performance"
+        title="Sports"
+        description="Synced from Strava, or logged by hand."
+        action={
+          !formOpen && (
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              Log activity
+            </Button>
+          )
+        }
+      />
 
       {formOpen && <LogActivityForm onSubmit={handleLog} />}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
 
       <ChallengesSection activities={activities} />
 
@@ -738,7 +725,7 @@ export default function SportsPage() {
                 <button
                   type="button"
                   onClick={() => data.deleteSportActivity(user.uid, activity.id)}
-                  className="text-red-600 hover:underline"
+                  className="text-danger hover:underline"
                 >
                   Delete
                 </button>

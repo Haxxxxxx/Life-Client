@@ -44,7 +44,7 @@ export default function LoginPage() {
         >
           {signingIn ? "Signing in…" : "Continue with Google"}
         </button>
-        {error && <p className="mt-4 max-w-sm text-center text-sm text-red-600">{error}</p>}
+        {error && <p className="mx-auto mt-4 max-w-sm text-center text-sm text-danger">{error}</p>}
       </div>
     </main>
   );

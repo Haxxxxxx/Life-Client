@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ErrorText } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -44,7 +45,7 @@ export default function LoginPage() {
         >
           {signingIn ? "Signing in…" : "Continue with Google"}
         </button>
-        {error && <p className="mt-4 max-w-sm text-center text-sm text-red-600">{error}</p>}
+        {error && <ErrorText className="mx-auto mt-4 max-w-sm text-center">{error}</ErrorText>}
       </div>
     </main>
   );

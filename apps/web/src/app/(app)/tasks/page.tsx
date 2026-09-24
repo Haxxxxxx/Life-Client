@@ -12,6 +12,7 @@ import {
 import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Button, ErrorText, Input, PageHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
   CATEGORY_LABEL,
@@ -82,23 +83,14 @@ export default function TasksPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div>
-        <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Today</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Tasks</h1>
-        <p className="text-sm text-muted">
-          Everything you need to do — added by hand, or pulled in from GitHub, GitLab, and your
-          calendar once connected. Your work sits up top; teammates&rsquo; open PRs and bot bumps
-          sink below it.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Today"
+        title="Tasks"
+        description="Everything you need to do — added by hand, or pulled in from GitHub, GitLab, and your calendar once connected. Your work sits up top; teammates’ open PRs and bot bumps sink below it."
+      />
 
       <form onSubmit={handleAddTask} className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-3">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add a task…"
-          className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
-        />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task…" />
         <div className="flex flex-wrap gap-2">
           <select
             value={category}
@@ -122,17 +114,13 @@ export default function TasksPage() {
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            disabled={submitting || !title.trim()}
-            className="ml-auto rounded-md border-2 border-foreground bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-          >
+          <Button type="submit" size="sm" disabled={submitting || !title.trim()} className="ml-auto">
             Add
-          </button>
+          </Button>
         </div>
       </form>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
 
       <ul className="flex flex-col gap-2">
         {sortedTasks.map((task) => {
@@ -147,7 +135,7 @@ export default function TasksPage() {
             <li
               key={task.id}
               className={`flex flex-col gap-3 rounded-md border-2 bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                meta?.isBot ? "border-amber-500 bg-amber-500/5" : "border-foreground"
+                meta?.isBot ? "border-warning bg-warning/5" : "border-foreground"
               }`}
             >
               <Link href={`/tasks/${task.id}`} className="min-w-0 flex-1">
@@ -187,17 +175,17 @@ export default function TasksPage() {
                     View on {task.source === "gitlab" ? "GitLab" : "GitHub"} ↗
                   </a>
                 )}
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => data.advanceTaskStatus(user!.uid, task, nextStatus(task.status))}
-                  className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
                 >
                   Mark {STATUS_LABEL[nextStatus(task.status)]}
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={() => data.deleteTask(user!.uid, task.id)}
-                  className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
+                  className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
                 >
                   Delete
                 </button>

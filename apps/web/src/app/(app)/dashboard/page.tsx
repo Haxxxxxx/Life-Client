@@ -32,6 +32,7 @@ import {
 import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
@@ -39,33 +40,21 @@ import { webApiClient } from "@/lib/webApiClient";
 // Knowledge lives in its own deployable app (apps/knowledge) — same link-out as the sidebar nav.
 const KNOWLEDGE_APP_URL = process.env.NEXT_PUBLIC_KNOWLEDGE_APP_URL;
 
-const cardClassName =
-  "flex flex-col gap-3 rounded-md border-2 border-foreground bg-surface p-5 shadow-[3px_3px_0_0_var(--foreground)] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--foreground)]";
-
 function Card({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className={cardClassName}>
-      <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{title}</p>
+    <CardLink href={href} className="flex flex-col gap-3">
+      <Eyebrow>{title}</Eyebrow>
       {children}
-    </Link>
+    </CardLink>
   );
 }
 
 function ExternalCard({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={cardClassName}>
-      <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{title}</p>
+    <CardExternalLink href={href} className="flex flex-col gap-3">
+      <Eyebrow>{title}</Eyebrow>
       {children}
-    </a>
-  );
-}
-
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div>
-      <p className="font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">{eyebrow}</p>
-      <h2 className="text-lg font-bold tracking-tight">{title}</h2>
-    </div>
+    </CardExternalLink>
   );
 }
 
@@ -177,7 +166,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
           <button type="button" onClick={bulkMarkDone} className="font-mono text-xs font-bold text-primary uppercase hover:underline">
             Mark done
           </button>
-          <button type="button" onClick={bulkDelete} className="font-mono text-xs font-bold text-red-600 uppercase hover:underline">
+          <button type="button" onClick={bulkDelete} className="font-mono text-xs font-bold text-danger uppercase hover:underline">
             Delete selected
           </button>
           <button
@@ -212,7 +201,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
             <button
               type="button"
               onClick={() => db && data.deleteTask(uid, task.id)}
-              className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+              className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
             >
               Delete
             </button>
@@ -265,7 +254,7 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
               <button
                 type="button"
                 onClick={() => db && data.deleteGoal(uid, goal.id)}
-                className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
               >
                 Delete
               </button>
@@ -312,7 +301,7 @@ function ChallengesSection({ challenges, activities, uid }: { challenges: Challe
               <button
                 type="button"
                 onClick={() => db && data.deleteChallenge(uid, challenge.id)}
-                className="shrink-0 font-mono text-xs font-bold text-red-600 uppercase hover:underline"
+                className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
               >
                 Delete
               </button>
@@ -326,7 +315,7 @@ function ChallengesSection({ challenges, activities, uid }: { challenges: Challe
 }
 
 const URGENCY_STYLE: Record<ReminderUrgency, string> = {
-  overdue: "border-red-600 bg-red-600/10",
+  overdue: "border-danger bg-danger/10",
   "due-today": "border-primary bg-primary/10",
   "due-soon": "border-primary bg-primary/5",
   upcoming: "border-foreground bg-surface",
@@ -431,23 +420,9 @@ function EditReminderForm({
 
   return (
     <div className="flex flex-1 flex-col gap-2">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
-      />
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Notes"
-        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
-      />
-      <input
-        type="datetime-local"
-        value={deadline}
-        onChange={(e) => setDeadline(e.target.value)}
-        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
-      />
+      <Input size="sm" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <Input size="sm" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notes" />
+      <Input size="sm" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <div className="flex gap-3">
         <button
@@ -549,59 +524,41 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
       <div className="flex items-center justify-between gap-2">
         <SectionHeader eyebrow="Deadlines" title="Remember" />
         {!formOpen && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="rounded-md border-2 border-foreground bg-primary px-3 py-1.5 font-mono text-xs font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
+          <Button size="sm" onClick={() => setFormOpen(true)}>
             New reminder
-          </button>
+          </Button>
         )}
       </div>
 
       {formOpen && (
         <form onSubmit={handleAdd} className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-4">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="What do you need to remember?"
-            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
-          />
-          <input
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What do you need to remember?" />
+          <Input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Notes (e.g. account it's linked to)"
-            className="rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:shadow-[2px_2px_0_0_var(--primary)]"
           />
           <div className="flex gap-2">
-            <input
+            <Input
               type="datetime-local"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="min-w-0 flex-1 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm outline-none focus:shadow-[2px_2px_0_0_var(--primary)]"
+              className="min-w-0 flex-1"
             />
           </div>
           <RecurrencePicker value={recurrence} onChange={setRecurrence} />
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={submitting || !title.trim() || !deadline}
-              className="rounded-md border-2 border-foreground bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50"
-            >
+            <Button type="submit" disabled={submitting || !title.trim() || !deadline}>
               Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormOpen(false)}
-              className="rounded-md px-3 py-2 font-mono text-xs font-bold text-muted uppercase hover:bg-foreground/5"
-            >
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setFormOpen(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorText>{error}</ErrorText>
 
       <ul className="flex flex-col gap-2">
         {reminders.map((reminder) => {
@@ -635,7 +592,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                     <button
                       type="button"
                       onClick={() => handleDelete(reminder)}
-                      className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-red-600 uppercase hover:bg-red-600/10"
+                      className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
                     >
                       Delete
                     </button>
@@ -702,12 +659,10 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-8">
-      <div>
-        <p className="font-mono text-xs font-bold tracking-[0.3em] text-primary uppercase">Overview</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">
-          Welcome back{user.displayName ? `, ${user.displayName.split(" ")[0]}` : ""}
-        </h1>
-      </div>
+      <PageHeader
+        eyebrow="Overview"
+        title={`Welcome back${user.displayName ? `, ${user.displayName.split(" ")[0]}` : ""}`}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card title="Tasks" href="/tasks">
