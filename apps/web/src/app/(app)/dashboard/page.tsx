@@ -100,7 +100,7 @@ function RenameField({
         if (e.key === "Enter") commit();
         if (e.key === "Escape") setEditing(false);
       }}
-      className={`rounded border-2 border-foreground bg-background px-1.5 py-0.5 text-sm ${className ?? ""}`}
+      className={`rounded border border-border-strong bg-background px-1.5 py-0.5 text-sm ${className ?? ""}`}
     />
   );
 }
@@ -148,20 +148,20 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
           <button
             type="button"
             onClick={clearCompleted}
-            className="rounded-md border-2 border-foreground px-2.5 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+            className="rounded-xl border border-border-strong px-2.5 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10"
           >
             Clear completed
           </button>
           <Link
             href="/tasks"
-            className="rounded-md px-2.5 py-1 font-mono text-xs font-bold text-primary uppercase hover:underline"
+            className="rounded-xl px-2.5 py-1 font-mono text-xs font-bold text-primary uppercase hover:underline"
           >
             Open Tasks →
           </Link>
         </div>
       </div>
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-md border-2 border-primary bg-primary/10 px-3 py-2">
+        <div className="flex items-center gap-3 rounded-xl border border-primary bg-primary/10 px-3 py-2">
           <span className="font-mono text-xs font-bold">{selected.size} selected</span>
           <button type="button" onClick={bulkMarkDone} className="font-mono text-xs font-bold text-primary uppercase hover:underline">
             Mark done
@@ -180,7 +180,7 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
       )}
       <ul className="flex flex-col gap-1">
         {tasks.map((task) => (
-          <li key={task.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
+          <li key={task.id} className="flex items-center gap-2 rounded-xl border border-border-strong bg-surface px-3 py-2">
             <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggle(task.id)} />
             <RenameField
               value={task.title}
@@ -226,7 +226,7 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
         {goals.map((goal) => {
           const progress = computeGoalProgress(goal, tasks);
           return (
-            <li key={goal.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
+            <li key={goal.id} className="flex items-center gap-2 rounded-xl border border-border-strong bg-surface px-3 py-2">
               <RenameField
                 value={goal.title}
                 onSave={(next) => db && data.updateGoal(uid, goal.id, { title: next })}
@@ -280,7 +280,7 @@ function ChallengesSection({ challenges, activities, uid }: { challenges: Challe
         {challenges.map((challenge) => {
           const progress = computeChallengeProgress(challenge, activities);
           return (
-            <li key={challenge.id} className="flex items-center gap-2 rounded-md border-2 border-foreground bg-surface px-3 py-2">
+            <li key={challenge.id} className="flex items-center gap-2 rounded-xl border border-border-strong bg-surface px-3 py-2">
               <RenameField
                 value={challenge.title}
                 onSave={(next) => db && data.updateChallenge(uid, challenge.id, { title: next })}
@@ -318,7 +318,7 @@ const URGENCY_STYLE: Record<ReminderUrgency, string> = {
   overdue: "border-danger bg-danger/10",
   "due-today": "border-primary bg-primary/10",
   "due-soon": "border-primary bg-primary/5",
-  upcoming: "border-foreground bg-surface",
+  upcoming: "border-border-strong bg-surface",
 };
 
 function urgencyLabel(urgency: ReminderUrgency, days: number): string {
@@ -364,8 +364,8 @@ function RecurrencePicker({
           key={f}
           type="button"
           onClick={() => setFreq(f === "none" ? undefined : f)}
-          className={`rounded-full border-2 px-2.5 py-1 text-xs capitalize ${
-            (f === "none" && !freq) || f === freq ? "border-foreground bg-accent" : "border-foreground/30 text-muted"
+          className={`rounded-full border px-2.5 py-1 text-xs capitalize ${
+            (f === "none" && !freq) || f === freq ? "border-border-strong bg-primary/15" : "border-border text-muted"
           }`}
         >
           {f === "none" ? "No repeat" : f}
@@ -379,7 +379,7 @@ function RecurrencePicker({
             min={1}
             value={interval}
             onChange={(e) => onChange({ freq, interval: Number(e.target.value) || 1, daysOfWeek: value?.daysOfWeek })}
-            className="w-12 rounded-md border-2 border-foreground bg-background px-1 py-0.5 text-xs"
+            className="w-12 rounded-xl border border-border-strong bg-background px-1 py-0.5 text-xs"
           />
           {freq === "daily" ? "day(s)" : freq === "weekly" ? "week(s)" : "month(s)"}
         </label>
@@ -391,8 +391,8 @@ function RecurrencePicker({
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              className={`rounded-full border-2 px-1.5 py-1 text-[10px] font-bold ${
-                daysOfWeek.includes(i) ? "border-foreground bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+              className={`rounded-full border px-1.5 py-1 text-[10px] font-bold ${
+                daysOfWeek.includes(i) ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
               }`}
             >
               {label}
@@ -531,7 +531,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
       </div>
 
       {formOpen && (
-        <form onSubmit={handleAdd} className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-4">
+        <form onSubmit={handleAdd} className="flex flex-col gap-2 rounded-xl border border-border-strong bg-surface p-4">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What do you need to remember?" />
           <Input
             value={note}
@@ -567,7 +567,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
           return (
             <li
               key={reminder.id}
-              className={`flex items-center justify-between gap-3 rounded-md border-2 px-4 py-3 ${URGENCY_STYLE[urgency]}`}
+              className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${URGENCY_STYLE[urgency]}`}
             >
               {editingId === reminder.id ? (
                 <EditReminderForm
@@ -586,13 +586,13 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                     </p>
                   </button>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold">
+                    <span className="rounded-full border border-border-strong bg-primary/15 px-2.5 py-1 font-mono text-xs font-bold">
                       {urgencyLabel(urgency, days)}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleDelete(reminder)}
-                      className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
+                      className="rounded-xl px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
                     >
                       Delete
                     </button>
@@ -603,7 +603,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
           );
         })}
         {reminders.length === 0 && !formOpen && (
-          <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             Nothing to remember yet — add your first deadline above.
           </li>
         )}

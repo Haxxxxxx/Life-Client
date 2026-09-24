@@ -260,7 +260,7 @@ export default function TaskDetailPage() {
             href={task.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+            className="rounded-xl border border-border-strong px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-primary/10"
           >
             View on {task.source === "gitlab" ? "GitLab" : "GitHub"} ↗
           </a>

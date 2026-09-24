@@ -2,11 +2,9 @@ import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 /**
- * Shared retro-brutalist primitives for the Knowledge app — kept in lockstep
- * with apps/web/src/components/ui.tsx (same tokens, same component
- * vocabulary) so both surfaces read as one product. If you add or change a
- * primitive here, mirror it there too (and vice versa) until both apps can
- * import from one real shared package.
+ * Shared dark command-center primitives for the Knowledge app: soft
+ * borders, calm surfaces, one warm accent. Every page should build on these
+ * instead of re-declaring the same card/badge/button classes.
  */
 
 function cx(...parts: Array<string | false | null | undefined>) {
@@ -17,14 +15,14 @@ function cx(...parts: Array<string | false | null | undefined>) {
 // Card
 // ---------------------------------------------------------------------------
 
-const CARD_BASE = "rounded-md border-2 border-foreground bg-surface";
+const CARD_BASE = "rounded-2xl border border-border bg-surface";
 const CARD_INTERACTIVE =
-  "transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--foreground)] active:translate-y-0";
+  "transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-xl hover:shadow-black/20";
 
 export function cardClassName(opts: { padding?: "sm" | "md" | "lg"; interactive?: boolean; className?: string } = {}) {
   const { padding = "md", interactive = false, className } = opts;
   const pad = padding === "sm" ? "p-3" : padding === "lg" ? "p-5" : "p-4";
-  return cx(CARD_BASE, pad, interactive && cx(CARD_INTERACTIVE, "shadow-[3px_3px_0_0_var(--foreground)]"), className);
+  return cx(CARD_BASE, pad, interactive && cx(CARD_INTERACTIVE, "shadow-lg shadow-black/10"), className);
 }
 
 export function Card({
@@ -70,12 +68,21 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
   );
 }
 
-export function SectionHeader({ eyebrow, title, action }: { eyebrow: string; title: string; action?: ReactNode }) {
+/** Small header used above a section within a page (dashboard tiles, list groups). */
+export function SectionHeader({
+  eyebrow,
+  title,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between gap-3">
       <div>
         <Eyebrow>{eyebrow}</Eyebrow>
-        <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+        <h2 className="mt-0.5 text-lg font-bold tracking-tight text-foreground">{title}</h2>
       </div>
       {action}
     </div>
@@ -98,7 +105,7 @@ export function PageHeader({
     <div className="flex items-start justify-between gap-3">
       <div>
         <Eyebrow className="tracking-[0.3em]">{eyebrow}</Eyebrow>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       </div>
       {action}
@@ -115,16 +122,16 @@ type ButtonSize = "sm" | "md";
 
 const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "border-foreground bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--foreground)] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_var(--foreground)] active:translate-y-0 active:shadow-none",
+    "bg-primary text-primary-foreground shadow-md shadow-black/20 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 active:translate-y-0",
   secondary:
-    "border-foreground bg-surface text-foreground shadow-[2px_2px_0_0_var(--foreground)] hover:-translate-y-0.5 hover:bg-accent/15 active:translate-y-0 active:shadow-none",
-  ghost: "border-transparent text-muted hover:border-foreground/30 hover:text-foreground",
-  danger: "border-danger bg-danger/10 text-danger hover:bg-danger/20",
+    "border border-border bg-surface text-foreground hover:-translate-y-0.5 hover:border-border-strong hover:bg-surface-2 active:translate-y-0",
+  ghost: "text-muted hover:bg-white/5 hover:text-foreground",
+  danger: "bg-danger/10 border border-danger/30 text-danger hover:bg-danger/15",
 };
 
 const BUTTON_SIZE: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2 text-sm",
+  sm: "px-3.5 py-1.5 text-xs",
+  md: "px-5 py-2.5 text-sm",
 };
 
 export function Button({
@@ -132,12 +139,15 @@ export function Button({
   size = "md",
   className,
   ...rest
-}: { variant?: ButtonVariant; size?: ButtonSize } & ComponentPropsWithoutRef<"button">) {
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+} & ComponentPropsWithoutRef<"button">) {
   return (
     <button
       type="button"
       className={cx(
-        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border-2 font-mono font-bold tracking-wide uppercase transition disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full font-semibold transition disabled:pointer-events-none disabled:opacity-50",
         BUTTON_VARIANT[variant],
         BUTTON_SIZE[size],
         className,
@@ -154,7 +164,7 @@ export function Button({
 export type BadgeTone = "neutral" | "primary" | "success" | "danger" | "warning" | "info";
 
 const BADGE_TONE: Record<BadgeTone, string> = {
-  neutral: "border-foreground/30 text-muted",
+  neutral: "border-border-strong text-muted",
   primary: "border-primary text-primary",
   success: "border-success text-success",
   danger: "border-danger text-danger",
@@ -163,7 +173,7 @@ const BADGE_TONE: Record<BadgeTone, string> = {
 };
 
 const BADGE_TONE_SUBTLE: Record<BadgeTone, string> = {
-  neutral: "border-foreground/30 bg-foreground/5 text-muted",
+  neutral: "border-border-strong bg-white/5 text-muted",
   primary: "border-primary bg-primary/10 text-primary",
   success: "border-success bg-success/10 text-success",
   danger: "border-danger bg-danger/10 text-danger",
@@ -180,7 +190,7 @@ export function Badge({
   return (
     <span
       className={cx(
-        "rounded-full border-2 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide",
+        "rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide",
         subtle ? BADGE_TONE_SUBTLE[tone] : BADGE_TONE[tone],
         className,
       )}
@@ -194,11 +204,11 @@ export function Badge({
 // ---------------------------------------------------------------------------
 
 const FIELD_BASE =
-  "rounded-md border-2 border-foreground bg-background outline-none transition focus:shadow-[2px_2px_0_0_var(--primary)] disabled:opacity-50";
+  "rounded-xl border border-border bg-background outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-50";
 
 const FIELD_SIZE = {
-  sm: "px-2 py-1.5 text-sm",
-  md: "px-3 py-2 text-sm",
+  sm: "px-2.5 py-1.5 text-sm",
+  md: "px-3.5 py-2 text-sm",
 };
 
 export function Input({
@@ -248,8 +258,8 @@ export function ProgressBar({ progress, tone = "primary" }: { progress: number; 
           info: "bg-info",
         }[tone];
   return (
-    <div className="h-3 w-full overflow-hidden rounded-full border-2 border-foreground bg-surface">
-      <div className={cx("h-full transition-all", fill)} style={{ width: `${pct}%` }} />
+    <div className="h-2 w-full overflow-hidden rounded-full bg-white/8">
+      <div className={cx("h-full rounded-full transition-all", fill)} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -271,7 +281,7 @@ export function StatTile({
 }) {
   return (
     <div className={cardClassName({ padding: "sm", className: "text-center" })}>
-      <p className={cx("text-2xl font-bold", STAT_TILE_TONE[tone])}>{value}</p>
+      <p className={cx("text-2xl font-bold text-foreground", STAT_TILE_TONE[tone])}>{value}</p>
       <p className="font-mono text-[10px] text-muted uppercase">{label}</p>
     </div>
   );

@@ -105,7 +105,7 @@ export default function SupabaseTasksLab() {
       </div>
 
       {error && (
-        <p className="rounded-md border-2 border-danger bg-danger/5 p-3 text-xs text-danger">{error}</p>
+        <p className="rounded-xl border border-danger bg-danger/5 p-3 text-xs text-danger">{error}</p>
       )}
 
       <form onSubmit={add} className="flex gap-2">
@@ -113,12 +113,12 @@ export default function SupabaseTasksLab() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="New task…"
-          className="flex-1 rounded-md border-2 border-foreground bg-background px-3 py-2 text-sm"
+          className="flex-1 rounded-xl border border-border-strong bg-background px-3 py-2 text-sm"
         />
         <button
           type="submit"
           disabled={!userId || !title.trim()}
-          className="rounded-md border-2 border-foreground bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
+          className="rounded-xl border border-border-strong bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
         >
           Add
         </button>
@@ -128,14 +128,14 @@ export default function SupabaseTasksLab() {
         {tasks.map((t) => (
           <li
             key={t.id}
-            className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-2"
+            className="flex items-center justify-between gap-3 rounded-xl border border-border-strong bg-surface px-4 py-2"
           >
             <span className={`text-sm ${t.status === "done" ? "text-muted line-through" : ""}`}>{t.title}</span>
             <span className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => supabase && userId && advanceTaskStatusSb(supabase, userId, t, NEXT[t.status])}
-                className="rounded border-2 border-foreground px-2 py-1 font-mono text-[10px] font-bold uppercase hover:bg-accent/20"
+                className="rounded border border-border-strong px-2 py-1 font-mono text-[10px] font-bold uppercase hover:bg-primary/10"
               >
                 {t.status}
               </button>

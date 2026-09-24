@@ -114,7 +114,7 @@ export default function IntegrationsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="rounded border-2 border-foreground bg-accent px-1.5 py-0.5 font-mono text-[10px] font-bold">
+                    <span className="rounded border border-border-strong bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] font-bold">
                       {meta.badge}
                     </span>
                     <p className="font-bold">{meta.label}</p>
@@ -154,12 +154,12 @@ export default function IntegrationsPage() {
                           : buildConnectUrl(origin, provider, user.uid, "/integrations")
                     }
                     aria-disabled={!user}
-                    className={`rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_var(--foreground)] transition ${
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                       !user
-                        ? "pointer-events-none opacity-40"
+                        ? "pointer-events-none border border-border opacity-40"
                         : connected
-                          ? "bg-surface hover:bg-danger/10"
-                          : "bg-primary text-primary-foreground hover:-translate-y-0.5"
+                          ? "border border-border text-foreground hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
+                          : "bg-primary text-primary-foreground shadow-md shadow-black/20 hover:-translate-y-0.5"
                     }`}
                   >
                     {connected ? "Disconnect" : errored ? "Retry" : "Connect"}

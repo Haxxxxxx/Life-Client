@@ -62,8 +62,8 @@ function RecurrencePicker({
           key={f}
           type="button"
           onClick={() => setFreq(f === "none" ? undefined : f)}
-          className={`rounded-full border-2 px-2.5 py-1 text-xs capitalize ${
-            (f === "none" && !freq) || f === freq ? "border-foreground bg-accent" : "border-foreground/30 text-muted"
+          className={`rounded-full border px-2.5 py-1 text-xs capitalize ${
+            (f === "none" && !freq) || f === freq ? "border-border-strong bg-primary/15" : "border-border text-muted"
           }`}
         >
           {f === "none" ? "One-time" : f}
@@ -77,7 +77,7 @@ function RecurrencePicker({
             min={1}
             value={interval}
             onChange={(e) => onChange({ freq, interval: Number(e.target.value) || 1, daysOfWeek: value?.daysOfWeek })}
-            className="w-12 rounded-md border-2 border-foreground bg-background px-1 py-0.5 text-xs"
+            className="w-12 rounded-xl border border-border-strong bg-background px-1 py-0.5 text-xs"
           />
           {freq === "daily" ? "day(s)" : freq === "weekly" ? "week(s)" : "month(s)"}
         </label>
@@ -89,8 +89,8 @@ function RecurrencePicker({
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              className={`rounded-full border-2 px-1.5 py-1 text-[10px] font-bold ${
-                daysOfWeek.includes(i) ? "border-foreground bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+              className={`rounded-full border px-1.5 py-1 text-[10px] font-bold ${
+                daysOfWeek.includes(i) ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
               }`}
             >
               {label}
@@ -121,8 +121,8 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
             key={t}
             type="button"
             onClick={() => setType(t)}
-            className={`flex-1 rounded-md border-2 px-3 py-1.5 text-sm font-bold capitalize ${
-              type === t ? "border-foreground bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+            className={`flex-1 rounded-xl border px-3 py-1.5 text-sm font-bold capitalize ${
+              type === t ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
             }`}
           >
             {t}
@@ -142,7 +142,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as TransactionCategory)}
-          className="rounded-md border-2 border-foreground bg-background px-2 py-2 text-xs"
+          className="rounded-xl border border-border-strong bg-background px-2 py-2 text-xs"
         >
           {TRANSACTION_CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
@@ -180,11 +180,11 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
   const parsedLimit = Number(monthlyLimit);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-border p-3">
       <select
         value={category}
         onChange={(e) => setCategory(e.target.value as TransactionCategory)}
-        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-xs"
+        className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
       >
         {TRANSACTION_CATEGORIES.map((c) => (
           <option key={c.id} value={c.id}>
@@ -318,7 +318,7 @@ export default function MoneyPage() {
                     </button>
                   </div>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full border-2 border-foreground bg-background">
+                <div className="h-2 overflow-hidden rounded-full border border-border-strong bg-background">
                   <div
                     className={`h-full ${over ? "bg-danger" : "bg-primary"}`}
                     style={{ width: `${Math.min(100, Math.round(status.percent * 100))}%` }}
@@ -340,7 +340,7 @@ export default function MoneyPage() {
             {subscriptions.map((tx) => (
               <li
                 key={tx.id}
-                className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-3"
+                className="flex items-center justify-between gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3"
               >
                 <div className="min-w-0">
                   <p className="truncate font-bold">{tx.note || CATEGORY_LABEL[tx.category]}</p>
@@ -361,7 +361,7 @@ export default function MoneyPage() {
           {transactions.map((tx) => (
             <li
               key={tx.id}
-              className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-3"
+              className="flex items-center justify-between gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3"
             >
               <div className="min-w-0">
                 <p className="truncate font-bold">{tx.note || CATEGORY_LABEL[tx.category]}</p>
@@ -386,7 +386,7 @@ export default function MoneyPage() {
             </li>
           ))}
           {transactions.length === 0 && (
-            <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+            <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
               No transactions yet — log your first one above.
             </li>
           )}
