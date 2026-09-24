@@ -32,7 +32,7 @@ import {
 import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button, CardExternalLink, CardLink, Eyebrow, Input, PageHeader, SectionHeader } from "@/components/ui";
+import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
@@ -558,7 +558,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
         </form>
       )}
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      <ErrorText>{error}</ErrorText>
 
       <ul className="flex flex-col gap-2">
         {reminders.map((reminder) => {

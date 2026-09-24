@@ -23,7 +23,18 @@ import {
 import { data } from "@life-client/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Badge, Button, Card, ErrorText, Eyebrow, Input, ProgressBar, SectionHeader, Textarea } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorText,
+  Eyebrow,
+  Input,
+  PageHeader,
+  ProgressBar,
+  SectionHeader,
+  Textarea,
+} from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { knowledgeApiClient } from "@/lib/knowledgeClient";
 
@@ -807,24 +818,23 @@ export default function KnowledgeHomePage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 p-6 sm:p-10">
       <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {firstName ? `${firstName}'s Knowledge` : "Knowledge"}
-            </h1>
-            <p className="text-sm text-muted">Your daily lesson, coding drills, vocab, and reading list.</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {streak > 0 && (
-              <span className="rounded-full border-2 border-foreground bg-accent px-3 py-1.5 font-mono text-xs font-bold uppercase">
-                {streak}-day streak
-              </span>
-            )}
-            <Button variant="secondary" size="sm" onClick={() => signOutUser()}>
-              Sign out
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Home"
+          title={firstName ? `${firstName}'s Knowledge` : "Knowledge"}
+          description="Your daily lesson, coding drills, vocab, and reading list."
+          action={
+            <div className="flex shrink-0 items-center gap-2">
+              {streak > 0 && (
+                <span className="rounded-full border-2 border-foreground bg-accent px-3 py-1.5 font-mono text-xs font-bold uppercase">
+                  {streak}-day streak
+                </span>
+              )}
+              <Button variant="secondary" size="sm" onClick={() => signOutUser()}>
+                Sign out
+              </Button>
+            </div>
+          }
+        />
         <Card className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <Eyebrow>Insight · Level {insightLevel.level}</Eyebrow>

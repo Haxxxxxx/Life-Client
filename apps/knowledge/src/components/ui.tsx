@@ -1,20 +1,30 @@
+import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 /**
- * Shared retro-brutalist primitives for the Knowledge app — mirrors
- * apps/web/src/components/ui.tsx so both surfaces read as one product.
+ * Shared retro-brutalist primitives for the Knowledge app — kept in lockstep
+ * with apps/web/src/components/ui.tsx (same tokens, same component
+ * vocabulary) so both surfaces read as one product. If you add or change a
+ * primitive here, mirror it there too (and vice versa) until both apps can
+ * import from one real shared package.
  */
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-const CARD_BASE = "rounded-md border-2 border-foreground bg-surface";
+// ---------------------------------------------------------------------------
+// Card
+// ---------------------------------------------------------------------------
 
-export function cardClassName(opts: { padding?: "sm" | "md" | "lg"; className?: string } = {}) {
-  const { padding = "md", className } = opts;
+const CARD_BASE = "rounded-md border-2 border-foreground bg-surface";
+const CARD_INTERACTIVE =
+  "transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--foreground)] active:translate-y-0";
+
+export function cardClassName(opts: { padding?: "sm" | "md" | "lg"; interactive?: boolean; className?: string } = {}) {
+  const { padding = "md", interactive = false, className } = opts;
   const pad = padding === "sm" ? "p-3" : padding === "lg" ? "p-5" : "p-4";
-  return cx(CARD_BASE, pad, className);
+  return cx(CARD_BASE, pad, interactive && cx(CARD_INTERACTIVE, "shadow-[3px_3px_0_0_var(--foreground)]"), className);
 }
 
 export function Card({
@@ -24,6 +34,33 @@ export function Card({
 }: { padding?: "sm" | "md" | "lg" } & ComponentPropsWithoutRef<"div">) {
   return <div className={cardClassName({ padding, className })} {...rest} />;
 }
+
+export function CardLink({
+  padding = "lg",
+  className,
+  ...rest
+}: { padding?: "sm" | "md" | "lg" } & ComponentPropsWithoutRef<typeof Link>) {
+  return <Link className={cardClassName({ padding, interactive: true, className })} {...rest} />;
+}
+
+export function CardExternalLink({
+  padding = "lg",
+  className,
+  ...rest
+}: { padding?: "sm" | "md" | "lg" } & ComponentPropsWithoutRef<"a">) {
+  return (
+    <a
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cardClassName({ padding, interactive: true, className })}
+      {...rest}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Headers
+// ---------------------------------------------------------------------------
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -37,13 +74,41 @@ export function SectionHeader({ eyebrow, title, action }: { eyebrow: string; tit
   return (
     <div className="flex items-center justify-between gap-3">
       <div>
-        <Eyebrow className="tracking-[0.3em]">{eyebrow}</Eyebrow>
-        <h2 className="mt-1 text-xl font-bold tracking-tight">{title}</h2>
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <h2 className="text-lg font-bold tracking-tight">{title}</h2>
       </div>
       {action}
     </div>
   );
 }
+
+/** Top-of-page header: eyebrow + h1 + description + optional right-aligned action. */
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <Eyebrow className="tracking-[0.3em]">{eyebrow}</Eyebrow>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">{title}</h1>
+        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Button
+// ---------------------------------------------------------------------------
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md";
@@ -72,7 +137,7 @@ export function Button({
     <button
       type="button"
       className={cx(
-        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border-2 font-bold transition disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border-2 font-mono font-bold tracking-wide uppercase transition disabled:pointer-events-none disabled:opacity-50",
         BUTTON_VARIANT[variant],
         BUTTON_SIZE[size],
         className,
@@ -81,6 +146,10 @@ export function Button({
     />
   );
 }
+
+// ---------------------------------------------------------------------------
+// Badge
+// ---------------------------------------------------------------------------
 
 export type BadgeTone = "neutral" | "primary" | "success" | "danger" | "warning" | "info";
 
@@ -93,16 +162,26 @@ const BADGE_TONE: Record<BadgeTone, string> = {
   info: "border-info text-info",
 };
 
+const BADGE_TONE_SUBTLE: Record<BadgeTone, string> = {
+  neutral: "border-foreground/30 bg-foreground/5 text-muted",
+  primary: "border-primary bg-primary/10 text-primary",
+  success: "border-success bg-success/10 text-success",
+  danger: "border-danger bg-danger/10 text-danger",
+  warning: "border-warning bg-warning/10 text-warning",
+  info: "border-info bg-info/10 text-info",
+};
+
 export function Badge({
   tone = "neutral",
+  subtle = false,
   className,
   ...rest
-}: { tone?: BadgeTone } & ComponentPropsWithoutRef<"span">) {
+}: { tone?: BadgeTone; subtle?: boolean } & ComponentPropsWithoutRef<"span">) {
   return (
     <span
       className={cx(
         "rounded-full border-2 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide",
-        BADGE_TONE[tone],
+        subtle ? BADGE_TONE_SUBTLE[tone] : BADGE_TONE[tone],
         className,
       )}
       {...rest}
@@ -110,29 +189,90 @@ export function Badge({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Form controls
+// ---------------------------------------------------------------------------
+
 const FIELD_BASE =
   "rounded-md border-2 border-foreground bg-background outline-none transition focus:shadow-[2px_2px_0_0_var(--primary)] disabled:opacity-50";
 
-export function Input({ className, ...rest }: ComponentPropsWithoutRef<"input">) {
-  return <input className={cx(FIELD_BASE, "px-3 py-2 text-sm placeholder:text-muted", className)} {...rest} />;
+const FIELD_SIZE = {
+  sm: "px-2 py-1.5 text-sm",
+  md: "px-3 py-2 text-sm",
+};
+
+export function Input({
+  size = "md",
+  className,
+  ...rest
+}: { size?: keyof typeof FIELD_SIZE } & Omit<ComponentPropsWithoutRef<"input">, "size">) {
+  return <input className={cx(FIELD_BASE, FIELD_SIZE[size], "placeholder:text-muted", className)} {...rest} />;
 }
 
-export function Textarea({ className, ...rest }: ComponentPropsWithoutRef<"textarea">) {
-  return (
-    <textarea className={cx(FIELD_BASE, "resize-y px-3 py-2 text-sm placeholder:text-muted", className)} {...rest} />
-  );
+export function Textarea({
+  size = "md",
+  className,
+  ...rest
+}: { size?: keyof typeof FIELD_SIZE } & ComponentPropsWithoutRef<"textarea">) {
+  return <textarea className={cx(FIELD_BASE, "resize-y", FIELD_SIZE[size], "placeholder:text-muted", className)} {...rest} />;
 }
+
+// ---------------------------------------------------------------------------
+// Feedback / status
+// ---------------------------------------------------------------------------
 
 export function ErrorText({ children, className }: { children: ReactNode; className?: string }) {
   if (!children) return null;
   return <p className={cx("text-sm text-danger", className)}>{children}</p>;
 }
 
-export function ProgressBar({ progress }: { progress: number }) {
+export function EmptyState({ children, className }: { children: ReactNode; className?: string }) {
+  return <p className={cx("text-sm text-muted italic", className)}>{children}</p>;
+}
+
+// ---------------------------------------------------------------------------
+// Data display
+// ---------------------------------------------------------------------------
+
+export function ProgressBar({ progress, tone = "primary" }: { progress: number; tone?: "primary" | BadgeTone }) {
   const pct = Math.min(100, Math.max(0, progress * 100));
+  const fill =
+    tone === "primary"
+      ? "bg-primary"
+      : {
+          neutral: "bg-muted",
+          primary: "bg-primary",
+          success: "bg-success",
+          danger: "bg-danger",
+          warning: "bg-warning",
+          info: "bg-info",
+        }[tone];
   return (
-    <div className="h-3 w-full overflow-hidden rounded-full border-2 border-foreground bg-background">
-      <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+    <div className="h-3 w-full overflow-hidden rounded-full border-2 border-foreground bg-surface">
+      <div className={cx("h-full transition-all", fill)} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+const STAT_TILE_TONE: Record<"primary" | "danger" | "neutral", string> = {
+  primary: "text-primary",
+  danger: "text-danger",
+  neutral: "",
+};
+
+export function StatTile({
+  value,
+  label,
+  tone = "neutral",
+}: {
+  value: ReactNode;
+  label: string;
+  tone?: keyof typeof STAT_TILE_TONE;
+}) {
+  return (
+    <div className={cardClassName({ padding: "sm", className: "text-center" })}>
+      <p className={cx("text-2xl font-bold", STAT_TILE_TONE[tone])}>{value}</p>
+      <p className="font-mono text-[10px] text-muted uppercase">{label}</p>
     </div>
   );
 }
