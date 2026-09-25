@@ -109,28 +109,28 @@ function EventForm({
         onChangeText={setTitle}
         placeholder="Event title"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={location}
         onChangeText={setLocation}
         placeholder="Location (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={start}
         onChangeText={setStart}
         placeholder="Start YYYY-MM-DDTHH:MM"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={end}
         onChangeText={setEnd}
         placeholder="End YYYY-MM-DDTHH:MM"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.formActions}>
         <Pressable

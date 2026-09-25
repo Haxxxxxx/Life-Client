@@ -97,7 +97,7 @@ function RecurrencePicker({
             value={String(interval)}
             onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
             keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <ThemedText type="small" themeColor="textSecondary">
             {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
@@ -153,7 +153,7 @@ function EditTaskForm({
       <TextInput
         value={title}
         onChangeText={setTitle}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRowWrap}>
         {TASK_CATEGORIES.map((c) => {
@@ -205,7 +205,7 @@ function EditTaskForm({
         onChangeText={setDueDate}
         placeholder="Due date YYYY-MM-DD"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRowWrap}>
         <Pressable
@@ -308,7 +308,7 @@ export default function TasksScreen() {
             onChangeText={setTitle}
             placeholder="Add a task…"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             onSubmitEditing={handleAdd}
             returnKeyType="done"
           />

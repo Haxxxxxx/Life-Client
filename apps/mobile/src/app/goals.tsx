@@ -43,21 +43,21 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
         onChangeText={setTitle}
         placeholder="e.g. Ship WeSplit v2"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={description}
         onChangeText={setDescription}
         placeholder="Description (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={targetDate}
         onChangeText={setTargetDate}
         placeholder="Target date YYYY-MM-DD (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       {!title.trim() && (
         <View style={styles.chipRowWrap}>
@@ -135,21 +135,21 @@ function GoalCard({
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <TextInput
               value={description}
               onChangeText={setDescription}
               placeholder="Description"
               placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <TextInput
               value={targetDate}
               onChangeText={setTargetDate}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <View style={styles.goalActions}>
               <Pressable
@@ -231,7 +231,7 @@ function GoalCard({
       </View>
 
       <View style={styles.progressRow}>
-        <View style={[styles.progressTrack, { borderColor: theme.border, backgroundColor: theme.background }]}>
+        <View style={[styles.progressTrack, { borderColor: theme.borderStrong, backgroundColor: theme.background }]}>
           <View style={[styles.progressFill, { width: `${Math.round(progress.percent * 100)}%`, backgroundColor: theme.primary }]} />
         </View>
         <ThemedText type="code" themeColor="textSecondary">
@@ -283,7 +283,7 @@ function GoalCard({
             onChangeText={setNewTaskTitle}
             placeholder="Or create a new task…"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { flex: 1, color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { flex: 1, color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <Pressable
             disabled={!newTaskTitle.trim()}

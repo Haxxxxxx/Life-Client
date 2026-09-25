@@ -101,7 +101,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         onChangeText={setCustomType}
         placeholder="Or type your own…"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
 
       {kind === 'endurance' ? (
@@ -114,7 +114,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={distanceKm}
               onChangeText={setDistanceKm}
               keyboardType="decimal-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -125,7 +125,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={durationMin}
               onChangeText={setDurationMin}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
         </View>
@@ -139,7 +139,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={reps}
               onChangeText={setReps}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -150,7 +150,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={sets}
               onChangeText={setSets}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -161,7 +161,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={weightKg}
               onChangeText={setWeightKg}
               keyboardType="decimal-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
         </View>
@@ -303,7 +303,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         onChangeText={setCustomType}
         placeholder="Or type your own…"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRow}>
         {availableMetrics.map((m) => {
@@ -329,7 +329,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             value={dailyTarget}
             onChangeText={setDailyTarget}
             keyboardType={metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -340,7 +340,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             value={durationDays}
             onChangeText={setDurationDays}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -352,7 +352,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             onChangeText={setStartDate}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
       </View>
@@ -432,7 +432,7 @@ function ChallengeCard({
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <View style={styles.formRow}>
               <View style={styles.formField}>
@@ -443,7 +443,7 @@ function ChallengeCard({
                   value={dailyTarget}
                   onChangeText={setDailyTarget}
                   keyboardType={challenge.metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
-                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                  style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
                 />
               </View>
               <View style={styles.formField}>
@@ -454,7 +454,7 @@ function ChallengeCard({
                   value={durationDays}
                   onChangeText={setDurationDays}
                   keyboardType="number-pad"
-                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                  style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
                 />
               </View>
             </View>

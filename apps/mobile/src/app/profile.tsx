@@ -110,7 +110,7 @@ function LogEventForm({
             value={durationMinutes}
             onChangeText={setDurationMinutes}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -121,7 +121,7 @@ function LogEventForm({
             value={peopleCount}
             onChangeText={setPeopleCount}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
       </View>
@@ -130,7 +130,7 @@ function LogEventForm({
         onChangeText={setNote}
         placeholder={NOTE_PLACEHOLDER[characteristicId] ?? 'Notes (optional)'}
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <Pressable
         onPress={() =>

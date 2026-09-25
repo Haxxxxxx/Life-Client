@@ -64,7 +64,7 @@ export default function SearchScreen() {
           autoFocus
           placeholder="Search Tasks, Goals, Reminders…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
         <FlatList
           data={results}

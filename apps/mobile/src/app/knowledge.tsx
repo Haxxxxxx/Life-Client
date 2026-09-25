@@ -219,7 +219,7 @@ function DrillCard({
             placeholderTextColor={theme.textSecondary}
             multiline
             numberOfLines={3}
-            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.textArea, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <View style={styles.rowBetween}>
             <Pressable
@@ -389,7 +389,7 @@ function CodeDrillsSection() {
           onChangeText={setTopic}
           placeholder="Topic (optional) — e.g. recursion, closures…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
         <View style={styles.chipRowWrap}>
           {DIFFICULTIES.map((d) => {
@@ -505,7 +505,7 @@ function VocabCard({ w }: { w: VocabWord }) {
           onChangeText={setSentence}
           placeholder={`Write a sentence using "${w.word}"…`}
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
         <Pressable
           onPress={handleSubmit}
@@ -677,7 +677,7 @@ function ReadingListSection() {
           onChangeText={setUrl}
           placeholder="Paste a link to read later…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, styles.flex1, { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+          style={[styles.input, styles.flex1, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.backgroundElement }]}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
         />

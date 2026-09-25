@@ -116,7 +116,7 @@ function RenameField({ value, onSave, style }: { value: string; onSave: (next: s
       onSubmitEditing={commit}
       style={[
         styles.renameInput,
-        { flex: 1, color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+        { flex: 1, color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background },
       ]}
     />
   );
@@ -427,7 +427,7 @@ function RecurrencePicker({
             value={String(interval)}
             onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
             keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <ThemedText type="small" themeColor="textSecondary">
             {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
@@ -475,14 +475,14 @@ function EditReminderForm({
       <TextInput
         value={title}
         onChangeText={setTitle}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={note}
         onChangeText={setNote}
         placeholder="Notes"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRow}>
         {QUICK_OFFSETS.map((opt) => {
@@ -611,14 +611,14 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
             onChangeText={setTitle}
             placeholder="What do you need to remember?"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <TextInput
             value={note}
             onChangeText={setNote}
             placeholder="Notes (e.g. account it's linked to)"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <View style={styles.chipRow}>
             {QUICK_OFFSETS.map((opt) => {

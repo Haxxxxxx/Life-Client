@@ -86,7 +86,7 @@ function RecurrencePicker({
             value={String(interval)}
             onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
             keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <ThemedText type="small" themeColor="textSecondary">
             {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
@@ -149,7 +149,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         placeholder="Amount"
         placeholderTextColor={theme.textSecondary}
         keyboardType="decimal-pad"
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRowWrap}>
         {TRANSACTION_CATEGORIES.map((c) => {
@@ -171,14 +171,14 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         onChangeText={setNote}
         placeholder="Note (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={date}
         onChangeText={setDate}
         placeholder="YYYY-MM-DD"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <Pressable
@@ -229,7 +229,7 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
         placeholder="Monthly limit"
         placeholderTextColor={theme.textSecondary}
         keyboardType="decimal-pad"
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <Pressable
         disabled={!monthlyLimit.trim() || parsedLimit <= 0}

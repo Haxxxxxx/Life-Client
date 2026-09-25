@@ -8,9 +8,12 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 // Both keys resolve to the same "dark command-center" palette that
-// apps/web and apps/knowledge moved to — this app no longer follows the
-// OS light/dark setting, matching that decision. The two-key shape stays
-// so useTheme()/useColorScheme() consumers don't need to change.
+// apps/web and apps/knowledge moved to (kept in sync by hand with the
+// --color-* tokens in their globals.css — there's no shared token module
+// across the Tailwind/CSS and React Native StyleSheet worlds yet) — this
+// app no longer follows the OS light/dark setting, matching that decision.
+// The two-key shape stays so useTheme()/useColorScheme() consumers don't
+// need to change.
 const DARK_COMMAND_CENTER = {
   text: '#F4EFE6',
   background: '#141210',
@@ -21,6 +24,11 @@ const DARK_COMMAND_CENTER = {
   primaryForeground: '#1A0F06',
   accent: '#FF7A3D26',
   border: '#F4EFE614',
+  // Stronger border for surfaces that need to read as distinct from the
+  // page background they sit on (mainly text inputs, which fill with
+  // `background` itself) — the weak `border` alone is too close to
+  // invisible there. Matches web/knowledge's --border-strong.
+  borderStrong: '#F4EFE629',
 } as const;
 
 export const Colors = {
