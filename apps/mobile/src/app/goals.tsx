@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   linkSection: { gap: Spacing.one, borderTopWidth: 1, paddingTop: Spacing.two },
   italicText: { fontStyle: 'italic' },
   section: { gap: Spacing.one },
-  viceSection: { borderTopWidth: 2, borderStyle: 'dashed', paddingTop: Spacing.four },
+  viceSection: { borderTopWidth: 1, borderStyle: 'dashed', paddingTop: Spacing.four },
   viceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

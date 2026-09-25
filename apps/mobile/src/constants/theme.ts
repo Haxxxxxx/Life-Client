@@ -32,8 +32,11 @@ const DARK_COMMAND_CENTER = {
 } as const;
 
 export const Colors = {
-  light: DARK_COMMAND_CENTER,
-  dark: DARK_COMMAND_CENTER,
+  // Separate object copies, not the same reference twice — `as const` only
+  // enforces readonly-ness at the type level, so aliasing one object under
+  // both keys would let a future mutation of one silently affect the other.
+  light: { ...DARK_COMMAND_CENTER },
+  dark: { ...DARK_COMMAND_CENTER },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
