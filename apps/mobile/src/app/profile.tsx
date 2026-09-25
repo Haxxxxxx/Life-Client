@@ -110,7 +110,7 @@ function LogEventForm({
             value={durationMinutes}
             onChangeText={setDurationMinutes}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -121,7 +121,7 @@ function LogEventForm({
             value={peopleCount}
             onChangeText={setPeopleCount}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
       </View>
@@ -130,7 +130,7 @@ function LogEventForm({
         onChangeText={setNote}
         placeholder={NOTE_PLACEHOLDER[characteristicId] ?? 'Notes (optional)'}
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <Pressable
         onPress={() =>
@@ -368,35 +368,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.three,
     padding: Spacing.four,
   },
-  avatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2 },
+  avatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 1 },
   accountText: { flex: 1, gap: 2 },
   memberSince: { marginTop: Spacing.one, textTransform: 'uppercase' },
   list: { gap: Spacing.three },
-  card: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
+  card: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   cardText: { flex: 1, gap: 2 },
-  levelBadge: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
+  levelBadge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   levelText: { fontSize: 11 },
-  progressTrack: { height: 10, borderRadius: 999, borderWidth: 2, overflow: 'hidden' },
+  progressTrack: { height: 10, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
   progressFill: { height: '100%' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  logToggle: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   logButton: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     alignItems: 'center',
   },
   signOut: { alignSelf: 'center', marginTop: Spacing.two, padding: Spacing.two },
-  form: { gap: Spacing.two, borderWidth: 2, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two },
+  form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
-  input: { borderWidth: 2, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
 });

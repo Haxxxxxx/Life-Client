@@ -219,7 +219,7 @@ function DrillCard({
             placeholderTextColor={theme.textSecondary}
             multiline
             numberOfLines={3}
-            style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.textArea, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <View style={styles.rowBetween}>
             <Pressable
@@ -389,7 +389,7 @@ function CodeDrillsSection() {
           onChangeText={setTopic}
           placeholder="Topic (optional) — e.g. recursion, closures…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
         <View style={styles.chipRowWrap}>
           {DIFFICULTIES.map((d) => {
@@ -505,7 +505,7 @@ function VocabCard({ w }: { w: VocabWord }) {
           onChangeText={setSentence}
           placeholder={`Write a sentence using "${w.word}"…`}
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
         <Pressable
           onPress={handleSubmit}
@@ -677,7 +677,7 @@ function ReadingListSection() {
           onChangeText={setUrl}
           placeholder="Paste a link to read later…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, styles.flex1, { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+          style={[styles.input, styles.flex1, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.backgroundElement }]}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
         />
@@ -837,31 +837,31 @@ const styles = StyleSheet.create({
   italic: { fontStyle: 'italic' },
   errorText: { color: INCORRECT_COLOR },
   lessonGrid: { gap: Spacing.two },
-  lessonCard: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.half },
+  lessonCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.half },
   cardLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   wikiLink: { marginTop: Spacing.one, textTransform: 'uppercase' },
-  emptyState: { borderWidth: 2, borderStyle: 'dashed', borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center', gap: Spacing.three },
-  primaryButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.four, alignItems: 'center' },
-  primaryButtonSmall: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.three },
-  form: { gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three },
-  input: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
-  textArea: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, minHeight: 72, textAlignVertical: 'top' },
+  emptyState: { borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center', gap: Spacing.three },
+  primaryButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.four, alignItems: 'center' },
+  primaryButtonSmall: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.three },
+  form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
+  input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  textArea: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, minHeight: 72, textAlignVertical: 'top' },
   inputRow: { flexDirection: 'row', gap: Spacing.two },
-  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.four, justifyContent: 'center' },
+  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.four, justifyContent: 'center' },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   list: { gap: Spacing.two },
-  listCard: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three },
-  badge: { borderWidth: 2, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  listCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
+  badge: { borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
-  pillButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  resultBox: { borderWidth: 2, borderRadius: Spacing.two, padding: Spacing.three, marginTop: Spacing.two },
-  hintBox: { borderTopWidth: 2, marginTop: Spacing.three, paddingTop: Spacing.three },
-  pastDrillRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.two },
-  practiceBlock: { borderTopWidth: 2, paddingTop: Spacing.two },
-  dictionaryEntry: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three },
-  dictionarySection: { marginTop: Spacing.two, borderTopWidth: 2, paddingTop: Spacing.three },
-  insightCard: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
-  progressTrack: { height: 10, borderRadius: 999, borderWidth: 2, overflow: 'hidden' },
+  pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  resultBox: { borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.three, marginTop: Spacing.two },
+  hintBox: { borderTopWidth: 1, marginTop: Spacing.three, paddingTop: Spacing.three },
+  pastDrillRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.two },
+  practiceBlock: { borderTopWidth: 1, paddingTop: Spacing.two },
+  dictionaryEntry: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
+  dictionarySection: { marginTop: Spacing.two, borderTopWidth: 1, paddingTop: Spacing.three },
+  insightCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
+  progressTrack: { height: 10, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
   progressFill: { height: '100%' },
 });

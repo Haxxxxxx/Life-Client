@@ -54,11 +54,11 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
             backgroundColor: isFocused ? theme.primary : 'transparent',
           },
           isFocused && {
-            shadowColor: theme.border,
-            shadowOffset: { width: 2, height: 2 },
-            shadowOpacity: 1,
-            shadowRadius: 0,
-            elevation: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
+            elevation: 4,
           },
         ]}>
         <ThemedText
@@ -94,14 +94,14 @@ const styles = StyleSheet.create({
   tabs: { flex: 1 },
   slot: { flex: 1 },
   tabListContainer: {
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     paddingTop: Spacing.two,
   },
   scrollContent: { paddingHorizontal: Spacing.three },
   tabRow: { flexDirection: 'row', gap: Spacing.one },
   pressed: { opacity: 0.7 },
   tabButtonView: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.two,
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,

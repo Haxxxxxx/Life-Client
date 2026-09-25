@@ -97,7 +97,7 @@ function RecurrencePicker({
             value={String(interval)}
             onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
             keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <ThemedText type="small" themeColor="textSecondary">
             {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
@@ -153,7 +153,7 @@ function EditTaskForm({
       <TextInput
         value={title}
         onChangeText={setTitle}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRowWrap}>
         {TASK_CATEGORIES.map((c) => {
@@ -205,7 +205,7 @@ function EditTaskForm({
         onChangeText={setDueDate}
         placeholder="Due date YYYY-MM-DD"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRowWrap}>
         <Pressable
@@ -308,7 +308,7 @@ export default function TasksScreen() {
             onChangeText={setTitle}
             placeholder="Add a task…"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             onSubmitEditing={handleAdd}
             returnKeyType="done"
           />
@@ -440,11 +440,11 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   header: { marginTop: Spacing.four, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  form: { gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
-  input: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
+  input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   error: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
@@ -453,17 +453,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.two,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.three,
     padding: Spacing.three,
   },
   taskInfo: { flex: 1, gap: 2, minWidth: 0 },
   doneText: { textDecorationLine: 'line-through' },
   taskActions: { gap: Spacing.one, alignItems: 'flex-end' },
-  pillButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteText: { color: '#dc2626' },
   recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
-  intervalInput: { width: 44, borderWidth: 2, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
-  weekdayChip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
+  intervalInput: { width: 44, borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
+  weekdayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
 });

@@ -116,7 +116,7 @@ function RenameField({ value, onSave, style }: { value: string; onSave: (next: s
       onSubmitEditing={commit}
       style={[
         styles.renameInput,
-        { flex: 1, color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+        { flex: 1, color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background },
       ]}
     />
   );
@@ -427,7 +427,7 @@ function RecurrencePicker({
             value={String(interval)}
             onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
             keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <ThemedText type="small" themeColor="textSecondary">
             {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
@@ -475,14 +475,14 @@ function EditReminderForm({
       <TextInput
         value={title}
         onChangeText={setTitle}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={note}
         onChangeText={setNote}
         placeholder="Notes"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRow}>
         {QUICK_OFFSETS.map((opt) => {
@@ -611,14 +611,14 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
             onChangeText={setTitle}
             placeholder="What do you need to remember?"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <TextInput
             value={note}
             onChangeText={setNote}
             placeholder="Notes (e.g. account it's linked to)"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <View style={styles.chipRow}>
             {QUICK_OFFSETS.map((opt) => {
@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
   cardFill: { flex: 1 },
   cardPressed: { opacity: 0.7 },
   card: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.three,
     padding: Spacing.four,
     gap: Spacing.one,
@@ -909,28 +909,28 @@ const styles = StyleSheet.create({
   bigNumber: { fontSize: 32, lineHeight: 36 },
   sections: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.five },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  logToggle: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
-  smallOutlineButton: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  bulkBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 2, borderRadius: Spacing.two, padding: Spacing.two },
+  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
+  smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  bulkBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.two },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.two,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one + Spacing.half,
   },
-  checkbox: { width: 16, height: 16, borderWidth: 2, borderRadius: 4 },
-  renameInput: { borderWidth: 2, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
+  checkbox: { width: 16, height: 16, borderWidth: 1, borderRadius: 4 },
+  renameInput: { borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   doneText: { textDecorationLine: 'line-through' },
   deleteText: { color: '#dc2626' },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
-  form: { gap: Spacing.two, borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three },
-  input: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
+  input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three, alignItems: 'center' },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three, alignItems: 'center' },
   cardActionsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   error: {},
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
@@ -939,15 +939,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: Spacing.two,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.three,
     padding: Spacing.three,
   },
   cardInfo: { flex: 1, gap: 2 },
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
-  badge: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
+  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
   recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
-  intervalInput: { width: 44, borderWidth: 2, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
-  weekdayChip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
+  intervalInput: { width: 44, borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
+  weekdayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
 });

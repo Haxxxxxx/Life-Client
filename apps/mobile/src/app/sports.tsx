@@ -101,7 +101,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         onChangeText={setCustomType}
         placeholder="Or type your own…"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
 
       {kind === 'endurance' ? (
@@ -114,7 +114,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={distanceKm}
               onChangeText={setDistanceKm}
               keyboardType="decimal-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -125,7 +125,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={durationMin}
               onChangeText={setDurationMin}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
         </View>
@@ -139,7 +139,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={reps}
               onChangeText={setReps}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -150,7 +150,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={sets}
               onChangeText={setSets}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -161,7 +161,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={weightKg}
               onChangeText={setWeightKg}
               keyboardType="decimal-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
         </View>
@@ -303,7 +303,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         onChangeText={setCustomType}
         placeholder="Or type your own…"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRow}>
         {availableMetrics.map((m) => {
@@ -329,7 +329,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             value={dailyTarget}
             onChangeText={setDailyTarget}
             keyboardType={metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -340,7 +340,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             value={durationDays}
             onChangeText={setDurationDays}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -352,7 +352,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             onChangeText={setStartDate}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
       </View>
@@ -432,7 +432,7 @@ function ChallengeCard({
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <View style={styles.formRow}>
               <View style={styles.formField}>
@@ -443,7 +443,7 @@ function ChallengeCard({
                   value={dailyTarget}
                   onChangeText={setDailyTarget}
                   keyboardType={challenge.metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
-                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                  style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
                 />
               </View>
               <View style={styles.formField}>
@@ -454,7 +454,7 @@ function ChallengeCard({
                   value={durationDays}
                   onChangeText={setDurationDays}
                   keyboardType="number-pad"
-                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                  style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
                 />
               </View>
             </View>
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   headerText: { flex: 1, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  logToggle: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
+  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   error: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.two,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.three,
     padding: Spacing.three,
   },
@@ -826,23 +826,23 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   stat: { alignItems: 'flex-end' },
   deleteText: { color: '#dc2626' },
-  form: { gap: Spacing.two, borderWidth: 2, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginTop: Spacing.three },
+  form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginTop: Spacing.three },
   chipRow: { flexDirection: 'row', gap: Spacing.one },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
-  input: { borderWidth: 2, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
-  logButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
+  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  logButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   challengesSection: { gap: Spacing.two, marginBottom: Spacing.four },
-  challengeCard: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
+  challengeCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   challengeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   challengeActions: { flexDirection: 'row', gap: Spacing.two },
   challengeStatsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
-  logTodayButton: { marginLeft: 'auto', borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
-  doneTodayBadge: { marginLeft: 'auto', borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
+  logTodayButton: { marginLeft: 'auto', borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
+  doneTodayBadge: { marginLeft: 'auto', borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   dayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
   daySquare: { width: 10, height: 10, borderRadius: 2, borderWidth: 1 },
   milestoneRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  milestoneChip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
+  milestoneChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
 });

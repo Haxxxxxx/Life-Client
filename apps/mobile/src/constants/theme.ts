@@ -7,29 +7,36 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+// Both keys resolve to the same "dark command-center" palette that
+// apps/web and apps/knowledge moved to (kept in sync by hand with the
+// --color-* tokens in their globals.css — there's no shared token module
+// across the Tailwind/CSS and React Native StyleSheet worlds yet) — this
+// app no longer follows the OS light/dark setting, matching that decision.
+// The two-key shape stays so useTheme()/useColorScheme() consumers don't
+// need to change.
+const DARK_COMMAND_CENTER = {
+  text: '#F4EFE6',
+  background: '#141210',
+  backgroundElement: '#1D1A16',
+  backgroundSelected: '#FF7A3D26',
+  textSecondary: '#A89E8F',
+  primary: '#FF7A3D',
+  primaryForeground: '#1A0F06',
+  accent: '#FF7A3D26',
+  border: '#F4EFE614',
+  // Stronger border for surfaces that need to read as distinct from the
+  // page background they sit on (mainly text inputs, which fill with
+  // `background` itself) — the weak `border` alone is too close to
+  // invisible there. Matches web/knowledge's --border-strong.
+  borderStrong: '#F4EFE629',
+} as const;
+
 export const Colors = {
-  light: {
-    text: '#2B1B12',
-    background: '#FAF1E3',
-    backgroundElement: '#FFFAF0',
-    backgroundSelected: '#F6DFC0',
-    textSecondary: '#8A6B52',
-    primary: '#E0592C',
-    primaryForeground: '#FFF8ED',
-    accent: '#EFA63C',
-    border: '#2B1B12',
-  },
-  dark: {
-    text: '#F5E8D8',
-    background: '#1D140D',
-    backgroundElement: '#251A11',
-    backgroundSelected: '#3A2718',
-    textSecondary: '#B89A7F',
-    primary: '#F2794A',
-    primaryForeground: '#22140B',
-    accent: '#F2B45C',
-    border: '#F5E8D8',
-  },
+  // Separate object copies, not the same reference twice — `as const` only
+  // enforces readonly-ness at the type level, so aliasing one object under
+  // both keys would let a future mutation of one silently affect the other.
+  light: { ...DARK_COMMAND_CENTER },
+  dark: { ...DARK_COMMAND_CENTER },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;

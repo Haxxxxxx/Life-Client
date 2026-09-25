@@ -43,21 +43,21 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
         onChangeText={setTitle}
         placeholder="e.g. Ship WeSplit v2"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={description}
         onChangeText={setDescription}
         placeholder="Description (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={targetDate}
         onChangeText={setTargetDate}
         placeholder="Target date YYYY-MM-DD (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       {!title.trim() && (
         <View style={styles.chipRowWrap}>
@@ -135,21 +135,21 @@ function GoalCard({
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <TextInput
               value={description}
               onChangeText={setDescription}
               placeholder="Description"
               placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <TextInput
               value={targetDate}
               onChangeText={setTargetDate}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <View style={styles.goalActions}>
               <Pressable
@@ -231,7 +231,7 @@ function GoalCard({
       </View>
 
       <View style={styles.progressRow}>
-        <View style={[styles.progressTrack, { borderColor: theme.border, backgroundColor: theme.background }]}>
+        <View style={[styles.progressTrack, { borderColor: theme.borderStrong, backgroundColor: theme.background }]}>
           <View style={[styles.progressFill, { width: `${Math.round(progress.percent * 100)}%`, backgroundColor: theme.primary }]} />
         </View>
         <ThemedText type="code" themeColor="textSecondary">
@@ -283,7 +283,7 @@ function GoalCard({
             onChangeText={setNewTaskTitle}
             placeholder="Or create a new task…"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { flex: 1, color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            style={[styles.input, { flex: 1, color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <Pressable
             disabled={!newTaskTitle.trim()}
@@ -516,41 +516,41 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
   headerText: { flex: 1, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  logToggle: { borderWidth: 2, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
+  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   scrollContent: { paddingVertical: Spacing.four, gap: Spacing.three },
   error: { marginBottom: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
-  form: { gap: Spacing.two, borderWidth: 2, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
-  input: { borderWidth: 2, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
-  addButton: { borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
-  goalCard: { borderWidth: 2, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
+  form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
+  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
+  goalCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   goalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   goalActions: { flexDirection: 'row', gap: Spacing.two },
-  badge: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
+  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
   deleteText: { color: '#dc2626' },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  progressTrack: { flex: 1, height: 8, borderWidth: 2, borderRadius: 999, overflow: 'hidden' },
+  progressTrack: { flex: 1, height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },
   linkedTaskRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   doneText: { textDecorationLine: 'line-through' },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 2, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   newTaskRow: { flexDirection: 'row', gap: Spacing.one, alignItems: 'center' },
-  smallButton: { borderWidth: 2, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  smallButton: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
   statsRow: { flexDirection: 'row', gap: Spacing.two, marginBottom: Spacing.three },
-  statTile: { flex: 1, borderWidth: 2, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center', gap: 2 },
+  statTile: { flex: 1, borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center', gap: 2 },
   statLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   linkSection: { gap: Spacing.one, borderTopWidth: 1, paddingTop: Spacing.two },
   italicText: { fontStyle: 'italic' },
   section: { gap: Spacing.one },
-  viceSection: { borderTopWidth: 2, borderStyle: 'dashed', paddingTop: Spacing.four },
+  viceSection: { borderTopWidth: 1, borderStyle: 'dashed', paddingTop: Spacing.four },
   viceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.two,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
