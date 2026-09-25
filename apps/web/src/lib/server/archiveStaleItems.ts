@@ -27,6 +27,15 @@ interface StaleRefs {
   taskRefs: DocumentReference[];
 }
 
+// Firestore caps a WriteBatch at 500 operations.
+const BATCH_LIMIT = 500;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
+
 export async function archiveStaleItemsForAllUsers(): Promise<{ users: number; goals: number; tasks: number }> {
   const cutoffMs = Date.now() - ARCHIVE_AFTER_MS;
 
@@ -67,18 +76,27 @@ export async function archiveStaleItemsForAllUsers(): Promise<{ users: number; g
   let goals = 0;
   let tasks = 0;
   for (const [uid, { goalRefs, taskRefs }] of byUid) {
-    if (goalRefs.length + taskRefs.length === 0) continue;
-    try {
-      const batch = adminDb.batch();
-      for (const ref of goalRefs) batch.update(ref, { status: "archived" });
-      for (const ref of taskRefs) batch.update(ref, { archived: true });
-      await batch.commit();
-      goals += goalRefs.length;
-      tasks += taskRefs.length;
-    } catch (err) {
-      // Isolated per user (e.g. a single user with 500+ stale items in one
-      // run) so it can't skip archiving for anyone else in the same cron run.
-      console.error(`archiveStaleItems: failed for uid ${uid}`, err);
+    const updates = [
+      ...goalRefs.map((ref) => ({ ref, kind: "goal" as const, patch: { status: "archived" } })),
+      ...taskRefs.map((ref) => ({ ref, kind: "task" as const, patch: { archived: true } })),
+    ];
+    if (updates.length === 0) continue;
+
+    // Chunked so a user with 500+ combined stale items still gets archived in
+    // full (across multiple batches) instead of the whole write failing, and
+    // one chunk/user failing doesn't stop any other chunk or user from running.
+    for (const group of chunk(updates, BATCH_LIMIT)) {
+      try {
+        const batch = adminDb.batch();
+        for (const { ref, patch } of group) batch.update(ref, patch);
+        await batch.commit();
+        for (const { kind } of group) {
+          if (kind === "goal") goals++;
+          else tasks++;
+        }
+      } catch (err) {
+        console.error(`archiveStaleItems: failed for uid ${uid}`, err);
+      }
     }
   }
 

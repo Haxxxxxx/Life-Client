@@ -15,7 +15,7 @@ import {
   visibleTasks,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -290,6 +290,8 @@ export default function TasksScreen() {
     }
   }
 
+  const shownTasks = useMemo(() => visibleTasks(tasks), [tasks]);
+
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -363,7 +365,7 @@ export default function TasksScreen() {
         )}
 
         <FlatList
-          data={visibleTasks(tasks)}
+          data={shownTasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={

@@ -197,7 +197,9 @@ export default function TasksPage() {
         })}
         {sortedTasks.length === 0 && (
           <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
-            No tasks yet — add your first one above.
+            {tasks.length === 0
+              ? "No tasks yet — add your first one above."
+              : "All caught up — everything here has been done long enough to auto-archive."}
           </li>
         )}
       </ul>
