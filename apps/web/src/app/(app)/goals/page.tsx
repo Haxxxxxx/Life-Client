@@ -54,7 +54,7 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
               key={example}
               type="button"
               onClick={() => setTitle(example)}
-              className="rounded-full border-2 border-foreground/30 px-2.5 py-1 text-xs text-muted hover:border-foreground hover:text-foreground"
+              className="rounded-full border border-border px-2.5 py-1 text-xs text-muted hover:border-border-strong hover:text-foreground"
             >
               {example}
             </button>
@@ -126,19 +126,19 @@ function GoalCard({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm font-bold"
+              className="rounded-xl border border-border-strong bg-background px-2 py-1 text-sm font-bold"
             />
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description"
-              className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm"
+              className="rounded-xl border border-border-strong bg-background px-2 py-1 text-sm"
             />
             <input
               type="date"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
-              className="w-fit rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm"
+              className="w-fit rounded-xl border border-border-strong bg-background px-2 py-1 text-sm"
             />
             <div className="flex gap-3">
               <button
@@ -182,8 +182,8 @@ function GoalCard({
         {!editing && (
           <div className="flex shrink-0 flex-col items-end gap-1">
             <span
-              className={`rounded-full border-2 border-foreground px-2.5 py-1 font-mono text-[10px] font-bold uppercase ${
-                goal.status === "completed" ? "bg-primary text-primary-foreground" : "bg-accent"
+              className={`rounded-full border border-border-strong px-2.5 py-1 font-mono text-[10px] font-bold uppercase ${
+                goal.status === "completed" ? "bg-primary text-primary-foreground" : "bg-primary/15"
               }`}
             >
               {goal.status}
@@ -218,7 +218,7 @@ function GoalCard({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full border-2 border-foreground bg-background">
+        <div className="h-2 flex-1 overflow-hidden rounded-full border border-border-strong bg-background">
           <div className="h-full bg-primary" style={{ width: `${Math.round(progress.percent * 100)}%` }} />
         </div>
         <p className="font-mono text-xs text-muted">
@@ -245,7 +245,7 @@ function GoalCard({
         <p className="text-xs text-muted italic">No tasks linked yet — link one or add a new one below.</p>
       )}
 
-      <div className="flex flex-col gap-1.5 border-t border-foreground/20 pt-2">
+      <div className="flex flex-col gap-1.5 border-t border-border pt-2">
         <span className="font-mono text-[10px] text-muted uppercase">Link tasks to this goal</span>
         <div className="flex flex-wrap gap-2">
           {unlinkedTasks.length > 0 && (
@@ -253,7 +253,7 @@ function GoalCard({
               <select
                 value={linkPick}
                 onChange={(e) => setLinkPick(e.target.value)}
-                className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+                className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
               >
                 <option value="">Existing task…</option>
                 {unlinkedTasks.map((t) => (
@@ -269,7 +269,7 @@ function GoalCard({
                   onLinkTask(linkPick);
                   setLinkPick("");
                 }}
-                className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
+                className="rounded-xl border border-border-strong px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10 disabled:opacity-50"
               >
                 Link
               </button>
@@ -280,7 +280,7 @@ function GoalCard({
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="Or create a new task…"
-              className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs outline-none placeholder:text-muted"
+              className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs outline-none placeholder:text-muted"
             />
             <button
               type="button"
@@ -289,7 +289,7 @@ function GoalCard({
                 onNewTask(newTaskTitle.trim());
                 setNewTaskTitle("");
               }}
-              className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
+              className="rounded-xl border border-border-strong px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10 disabled:opacity-50"
             >
               Add
             </button>
@@ -412,7 +412,7 @@ export default function GoalsPage() {
       {activeGoals.length > 0 && <div className="flex flex-col gap-3">{activeGoals.map(renderGoalCard)}</div>}
 
       {activeGoals.length === 0 && !formOpen && (
-        <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center text-sm text-muted">
+        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
           No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
         </div>
       )}
@@ -426,7 +426,7 @@ export default function GoalsPage() {
         </details>
       )}
 
-      <div className="flex flex-col gap-2 border-t-2 border-dashed border-foreground/20 pt-6">
+      <div className="flex flex-col gap-2 border-t-2 border-dashed border-border pt-6">
         <div>
           <SectionHeader eyebrow="Slipped up?" title="Log a slip" />
           <p className="mt-1 text-sm text-muted">
@@ -439,7 +439,7 @@ export default function GoalsPage() {
               key={v.id}
               type="button"
               onClick={() => handleLogVice(v.id)}
-              className="rounded-full border-2 border-foreground px-3 py-1.5 text-xs hover:bg-accent/20"
+              className="rounded-full border border-border-strong px-3 py-1.5 text-xs hover:bg-primary/10"
             >
               {v.label}
             </button>
@@ -457,7 +457,7 @@ export default function GoalsPage() {
               return (
                 <li
                   key={v.id}
-                  className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3"
                 >
                   <div className="min-w-0">
                     <p className="truncate font-bold">{preset?.label ?? v.viceId}</p>

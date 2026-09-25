@@ -88,9 +88,9 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-24" onClick={close}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-24 backdrop-blur-sm" onClick={close}>
       <div
-        className="w-full max-w-lg rounded-md border-2 border-foreground bg-surface shadow-[4px_4px_0_0_var(--foreground)]"
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl shadow-black/40"
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -98,7 +98,7 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search Tasks, Goals, Reminders…"
-          className="w-full rounded-t-md border-b-2 border-foreground bg-background px-4 py-3 text-sm outline-none placeholder:text-muted"
+          className="w-full border-b border-border bg-transparent px-4 py-3.5 text-sm outline-none placeholder:text-muted"
         />
         <ul className="max-h-80 overflow-y-auto">
           {results.map((r) => (
@@ -106,12 +106,12 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
               <button
                 type="button"
                 onClick={() => goTo(r.href)}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-accent/20"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-surface-2"
               >
-                <span className="shrink-0 rounded-full border-2 border-foreground bg-accent px-2 py-0.5 font-mono text-[10px] font-bold uppercase">
+                <span className="shrink-0 rounded-full border border-border-strong bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-bold text-primary uppercase">
                   {r.kind}
                 </span>
-                <span className="min-w-0 truncate">{r.title}</span>
+                <span className="min-w-0 truncate text-foreground">{r.title}</span>
               </button>
             </li>
           ))}

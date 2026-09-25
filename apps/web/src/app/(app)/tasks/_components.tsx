@@ -46,8 +46,8 @@ export function RecurrencePicker({
           key={f}
           type="button"
           onClick={() => setFreq(f === "none" ? undefined : f)}
-          className={`rounded-full border-2 px-2.5 py-1 text-xs capitalize ${
-            (f === "none" && !freq) || f === freq ? "border-foreground bg-accent" : "border-foreground/30 text-muted"
+          className={`rounded-full border px-2.5 py-1 text-xs capitalize ${
+            (f === "none" && !freq) || f === freq ? "border-border-strong bg-primary/15" : "border-border text-muted"
           }`}
         >
           {f === "none" ? "No repeat" : f}
@@ -61,7 +61,7 @@ export function RecurrencePicker({
             min={1}
             value={interval}
             onChange={(e) => onChange({ freq, interval: Number(e.target.value) || 1, daysOfWeek: value?.daysOfWeek })}
-            className="w-12 rounded-md border-2 border-foreground bg-background px-1 py-0.5 text-xs"
+            className="w-12 rounded-xl border border-border-strong bg-background px-1 py-0.5 text-xs"
           />
           {freq === "daily" ? "day(s)" : freq === "weekly" ? "week(s)" : "month(s)"}
         </label>
@@ -73,8 +73,8 @@ export function RecurrencePicker({
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              className={`rounded-full border-2 px-1.5 py-1 text-[10px] font-bold ${
-                daysOfWeek.includes(i) ? "border-foreground bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+              className={`rounded-full border px-1.5 py-1 text-[10px] font-bold ${
+                daysOfWeek.includes(i) ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
               }`}
             >
               {label}
@@ -110,13 +110,13 @@ export function EditTaskForm({
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+        className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
       />
       <div className="flex flex-wrap gap-2">
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as TaskCategory)}
-          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
         >
           {TASK_CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
@@ -127,7 +127,7 @@ export function EditTaskForm({
         <select
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
-          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
         >
           {TASK_DIFFICULTIES.map((d) => (
             <option key={d.id} value={d.id}>
@@ -138,7 +138,7 @@ export function EditTaskForm({
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value as TaskPriority)}
-          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
         >
           {TASK_PRIORITIES.map((p) => (
             <option key={p.id} value={p.id}>
@@ -150,12 +150,12 @@ export function EditTaskForm({
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
         />
         <select
           value={goalId}
           onChange={(e) => setGoalId(e.target.value)}
-          className="rounded-md border-2 border-foreground bg-background px-2 py-1 text-xs"
+          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
         >
           <option value="">No goal</option>
           {goals.map((g) => (

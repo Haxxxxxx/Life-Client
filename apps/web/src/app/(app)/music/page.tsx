@@ -85,14 +85,14 @@ function NowPlayingSection() {
             <img
               src={track.albumArtUrl}
               alt=""
-              className="h-16 w-16 shrink-0 rounded-md border-2 border-foreground"
+              className="h-16 w-16 shrink-0 rounded-xl border border-border-strong"
             />
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{track.name}</p>
             <p className="truncate text-sm text-muted">{track.artists}</p>
             <div className="mt-2 flex items-center gap-2">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full border border-foreground/30 bg-background">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full border border-border bg-background">
                 <div
                   className="h-full bg-primary"
                   style={{ width: `${Math.min(100, (liveProgressMs / track.durationMs) * 100)}%` }}
@@ -105,7 +105,7 @@ function NowPlayingSection() {
           </div>
         </Card>
       ) : (
-        <div className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
           Nothing playing right now.
         </div>
       )}
@@ -142,11 +142,11 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
         {(summary?.recentTracks ?? []).map((track) => (
           <li
             key={`${track.id}-${track.playedAt}`}
-            className="flex items-center gap-3 rounded-md border-2 border-foreground bg-surface p-3"
+            className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface p-3"
           >
             {track.albumArtUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={track.albumArtUrl} alt="" className="h-10 w-10 shrink-0 rounded border-2 border-foreground" />
+              <img src={track.albumArtUrl} alt="" className="h-10 w-10 shrink-0 rounded border border-border-strong" />
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold">{track.name}</p>
@@ -158,7 +158,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
           </li>
         ))}
         {(!summary || summary.recentTracks.length === 0) && (
-          <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             No listening history yet — connect Spotify from Integrations.
           </li>
         )}
@@ -183,7 +183,7 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
             {(summary?.topArtists ?? []).map((artist) => (
               <span
                 key={artist.name}
-                className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold"
+                className="rounded-full border border-border-strong bg-primary/15 px-2.5 py-1 font-mono text-xs font-bold"
               >
                 {artist.name} · {artist.playCount}
               </span>

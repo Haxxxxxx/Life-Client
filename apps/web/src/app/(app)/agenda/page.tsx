@@ -185,7 +185,7 @@ export default function AgendaPage() {
       <ErrorText>{error}</ErrorText>
 
       {groups.length === 0 && !formOpen && (
-        <div className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
           No events yet — connect Google Calendar from Integrations, add one above, or check back once it&apos;s
           synced.
         </div>
@@ -207,7 +207,7 @@ export default function AgendaPage() {
                     />
                   </li>
                 ) : (
-                  <li key={event.id} className="rounded-md border-2 border-foreground bg-surface p-4">
+                  <li key={event.id} className="rounded-xl border border-border-strong bg-surface p-4">
                     <div className="flex items-start justify-between gap-3">
                       <button type="button" onClick={() => setEditingId(event.id)} className="min-w-0 flex-1 text-left">
                         <p className="truncate font-bold hover:underline">{event.title}</p>
@@ -222,7 +222,7 @@ export default function AgendaPage() {
                             href={event.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+                            className="rounded-xl border border-border-strong px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-primary/10"
                           >
                             Open
                           </a>
@@ -230,7 +230,7 @@ export default function AgendaPage() {
                         <button
                           type="button"
                           onClick={() => handleDelete(event.id)}
-                          className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
+                          className="rounded-xl px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
                         >
                           Delete
                         </button>

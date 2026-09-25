@@ -61,14 +61,14 @@ function LogActivityForm({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3">
+    <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3">
       <div className="flex gap-2">
         {(["endurance", "strength"] as const).map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => handleKindChange(k)}
-            className={`rounded-full border-2 border-foreground px-3 py-1 text-xs font-bold uppercase ${
+            className={`rounded-full border border-border-strong px-3 py-1 text-xs font-bold uppercase ${
               kind === k ? "bg-primary text-primary-foreground" : ""
             }`}
           >
@@ -86,8 +86,8 @@ function LogActivityForm({
               setType(p);
               setCustomType("");
             }}
-            className={`rounded-full border-2 border-foreground px-2.5 py-1 text-xs ${
-              type === p && !customType ? "bg-accent" : ""
+            className={`rounded-full border border-border-strong px-2.5 py-1 text-xs ${
+              type === p && !customType ? "bg-primary/15" : ""
             }`}
           >
             {p}
@@ -97,7 +97,7 @@ function LogActivityForm({
           value={customType}
           onChange={(e) => setCustomType(e.target.value)}
           placeholder="Or type your own…"
-          className="min-w-0 flex-1 rounded-full border-2 border-foreground bg-background px-2.5 py-1 text-xs outline-none placeholder:text-muted"
+          className="min-w-0 flex-1 rounded-full border border-border-strong bg-background px-2.5 py-1 text-xs outline-none placeholder:text-muted"
         />
       </div>
 
@@ -111,7 +111,7 @@ function LogActivityForm({
               step={0.1}
               value={distanceKm}
               onChange={(e) => setDistanceKm(Number(e.target.value))}
-              className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+              className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
             />
           </label>
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
@@ -121,7 +121,7 @@ function LogActivityForm({
               min={0}
               value={durationMin}
               onChange={(e) => setDurationMin(Number(e.target.value))}
-              className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+              className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
             />
           </label>
         </div>
@@ -134,7 +134,7 @@ function LogActivityForm({
               min={0}
               value={reps}
               onChange={(e) => setReps(Number(e.target.value))}
-              className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+              className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
             />
           </label>
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
@@ -144,7 +144,7 @@ function LogActivityForm({
               min={0}
               value={sets}
               onChange={(e) => setSets(Number(e.target.value))}
-              className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+              className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
             />
           </label>
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
@@ -154,7 +154,7 @@ function LogActivityForm({
               min={0}
               value={weightKg}
               onChange={(e) => setWeightKg(Number(e.target.value))}
-              className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+              className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
             />
           </label>
         </div>
@@ -249,14 +249,14 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3">
+    <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3">
       <div className="flex gap-2">
         {(["endurance", "strength"] as const).map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => handleKindChange(k)}
-            className={`rounded-full border-2 border-foreground px-3 py-1 text-xs font-bold uppercase ${
+            className={`rounded-full border border-border-strong px-3 py-1 text-xs font-bold uppercase ${
               kind === k ? "bg-primary text-primary-foreground" : ""
             }`}
           >
@@ -273,8 +273,8 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
               setExerciseType(p);
               setCustomType("");
             }}
-            className={`rounded-full border-2 border-foreground px-2.5 py-1 text-xs ${
-              exerciseType === p && !customType ? "bg-accent" : ""
+            className={`rounded-full border border-border-strong px-2.5 py-1 text-xs ${
+              exerciseType === p && !customType ? "bg-primary/15" : ""
             }`}
           >
             {p}
@@ -284,7 +284,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
           value={customType}
           onChange={(e) => setCustomType(e.target.value)}
           placeholder="Or type your own…"
-          className="min-w-0 flex-1 rounded-full border-2 border-foreground bg-background px-2.5 py-1 text-xs outline-none placeholder:text-muted"
+          className="min-w-0 flex-1 rounded-full border border-border-strong bg-background px-2.5 py-1 text-xs outline-none placeholder:text-muted"
         />
       </div>
       <div className="flex flex-wrap gap-2">
@@ -293,7 +293,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             key={m.id}
             type="button"
             onClick={() => handleMetricChange(m.id)}
-            className={`rounded-full border-2 border-foreground px-3 py-1 text-xs font-bold uppercase ${
+            className={`rounded-full border border-border-strong px-3 py-1 text-xs font-bold uppercase ${
               metric === m.id ? "bg-primary text-primary-foreground" : ""
             }`}
           >
@@ -310,7 +310,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             step={metric === "distanceMeters" ? 0.1 : 1}
             value={dailyTarget}
             onChange={(e) => setDailyTarget(Number(e.target.value))}
-            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+            className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
           />
         </label>
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
@@ -320,7 +320,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             min={1}
             value={durationDays}
             onChange={(e) => setDurationDays(Number(e.target.value))}
-            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+            className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
           />
         </label>
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
@@ -329,7 +329,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+            className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
           />
         </label>
       </div>
@@ -406,7 +406,7 @@ function ChallengeCard({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm font-bold"
+              className="w-full rounded-xl border border-border-strong bg-background px-2 py-1 text-sm font-bold"
             />
             <div className="flex gap-2">
               <label className="flex flex-col gap-1 text-xs text-muted">
@@ -417,7 +417,7 @@ function ChallengeCard({
                   step={challenge.metric === "distanceMeters" ? 0.1 : 1}
                   value={dailyTarget}
                   onChange={(e) => setDailyTarget(e.target.value)}
-                  className="w-28 rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm"
+                  className="w-28 rounded-xl border border-border-strong bg-background px-2 py-1 text-sm"
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs text-muted">
@@ -427,7 +427,7 @@ function ChallengeCard({
                   min={1}
                   value={durationDays}
                   onChange={(e) => setDurationDays(e.target.value)}
-                  className="w-28 rounded-md border-2 border-foreground bg-background px-2 py-1 text-sm"
+                  className="w-28 rounded-xl border border-border-strong bg-background px-2 py-1 text-sm"
                 />
               </label>
             </div>
@@ -487,7 +487,7 @@ function ChallengeCard({
           <p className="font-mono text-xs text-muted uppercase">days completed</p>
         </div>
         {progress.isFinished && (
-          <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold uppercase">
+          <span className="rounded-full border border-border-strong bg-primary/15 px-2.5 py-1 font-mono text-xs font-bold uppercase">
             Finished
           </span>
         )}
@@ -497,7 +497,7 @@ function ChallengeCard({
           </Button>
         )}
         {!progress.isFinished && todayEntry?.completed && (
-          <span className="ml-auto rounded-full border-2 border-foreground bg-primary px-2.5 py-1 font-mono text-xs font-bold text-primary-foreground uppercase">
+          <span className="ml-auto rounded-full border border-border-strong bg-primary px-2.5 py-1 font-mono text-xs font-bold text-primary-foreground uppercase">
             Done today
           </span>
         )}
@@ -506,8 +506,8 @@ function ChallengeCard({
         {milestones.map((m) => (
           <span
             key={m.thresholdPercent}
-            className={`rounded-full border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
-              m.achieved ? "border-primary bg-primary text-primary-foreground" : "border-foreground/30 text-muted"
+            className={`rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+              m.achieved ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted"
             }`}
           >
             {m.label}
@@ -520,7 +520,7 @@ function ChallengeCard({
             key={day.date}
             title={`${day.date}: ${formatMetricValue(challenge.metric, day.value)}`}
             className={`h-3 w-3 rounded-sm border ${
-              day.completed ? "border-primary bg-primary" : "border-foreground/30 bg-background"
+              day.completed ? "border-primary bg-primary" : "border-border bg-background"
             }`}
           />
         ))}
@@ -605,7 +605,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
         </div>
       ) : (
         !formOpen && (
-          <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center text-sm text-muted">
+          <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
             No active challenges — e.g. &ldquo;100 days of 100 push-ups&rdquo;. Completion is tracked automatically
             from activities you log below.
           </div>
@@ -678,7 +678,7 @@ export default function SportsPage() {
       <ChallengesSection activities={activities} />
 
       {loaded && activities.length === 0 && (
-        <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center text-sm text-muted">
+        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
           No activities yet.{" "}
           <Link href="/integrations" className="font-bold text-primary hover:underline">
             Connect Strava
@@ -691,7 +691,7 @@ export default function SportsPage() {
         {activities.map((activity) => (
           <li
             key={activity.id}
-            className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground bg-surface px-4 py-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3"
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-bold">{activity.name}</p>

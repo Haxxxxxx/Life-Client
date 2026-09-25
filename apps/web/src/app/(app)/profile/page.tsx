@@ -65,13 +65,13 @@ function LogEventForm({
         e.preventDefault();
         onSubmit({ eventType, durationMinutes, peopleCount, note: note.trim() || undefined });
       }}
-      className="flex flex-col gap-2 rounded-md border-2 border-dashed border-foreground/40 p-3"
+      className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3"
     >
       <div className="flex gap-2">
         <select
           value={eventType}
           onChange={(e) => setEventType(e.target.value as ManualEventType)}
-          className="flex-1 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-xs"
+          className="flex-1 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
         >
           {MANUAL_EVENT_TYPES.map((t) => (
             <option key={t.id} value={t.id}>
@@ -88,7 +88,7 @@ function LogEventForm({
             min={1}
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(Number(e.target.value))}
-            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+            className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
           />
         </label>
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
@@ -98,7 +98,7 @@ function LogEventForm({
             min={1}
             value={peopleCount}
             onChange={(e) => setPeopleCount(Number(e.target.value))}
-            className="w-full min-w-0 rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm"
+            className="w-full min-w-0 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
           />
         </label>
       </div>
@@ -106,7 +106,7 @@ function LogEventForm({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder={NOTE_PLACEHOLDER[characteristicId] ?? "Notes (optional)"}
-        className="w-full rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-sm outline-none placeholder:text-muted"
+        className="w-full rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm outline-none placeholder:text-muted"
       />
       <Button type="submit" size="sm">
         Log it
@@ -140,7 +140,7 @@ function CharacteristicCard({
           <p className="font-bold">{def.label}</p>
           <p className="text-xs text-muted">{description}</p>
         </div>
-        <span className="shrink-0 rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold">
+        <span className="shrink-0 rounded-full border border-border-strong bg-primary/15 px-2.5 py-1 font-mono text-xs font-bold">
           Lv {level.level}
         </span>
       </div>
@@ -260,7 +260,7 @@ export default function ProfilePage() {
           <img
             src={user.photoURL}
             alt=""
-            className="h-16 w-16 shrink-0 rounded-full border-2 border-foreground"
+            className="h-16 w-16 shrink-0 rounded-full border border-border-strong"
           />
         )}
         <div className="min-w-0">

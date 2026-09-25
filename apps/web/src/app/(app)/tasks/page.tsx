@@ -89,13 +89,13 @@ export default function TasksPage() {
         description="Everything you need to do — added by hand, or pulled in from GitHub, GitLab, and your calendar once connected. Your work sits up top; teammates’ open PRs and bot bumps sink below it."
       />
 
-      <form onSubmit={handleAddTask} className="flex flex-col gap-2 rounded-md border-2 border-foreground bg-surface p-3">
+      <form onSubmit={handleAddTask} className="flex flex-col gap-2 rounded-xl border border-border-strong bg-surface p-3">
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task…" />
         <div className="flex flex-wrap gap-2">
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as TaskCategory)}
-            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-xs"
+            className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
           >
             {TASK_CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>
@@ -106,7 +106,7 @@ export default function TasksPage() {
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
-            className="rounded-md border-2 border-foreground bg-background px-2 py-1.5 text-xs"
+            className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
           >
             {TASK_DIFFICULTIES.map((d) => (
               <option key={d.id} value={d.id}>
@@ -134,8 +134,8 @@ export default function TasksPage() {
           return (
             <li
               key={task.id}
-              className={`flex flex-col gap-3 rounded-md border-2 bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                meta?.isBot ? "border-warning bg-warning/5" : "border-foreground"
+              className={`flex flex-col gap-3 rounded-xl border bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                meta?.isBot ? "border-warning bg-warning/5" : "border-border-strong"
               }`}
             >
               <Link href={`/tasks/${task.id}`} className="min-w-0 flex-1">
@@ -170,7 +170,7 @@ export default function TasksPage() {
                     href={task.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md border-2 border-foreground px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+                    className="rounded-xl border border-border-strong px-3 py-1.5 font-mono text-xs font-bold uppercase hover:bg-primary/10"
                   >
                     View on {task.source === "gitlab" ? "GitLab" : "GitHub"} ↗
                   </a>
@@ -185,7 +185,7 @@ export default function TasksPage() {
                 <button
                   type="button"
                   onClick={() => data.deleteTask(user!.uid, task.id)}
-                  className="rounded-md px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
+                  className="rounded-xl px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
                 >
                   Delete
                 </button>
@@ -194,7 +194,7 @@ export default function TasksPage() {
           );
         })}
         {tasks.length === 0 && (
-          <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             No tasks yet — add your first one above.
           </li>
         )}

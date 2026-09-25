@@ -104,7 +104,7 @@ function DailyLessonSection() {
           </Card>
         </div>
       ) : (
-        <div className="rounded-md border-2 border-dashed border-foreground/30 bg-surface px-4 py-8 text-center">
+        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center">
           <p className="mb-3 text-sm text-muted">No lesson generated yet today.</p>
           <Button onClick={handleGenerate} disabled={generating}>
             {generating ? "Generating…" : "Generate today's lesson"}
@@ -196,7 +196,7 @@ function CodeRunner() {
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded-md border-2 border-foreground/20 bg-background p-3">
+    <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
       <p className="font-mono text-xs font-bold text-primary uppercase">Try it — JS/TS scratchpad</p>
       <Textarea
         value={code}
@@ -209,7 +209,7 @@ function CodeRunner() {
         {running ? "Running…" : "Run"}
       </Button>
       {(outcome || timedOut) && (
-        <div className="rounded-md border-2 border-foreground/30 bg-black p-3 font-mono text-xs text-green-400">
+        <div className="rounded-xl border border-border bg-black p-3 font-mono text-xs text-green-400">
           {timedOut && (
             <p className="text-amber-400">Timed out after {RUN_TIMEOUT_MS / 1000}s — possible infinite loop.</p>
           )}
@@ -272,9 +272,9 @@ function DrillCard({
   }
 
   return (
-    <li className="rounded-md border-2 border-foreground bg-surface p-4">
+    <li className="rounded-xl border border-border-strong bg-surface p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-xs font-bold uppercase">
+        <span className="rounded-full border border-border-strong bg-primary/15 px-2.5 py-1 font-mono text-xs font-bold uppercase">
           {drill.difficulty}
         </span>
         <div className="flex items-center gap-3">
@@ -328,7 +328,7 @@ function DrillCard({
 
       {result && (
         <div
-          className={`mt-2 rounded-md border-2 p-3 ${
+          className={`mt-2 rounded-xl border p-3 ${
             result.correct ? "border-success bg-success/10" : "border-danger bg-danger/10"
           }`}
         >
@@ -337,7 +337,7 @@ function DrillCard({
           </p>
           <p className="mt-1 text-sm text-muted">{result.feedback}</p>
           {!result.correct && (result.hint || result.videoUrl) && (
-            <div className="mt-3 flex flex-col gap-2 border-t-2 border-foreground/20 pt-3">
+            <div className="mt-3 flex flex-col gap-2 border-t-2 border-border pt-3">
               <p className="font-mono text-xs font-bold text-primary uppercase">Need a hand?</p>
               {result.hint && <p className="text-sm text-muted">{result.hint}</p>}
               {result.videoUrl && (
@@ -388,7 +388,7 @@ function PastDrillRow({
   deleting: boolean;
 }) {
   return (
-    <li className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground/20 px-3 py-2">
+    <li className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{drill.prompt}</p>
         <p className="font-mono text-xs text-muted uppercase">
@@ -471,7 +471,7 @@ function CodeDrillsSection() {
               key={d.id}
               type="button"
               onClick={() => setDifficulty(d.id)}
-              className={`rounded-full border-2 border-foreground px-3 py-1 text-xs font-bold uppercase ${
+              className={`rounded-full border border-border-strong px-3 py-1 text-xs font-bold uppercase ${
                 difficulty === d.id ? "bg-primary text-primary-foreground" : ""
               }`}
             >
@@ -495,7 +495,7 @@ function CodeDrillsSection() {
             deleting={deletingId === drills[0].id}
           />
         ) : (
-          <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             No drills yet — generate your first one above.
           </li>
         )}
@@ -540,7 +540,7 @@ function VocabCard({ w }: { w: VocabWord }) {
   }
 
   return (
-    <li className="rounded-md border-2 border-foreground bg-surface p-4">
+    <li className="rounded-xl border border-border-strong bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-bold">{w.word}</p>
@@ -553,8 +553,8 @@ function VocabCard({ w }: { w: VocabWord }) {
               key={m}
               type="button"
               onClick={() => user && data.setVocabMastery(user.uid, w.id, m)}
-              className={`rounded-full border-2 border-foreground px-2 py-1 font-mono text-[10px] font-bold uppercase ${
-                w.mastery === m ? "bg-accent" : ""
+              className={`rounded-full border border-border-strong px-2 py-1 font-mono text-[10px] font-bold uppercase ${
+                w.mastery === m ? "bg-primary/15" : ""
               }`}
             >
               {MASTERY_LABEL[m]}
@@ -562,7 +562,7 @@ function VocabCard({ w }: { w: VocabWord }) {
           ))}
         </div>
       </div>
-      <div className="mt-3 flex flex-col gap-2 border-t-2 border-foreground/10 pt-3">
+      <div className="mt-3 flex flex-col gap-2 border-t-2 border-border pt-3">
         <p className="font-mono text-xs font-bold text-primary uppercase">Practice it</p>
         <Input
           value={sentence}
@@ -575,7 +575,7 @@ function VocabCard({ w }: { w: VocabWord }) {
         <ErrorText>{error}</ErrorText>
         {result && (
           <div
-            className={`rounded-md border-2 p-3 ${
+            className={`rounded-xl border p-3 ${
               result.correct ? "border-success bg-success/10" : "border-danger bg-danger/10"
             }`}
           >
@@ -590,7 +590,7 @@ function VocabCard({ w }: { w: VocabWord }) {
 
 function DictionaryEntry({ w }: { w: VocabWord }) {
   return (
-    <li className="rounded-md border-2 border-foreground/20 p-3">
+    <li className="rounded-xl border border-border p-3">
       <div className="flex items-baseline justify-between gap-2">
         <p className="font-bold">{w.word}</p>
         <span className="shrink-0 font-mono text-[10px] font-bold text-success uppercase">Learned</span>
@@ -644,7 +644,7 @@ function VocabularySection() {
           <VocabCard key={w.id} w={w} />
         ))}
         {activeWords.length === 0 && (
-          <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             {words.length === 0
               ? "No words yet — get your first one above."
               : "All caught up — every word's in your dictionary. Get a new one above."}
@@ -653,7 +653,7 @@ function VocabularySection() {
       </ul>
 
       {dictionaryWords.length > 0 && (
-        <div className="mt-4 flex flex-col gap-3 border-t-2 border-foreground/10 pt-4">
+        <div className="mt-4 flex flex-col gap-3 border-t-2 border-border pt-4">
           <SectionHeader eyebrow={`${dictionaryWords.length} learned`} title="Dictionary" />
           <ul className="grid gap-2 sm:grid-cols-2">
             {dictionaryWords.map((w) => (
@@ -723,7 +723,7 @@ function ReadingListSection() {
       <ErrorText>{error}</ErrorText>
       <ul className="flex flex-col gap-2">
         {items.map((item) => (
-          <li key={item.id} className="rounded-md border-2 border-foreground bg-surface p-4">
+          <li key={item.id} className="rounded-xl border border-border-strong bg-surface p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{item.title ?? item.url}</p>
@@ -745,7 +745,7 @@ function ReadingListSection() {
                     type="button"
                     onClick={() => handleSummarize(item.id)}
                     disabled={summarizingId === item.id}
-                    className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20 disabled:opacity-50"
+                    className="rounded-xl border border-border-strong px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10 disabled:opacity-50"
                   >
                     {summarizingId === item.id ? "Summarizing…" : "Summarize"}
                   </button>
@@ -754,7 +754,7 @@ function ReadingListSection() {
                   <button
                     type="button"
                     onClick={() => user && data.markReadingListItemRead(user.uid, item.id)}
-                    className="rounded-md border-2 border-foreground px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-accent/20"
+                    className="rounded-xl border border-border-strong px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10"
                   >
                     Mark read
                   </button>
@@ -771,7 +771,7 @@ function ReadingListSection() {
           </li>
         ))}
         {items.length === 0 && (
-          <li className="rounded-md border-2 border-dashed border-foreground/30 px-4 py-8 text-center text-sm text-muted">
+          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             Nothing on your reading list yet.
           </li>
         )}
@@ -825,7 +825,7 @@ export default function KnowledgeHomePage() {
           action={
             <div className="flex shrink-0 items-center gap-2">
               {streak > 0 && (
-                <span className="rounded-full border-2 border-foreground bg-accent px-3 py-1.5 font-mono text-xs font-bold uppercase">
+                <span className="rounded-full border border-border-strong bg-primary/15 px-3 py-1.5 font-mono text-xs font-bold uppercase">
                   {streak}-day streak
                 </span>
               )}
