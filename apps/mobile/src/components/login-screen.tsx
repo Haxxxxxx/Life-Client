@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 360,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.four,
     paddingHorizontal: Spacing.five,
     paddingVertical: Spacing.six,
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: Spacing.four,
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: Spacing.five,
     paddingVertical: Spacing.three,

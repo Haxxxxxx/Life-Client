@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   tabRow: { flexDirection: 'row', gap: Spacing.one },
   pressed: { opacity: 0.7 },
   tabButtonView: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderRadius: Spacing.two,
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
