@@ -370,7 +370,11 @@ export default function TasksScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <ThemedView type="backgroundElement" style={styles.emptyState}>
-              <ThemedText themeColor="textSecondary">No tasks yet — add your first one above.</ThemedText>
+              <ThemedText themeColor="textSecondary">
+                {tasks.length === 0
+                  ? 'No tasks yet — add your first one above.'
+                  : 'All caught up — everything here has been done long enough to auto-archive.'}
+              </ThemedText>
             </ThemedView>
           }
           renderItem={({ item }) =>

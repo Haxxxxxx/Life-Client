@@ -14,6 +14,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Runs first, before the syncs/digest below get a chance to eat into the
+  // route's shared 300s budget — archiving is cheap and shouldn't get starved
+  // on a day where an upstream sync API is slow.
+  let archived = { users: 0, goals: 0, tasks: 0 };
+  try {
+    archived = await archiveStaleItemsForAllUsers();
+    if (archived.goals + archived.tasks > 0) {
+      console.log(
+        `cron/sync: archived ${archived.goals} goal(s) and ${archived.tasks} task(s) across ${archived.users} user(s)`,
+      );
+    }
+  } catch (err) {
+    console.error("cron/sync: archiveStaleItemsForAllUsers failed", err);
+  }
+
   const results = await Promise.allSettled([
     syncAllStrava(),
     syncAllDevActivity(),
@@ -31,18 +46,6 @@ export async function GET(req: NextRequest) {
     await sendDailyDigests();
   } catch (err) {
     console.error("cron/sync: sendDailyDigests failed", err);
-  }
-
-  let archived = { users: 0, goals: 0, tasks: 0 };
-  try {
-    archived = await archiveStaleItemsForAllUsers();
-    if (archived.goals + archived.tasks > 0) {
-      console.log(
-        `cron/sync: archived ${archived.goals} goal(s) and ${archived.tasks} task(s) across ${archived.users} user(s)`,
-      );
-    }
-  } catch (err) {
-    console.error("cron/sync: archiveStaleItemsForAllUsers failed", err);
   }
 
   return NextResponse.json({ ok: true, failures: failures.length, archived });
