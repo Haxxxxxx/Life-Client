@@ -12,9 +12,10 @@ import {
   type TaskDifficulty,
   type TaskPriority,
   type TaskStatus,
+  visibleTasks,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -289,6 +290,8 @@ export default function TasksScreen() {
     }
   }
 
+  const shownTasks = useMemo(() => visibleTasks(tasks), [tasks]);
+
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -362,12 +365,16 @@ export default function TasksScreen() {
         )}
 
         <FlatList
-          data={tasks}
+          data={shownTasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <ThemedView type="backgroundElement" style={styles.emptyState}>
-              <ThemedText themeColor="textSecondary">No tasks yet — add your first one above.</ThemedText>
+              <ThemedText themeColor="textSecondary">
+                {tasks.length === 0
+                  ? 'No tasks yet — add your first one above.'
+                  : 'All caught up — everything here has been done long enough to auto-archive.'}
+              </ThemedText>
             </ThemedView>
           }
           renderItem={({ item }) =>

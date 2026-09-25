@@ -76,11 +76,19 @@ export async function setTaskStatus(
   taskId: string,
   status: TaskStatus,
 ): Promise<void> {
-  await updateTask(db, uid, taskId, { status });
+  // Moving a task off "done" un-archives it too — otherwise a task the cron
+  // auto-archived (done 30+ days) would stay invisible forever even after
+  // being reopened, since nothing else ever clears the flag.
+  await updateTask(db, uid, taskId, status === "done" ? { status } : { status, archived: false });
 }
 
 export async function deleteTask(db: Firestore, uid: string, taskId: string): Promise<void> {
   await deleteDoc(doc(db, "users", uid, "tasks", taskId));
+}
+
+/** Drops tasks the daily cleanup cron auto-archived (done 30+ days) from a list view — they're never deleted, just hidden here. */
+export function visibleTasks(tasks: Task[]): Task[] {
+  return tasks.filter((t) => !t.archived);
 }
 
 /**

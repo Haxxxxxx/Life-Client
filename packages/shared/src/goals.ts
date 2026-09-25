@@ -60,6 +60,11 @@ export async function deleteGoal(db: Firestore, uid: string, goalId: string): Pr
   await deleteDoc(doc(db, "users", uid, "goals", goalId));
 }
 
+/** Drops goals archived (manually or by the daily cleanup cron) from a list view — they're never deleted, just hidden here. */
+export function visibleGoals(goals: Goal[]): Goal[] {
+  return goals.filter((g) => g.status !== "archived");
+}
+
 export function computeGoalProgress(goal: Goal, tasks: Task[]): GoalProgress {
   const linked = tasks.filter((t) => t.goalId === goal.id);
   const completed = linked.filter((t) => t.status === "done");
