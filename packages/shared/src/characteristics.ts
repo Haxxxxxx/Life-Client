@@ -295,6 +295,18 @@ const CATEGORY_ROAST_TIERS: Record<TaskCategory, RoastTiers> = {
     "Library-card energy at an all-time high. Goodreads goals crushed.",
     "Certified reading machine. The pile fears your presence now.",
   ],
+  blender: [
+    "3D tasks: zero. Blender's default cube remains undefeated.",
+    "One 3D task done. You found the rotate tool. Baby steps.",
+    "Two down. You can navigate the viewport without motion sickness now.",
+    "Modeling instincts kicking in. The cube is starting to fear you.",
+    "Actual shapes emerging. Something recognizable happened on purpose.",
+    "Certified topology-aware human. Your edge loops have edge loops.",
+    "Renders looking intentional now. Subsurf modifier deployed with confidence.",
+    "Borderline 3D artist. UV unwrapping no longer feels like a personal attack.",
+    "Portfolio getting genuinely impressive. Ctrl+Z usage down 40%.",
+    "Certified Blender wizard. The default cube bows to you now.",
+  ],
 };
 
 /** A cheeky, level-aware line for a Task Category stat — mirrors characteristicRoast for core stats. */

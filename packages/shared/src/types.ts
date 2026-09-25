@@ -37,7 +37,8 @@ export type TaskCategory =
   | "endurance"
   | "self_work"
   | "code"
-  | "reading";
+  | "reading"
+  | "blender";
 
 export const TASK_CATEGORIES: { id: TaskCategory; label: string }[] = [
   { id: "work", label: "Work" },
@@ -50,6 +51,7 @@ export const TASK_CATEGORIES: { id: TaskCategory; label: string }[] = [
   { id: "self_work", label: "Self-work" },
   { id: "code", label: "Code" },
   { id: "reading", label: "Reading" },
+  { id: "blender", label: "3D / Blender" },
 ];
 
 export type RecurrenceFreq = "daily" | "weekly" | "monthly";
@@ -78,6 +80,7 @@ export interface Task {
   viceLogId?: string; // reverse link — completing this task marks the linked ViceLog compensated
   prMeta?: TaskPrMeta; // present only on github/gitlab-sourced tasks — drives the PR badges
   prEvents?: PrEvent[]; // append-only (capped) log of PR changes the sync has observed
+  archived?: boolean; // set by the daily cleanup cron once done 30+ days — hidden from lists, never deleted
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }

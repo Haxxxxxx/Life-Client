@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { archiveStaleItemsForAllUsers } from "@/lib/server/archiveStaleItems";
 import { sendDailyDigests } from "@/lib/server/sendDailyDigests";
 import { syncAllGoogleCalendar } from "@/lib/server/syncCalendar";
 import { syncAllDevActivity } from "@/lib/server/syncDevActivity";
@@ -32,5 +33,17 @@ export async function GET(req: NextRequest) {
     console.error("cron/sync: sendDailyDigests failed", err);
   }
 
-  return NextResponse.json({ ok: true, failures: failures.length });
+  let archived = { users: 0, goals: 0, tasks: 0 };
+  try {
+    archived = await archiveStaleItemsForAllUsers();
+    if (archived.goals + archived.tasks > 0) {
+      console.log(
+        `cron/sync: archived ${archived.goals} goal(s) and ${archived.tasks} task(s) across ${archived.users} user(s)`,
+      );
+    }
+  } catch (err) {
+    console.error("cron/sync: archiveStaleItemsForAllUsers failed", err);
+  }
+
+  return NextResponse.json({ ok: true, failures: failures.length, archived });
 }
