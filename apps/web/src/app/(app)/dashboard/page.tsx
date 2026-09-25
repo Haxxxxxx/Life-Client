@@ -28,6 +28,7 @@ import {
   reminderUrgency,
   syncReminderToCalendar,
   todayLessonId,
+  visibleTasks,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import Link from "next/link";
@@ -652,7 +653,7 @@ export default function DashboardPage() {
 
   const openTasks = tasks.filter((t) => t.status !== "done");
   // Auto-archived tasks (done 30+ days) stay in Firestore but drop out of this preview.
-  const visibleTasks = tasks.filter((t) => !t.archived);
+  const shownTasks = visibleTasks(tasks);
   const latestActivity = activities[0];
   const openPrCount = (github?.openPullRequests.length ?? 0) + (gitlab?.openPullRequests.length ?? 0);
   const insightLevel = levelFromXp(computeInsightXp(lessons, drills, vocabWords, readingItems));
@@ -733,7 +734,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <TasksSection tasks={visibleTasks} uid={user.uid} />
+      <TasksSection tasks={shownTasks} uid={user.uid} />
       <GoalsSection goals={goals} tasks={tasks} uid={user.uid} />
       <ChallengesSection challenges={challenges} activities={activities} uid={user.uid} />
       <RemindersSection reminders={reminders} uid={user.uid} />

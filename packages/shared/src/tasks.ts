@@ -83,6 +83,11 @@ export async function deleteTask(db: Firestore, uid: string, taskId: string): Pr
   await deleteDoc(doc(db, "users", uid, "tasks", taskId));
 }
 
+/** Drops tasks the daily cleanup cron auto-archived (done 30+ days) from a list view — they're never deleted, just hidden here. */
+export function visibleTasks(tasks: Task[]): Task[] {
+  return tasks.filter((t) => !t.archived);
+}
+
 /**
  * Sets a task's status, and — if it's a recurring task transitioning to "done" —
  * also creates the next occurrence (same fields, advanced dueDate, status reset to "todo").

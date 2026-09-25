@@ -4,6 +4,7 @@ import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
   describeRecurrence,
+  visibleTasks,
   type Goal,
   type Task,
   type TaskCategory,
@@ -79,9 +80,7 @@ export default function TasksPage() {
       if (meta && !meta.mine) return 1;
       return 0;
     };
-    return tasks
-      .filter((t) => !t.archived)
-      .sort((a, b) => rank(a) - rank(b));
+    return visibleTasks(tasks).sort((a, b) => rank(a) - rank(b));
   }, [tasks]);
 
   return (
@@ -196,7 +195,7 @@ export default function TasksPage() {
             </li>
           );
         })}
-        {tasks.length === 0 && (
+        {sortedTasks.length === 0 && (
           <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             No tasks yet — add your first one above.
           </li>

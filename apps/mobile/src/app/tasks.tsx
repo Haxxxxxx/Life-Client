@@ -12,6 +12,7 @@ import {
   type TaskDifficulty,
   type TaskPriority,
   type TaskStatus,
+  visibleTasks,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
@@ -362,7 +363,7 @@ export default function TasksScreen() {
         )}
 
         <FlatList
-          data={tasks}
+          data={visibleTasks(tasks)}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={

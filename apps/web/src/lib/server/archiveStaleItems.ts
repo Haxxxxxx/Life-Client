@@ -1,4 +1,4 @@
-import type { Timestamp } from "firebase-admin/firestore";
+import type { DocumentReference, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "./admin";
 
 // Non-destructive cleanup: items sitting "done" for this long quietly drop out
@@ -22,61 +22,65 @@ function toMillis(value: string | Timestamp | undefined): number | null {
   return value.toDate().getTime();
 }
 
-async function allUidsWithGoalsOrTasks(): Promise<string[]> {
-  const [goalsSnap, tasksSnap] = await Promise.all([
-    adminDb.collectionGroup("goals").get(),
-    adminDb.collectionGroup("tasks").get(),
-  ]);
-  const uids = new Set<string>();
-  for (const doc of [...goalsSnap.docs, ...tasksSnap.docs]) {
-    const uid = doc.ref.parent.parent?.id;
-    if (uid) uids.add(uid);
-  }
-  return [...uids];
-}
-
-async function archiveForUser(uid: string): Promise<{ goals: number; tasks: number }> {
-  const cutoffMs = Date.now() - ARCHIVE_AFTER_MS;
-  const userRef = adminDb.collection("users").doc(uid);
-
-  const [completedGoals, doneTasks] = await Promise.all([
-    userRef.collection("goals").where("status", "==", "completed").get(),
-    userRef.collection("tasks").where("status", "==", "done").get(),
-  ]);
-
-  const batch = adminDb.batch();
-  let goals = 0;
-  for (const doc of completedGoals.docs) {
-    const updatedAtMs = toMillis(doc.data().updatedAt);
-    if (updatedAtMs !== null && updatedAtMs < cutoffMs) {
-      batch.update(doc.ref, { status: "archived" });
-      goals++;
-    }
-  }
-
-  let tasks = 0;
-  for (const doc of doneTasks.docs) {
-    const data = doc.data();
-    if (data.archived) continue;
-    const updatedAtMs = toMillis(data.updatedAt);
-    if (updatedAtMs !== null && updatedAtMs < cutoffMs) {
-      batch.update(doc.ref, { archived: true });
-      tasks++;
-    }
-  }
-
-  if (goals + tasks > 0) await batch.commit();
-  return { goals, tasks };
+interface StaleRefs {
+  goalRefs: DocumentReference[];
+  taskRefs: DocumentReference[];
 }
 
 export async function archiveStaleItemsForAllUsers(): Promise<{ users: number; goals: number; tasks: number }> {
-  const uids = await allUidsWithGoalsOrTasks();
+  const cutoffMs = Date.now() - ARCHIVE_AFTER_MS;
+
+  // One collectionGroup read per type covers every user in one pass — grouped
+  // below by uid so each user gets their own WriteBatch (a batch is capped at
+  // 500 ops, and one user's failure/overflow shouldn't skip everyone else's).
+  const [completedGoals, doneTasks] = await Promise.all([
+    adminDb.collectionGroup("goals").where("status", "==", "completed").get(),
+    adminDb.collectionGroup("tasks").where("status", "==", "done").get(),
+  ]);
+
+  const byUid = new Map<string, StaleRefs>();
+  function refsFor(uid: string): StaleRefs {
+    let entry = byUid.get(uid);
+    if (!entry) {
+      entry = { goalRefs: [], taskRefs: [] };
+      byUid.set(uid, entry);
+    }
+    return entry;
+  }
+
+  for (const doc of completedGoals.docs) {
+    const uid = doc.ref.parent.parent?.id;
+    if (!uid) continue;
+    const updatedAtMs = toMillis(doc.data().updatedAt);
+    if (updatedAtMs !== null && updatedAtMs < cutoffMs) refsFor(uid).goalRefs.push(doc.ref);
+  }
+
+  for (const doc of doneTasks.docs) {
+    const uid = doc.ref.parent.parent?.id;
+    if (!uid) continue;
+    const data = doc.data();
+    if (data.archived) continue;
+    const updatedAtMs = toMillis(data.updatedAt);
+    if (updatedAtMs !== null && updatedAtMs < cutoffMs) refsFor(uid).taskRefs.push(doc.ref);
+  }
+
   let goals = 0;
   let tasks = 0;
-  for (const uid of uids) {
-    const result = await archiveForUser(uid);
-    goals += result.goals;
-    tasks += result.tasks;
+  for (const [uid, { goalRefs, taskRefs }] of byUid) {
+    if (goalRefs.length + taskRefs.length === 0) continue;
+    try {
+      const batch = adminDb.batch();
+      for (const ref of goalRefs) batch.update(ref, { status: "archived" });
+      for (const ref of taskRefs) batch.update(ref, { archived: true });
+      await batch.commit();
+      goals += goalRefs.length;
+      tasks += taskRefs.length;
+    } catch (err) {
+      // Isolated per user (e.g. a single user with 500+ stale items in one
+      // run) so it can't skip archiving for anyone else in the same cron run.
+      console.error(`archiveStaleItems: failed for uid ${uid}`, err);
+    }
   }
-  return { users: uids.length, goals, tasks };
+
+  return { users: byUid.size, goals, tasks };
 }
