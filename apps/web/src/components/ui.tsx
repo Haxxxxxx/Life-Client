@@ -125,7 +125,7 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
     "bg-primary text-primary-foreground shadow-md shadow-black/20 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 active:translate-y-0",
   secondary:
     "border border-border bg-surface text-foreground hover:-translate-y-0.5 hover:border-border-strong hover:bg-surface-2 active:translate-y-0",
-  ghost: "text-muted hover:bg-white/5 hover:text-foreground",
+  ghost: "text-muted hover:bg-surface-2 hover:text-foreground",
   danger: "bg-danger/10 border border-danger/30 text-danger hover:bg-danger/15",
 };
 
@@ -173,7 +173,7 @@ const BADGE_TONE: Record<BadgeTone, string> = {
 };
 
 const BADGE_TONE_SUBTLE: Record<BadgeTone, string> = {
-  neutral: "border-border-strong bg-white/5 text-muted",
+  neutral: "border-border-strong bg-surface-2 text-muted",
   primary: "border-primary bg-primary/10 text-primary",
   success: "border-success bg-success/10 text-success",
   danger: "border-danger bg-danger/10 text-danger",
@@ -258,7 +258,7 @@ export function ProgressBar({ progress, tone = "primary" }: { progress: number; 
           info: "bg-info",
         }[tone];
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-white/8">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
       <div className={cx("h-full rounded-full transition-all", fill)} style={{ width: `${pct}%` }} />
     </div>
   );
@@ -284,5 +284,53 @@ export function StatTile({
       <p className={cx("text-2xl font-bold text-foreground", STAT_TILE_TONE[tone])}>{value}</p>
       <p className="font-mono text-[10px] text-muted uppercase">{label}</p>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Auth screens (login pages)
+// ---------------------------------------------------------------------------
+
+/** Decorative glow blobs + dot-grid, absolutely positioned behind a centered card. Parent needs `relative overflow-hidden`. */
+export function AmbientGlow() {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-56 -right-40 h-[620px] w-[620px] rounded-full"
+        style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 28%, transparent), transparent 70%)" }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-64 -left-56 h-[720px] w-[720px] rounded-full"
+        style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 12%, transparent), transparent 70%)" }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+      />
+    </>
+  );
+}
+
+export function GoogleSignInButton({
+  pending,
+  ...rest
+}: { pending: boolean } & ComponentPropsWithoutRef<"button">) {
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      className="mt-8 flex w-full items-center justify-center gap-2.5 rounded-2xl border border-border-strong bg-foreground px-5 py-3.5 text-sm font-semibold text-[#161310] transition hover:-translate-y-0.5 disabled:opacity-50"
+      {...rest}
+    >
+      <span
+        aria-hidden
+        className="h-[18px] w-[18px] shrink-0 rounded-full"
+        style={{ background: "conic-gradient(from 90deg, #4285F4, #34A853, #FBBC05, #EA4335, #4285F4)" }}
+      />
+      <span>{pending ? "Signing in…" : "Continue with Google"}</span>
+    </button>
   );
 }

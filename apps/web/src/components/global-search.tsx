@@ -106,7 +106,7 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
               <button
                 type="button"
                 onClick={() => goTo(r.href)}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-white/5"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-surface-2"
               >
                 <span className="shrink-0 rounded-full border border-border-strong bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-bold text-primary uppercase">
                   {r.kind}

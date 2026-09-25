@@ -144,7 +144,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const initial = (user.displayName ?? user.email ?? "?").charAt(0).toUpperCase();
+  const initial = (user.displayName || user.email || "?").charAt(0).toUpperCase();
 
   return (
     <div className="flex flex-1 flex-col md:flex-row">
@@ -181,7 +181,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
-                    active ? "bg-primary/10 text-primary" : "text-muted hover:bg-white/5 hover:text-foreground"
+                    active ? "bg-primary/10 text-primary" : "text-muted hover:bg-surface-2 hover:text-foreground"
                   }`}
                 >
                   {item.icon}
@@ -196,7 +196,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   href={KNOWLEDGE_APP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex shrink-0 items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition hover:bg-white/5 hover:text-foreground"
+                  className="flex shrink-0 items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-foreground"
                 >
                   <span>Knowledge</span>
                   {icon(
@@ -220,7 +220,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">{user.displayName ?? user.email}</p>
+            <p className="truncate text-sm font-medium text-foreground">{user.displayName || user.email}</p>
             <button type="button" onClick={() => signOutUser()} className="text-xs text-muted hover:text-foreground">
               Sign out
             </button>
