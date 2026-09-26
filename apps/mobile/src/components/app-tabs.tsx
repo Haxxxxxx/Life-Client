@@ -87,14 +87,18 @@ export function CustomTabList({ children, ...rest }: TabListProps) {
     tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href),
   );
 
-  useEffect(() => {
-    const layout = tabLayouts.current[activeIndex];
+  // Navigating here via a dashboard link (not a tap on the tab bar itself)
+  // otherwise leaves the bar scrolled wherever it last was, so the newly
+  // active tab can be scrolled off-screen with nothing visually indicating
+  // where you are — center it instead of merely scrolling it into view.
+  const scrollToTab = (index: number) => {
+    const layout = tabLayouts.current[index];
     if (!layout) return;
-    // Navigating here via a dashboard link (not a tap on the tab bar itself)
-    // otherwise leaves the bar scrolled wherever it last was, so the newly
-    // active tab can be scrolled off-screen with nothing visually indicating
-    // where you are — center it instead of merely scrolling it into view.
     scrollRef.current?.scrollTo({ x: Math.max(0, layout.x - Spacing.six), animated: true });
+  };
+
+  useEffect(() => {
+    scrollToTab(activeIndex);
   }, [activeIndex]);
 
   const items = Children.toArray(children);
@@ -114,6 +118,11 @@ export function CustomTabList({ children, ...rest }: TabListProps) {
               key={i}
               onLayout={(e) => {
                 tabLayouts.current[i] = { x: e.nativeEvent.layout.x, width: e.nativeEvent.layout.width };
+                // On first mount the active tab's own onLayout can fire after
+                // the effect above already ran and no-opped (layout wasn't
+                // known yet) — retry here so a deep link straight into a
+                // non-Dashboard tab still centers correctly.
+                if (i === activeIndex) scrollToTab(i);
               }}>
               {item}
             </View>
