@@ -1,4 +1,4 @@
-import type { KnowledgeApiClient } from "./knowledgeApi";
+import { errorMessageFromBody, type KnowledgeApiClient } from "./knowledgeApi";
 
 async function call<T>(
   client: KnowledgeApiClient,
@@ -15,7 +15,7 @@ async function call<T>(
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request to ${path} failed: ${response.status}`);
+    throw new Error(errorMessageFromBody(text, `Request to ${path} failed: ${response.status}`));
   }
   return (await response.json()) as T;
 }

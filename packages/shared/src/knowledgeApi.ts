@@ -6,6 +6,15 @@ export interface KnowledgeApiClient {
   getIdToken: () => Promise<string | null>;
 }
 
+// A misconfigured/unreachable baseUrl (e.g. a web app not actually deployed at
+// the configured origin) returns an HTML error page rather than JSON — that
+// full markup must never reach the UI as an error message verbatim.
+export function errorMessageFromBody(text: string, fallback: string): string {
+  const trimmed = text.trim();
+  if (!trimmed || /^<(!doctype|html)/i.test(trimmed) || trimmed.length > 300) return fallback;
+  return trimmed;
+}
+
 async function post<T>(client: KnowledgeApiClient, path: string, body: unknown): Promise<T> {
   const token = await client.getIdToken();
   if (!token) throw new Error("Not signed in");
@@ -16,7 +25,7 @@ async function post<T>(client: KnowledgeApiClient, path: string, body: unknown):
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request to ${path} failed: ${response.status}`);
+    throw new Error(errorMessageFromBody(text, `Request to ${path} failed: ${response.status}`));
   }
   return (await response.json()) as T;
 }

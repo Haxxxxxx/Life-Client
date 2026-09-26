@@ -1,4 +1,4 @@
-import type { KnowledgeApiClient } from "./knowledgeApi";
+import { errorMessageFromBody, type KnowledgeApiClient } from "./knowledgeApi";
 import type { NowPlayingTrack } from "./types";
 
 /** Live proxy to Spotify's currently-playing endpoint — not part of the periodic sync, since polling this every ~15s while the Music page is open gives near-real-time status without needing frequent cron runs. */
@@ -10,7 +10,7 @@ export async function getNowPlaying(client: KnowledgeApiClient): Promise<NowPlay
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request to /api/spotify/now-playing failed: ${response.status}`);
+    throw new Error(errorMessageFromBody(text, `Request to /api/spotify/now-playing failed: ${response.status}`));
   }
   return (await response.json()) as NowPlayingTrack;
 }
@@ -25,7 +25,7 @@ export async function syncSpotifyNow(client: KnowledgeApiClient): Promise<{ ok: 
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request to /api/spotify/sync failed: ${response.status}`);
+    throw new Error(errorMessageFromBody(text, `Request to /api/spotify/sync failed: ${response.status}`));
   }
   return (await response.json()) as { ok: true };
 }
