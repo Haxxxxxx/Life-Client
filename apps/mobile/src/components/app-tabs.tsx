@@ -1,4 +1,6 @@
+import { usePathname } from 'expo-router';
 import { Tabs, TabList, TabTrigger, TabSlot, TabTriggerSlotProps, TabListProps } from 'expo-router/ui';
+import { Children, useEffect, useRef } from 'react';
 import { Pressable, ScrollView, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -72,19 +74,60 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
   );
 }
 
-export function CustomTabList(props: TabListProps) {
+export function CustomTabList({ children, ...rest }: TabListProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const scrollRef = useRef<ScrollView>(null);
+  // Keyed by tab index, populated as each tab button reports its own layout —
+  // lets us scroll the active one into view without hardcoding tab widths.
+  const tabLayouts = useRef<{ x: number; width: number }[]>([]);
+
+  const activeIndex = TABS.findIndex((tab) =>
+    tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href),
+  );
+
+  // Navigating here via a dashboard link (not a tap on the tab bar itself)
+  // otherwise leaves the bar scrolled wherever it last was, so the newly
+  // active tab can be scrolled off-screen with nothing visually indicating
+  // where you are — center it instead of merely scrolling it into view.
+  const scrollToTab = (index: number) => {
+    const layout = tabLayouts.current[index];
+    if (!layout) return;
+    scrollRef.current?.scrollTo({ x: Math.max(0, layout.x - Spacing.six), animated: true });
+  };
+
+  useEffect(() => {
+    scrollToTab(activeIndex);
+  }, [activeIndex]);
+
+  const items = Children.toArray(children);
 
   return (
     <ThemedView
       type="backgroundElement"
       style={[styles.tabListContainer, { borderTopColor: theme.border, paddingBottom: insets.bottom + Spacing.two }]}>
       <ScrollView
+        ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        <View {...props} style={styles.tabRow} />
+        <View {...rest} style={styles.tabRow}>
+          {items.map((item, i) => (
+            <View
+              key={i}
+              onLayout={(e) => {
+                tabLayouts.current[i] = { x: e.nativeEvent.layout.x, width: e.nativeEvent.layout.width };
+                // On first mount the active tab's own onLayout can fire after
+                // the effect above already ran and no-opped (layout wasn't
+                // known yet) — retry here so a deep link straight into a
+                // non-Dashboard tab still centers correctly.
+                if (i === activeIndex) scrollToTab(i);
+              }}>
+              {item}
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -97,14 +140,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingTop: Spacing.two,
   },
-  scrollContent: { paddingHorizontal: Spacing.three },
-  tabRow: { flexDirection: 'row', gap: Spacing.one },
+  scrollContent: { paddingHorizontal: Spacing.two },
+  tabRow: { flexDirection: 'row', gap: Spacing.half },
   pressed: { opacity: 0.7 },
   tabButtonView: {
     borderWidth: 1,
     borderRadius: Spacing.two,
     paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.two,
   },
   tabButtonLabel: {
     fontWeight: '700',

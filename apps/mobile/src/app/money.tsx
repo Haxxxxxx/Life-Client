@@ -397,9 +397,11 @@ export default function MoneyScreen() {
               <ThemedText type="subtitle">Subscriptions</ThemedText>
               {subscriptions.map((tx) => (
                 <View key={tx.id} style={[styles.row, { borderColor: theme.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <ThemedText type="smallBold">{tx.note || CATEGORY_LABEL[tx.category]}</ThemedText>
-                    <ThemedText type="code" themeColor="textSecondary">
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <ThemedText type="smallBold" numberOfLines={1}>
+                      {tx.note || CATEGORY_LABEL[tx.category]}
+                    </ThemedText>
+                    <ThemedText type="code" themeColor="textSecondary" numberOfLines={1}>
                       {formatMoney(tx.amount)} · {describeRecurrence(tx.recurrence!)} · next{' '}
                       {nextOccurrenceDate(tx.date, tx.recurrence!)}
                     </ThemedText>
@@ -413,9 +415,11 @@ export default function MoneyScreen() {
             <ThemedText type="subtitle">Recent transactions</ThemedText>
             {transactions.map((tx) => (
               <View key={tx.id} style={[styles.row, { borderColor: theme.border }]}>
-                <View style={{ flex: 1 }}>
-                  <ThemedText type="smallBold">{tx.note || CATEGORY_LABEL[tx.category]}</ThemedText>
-                  <ThemedText type="code" themeColor="textSecondary">
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <ThemedText type="smallBold" numberOfLines={1}>
+                    {tx.note || CATEGORY_LABEL[tx.category]}
+                  </ThemedText>
+                  <ThemedText type="code" themeColor="textSecondary" numberOfLines={1}>
                     {tx.date} · {CATEGORY_LABEL[tx.category]}
                     {tx.recurrence && ` · ↻ ${describeRecurrence(tx.recurrence)}`}
                   </ThemedText>
