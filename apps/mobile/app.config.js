@@ -2,7 +2,7 @@
 // supplied by EAS Build via file-type environment variables without being
 // committed to git — see GOOGLE_SERVICES_JSON in `eas env:list`. Falls back
 // to the local (gitignored) file for local/dev builds.
-module.exports = {
+export default {
   expo: {
     name: 'Life Client',
     slug: 'life-client',
@@ -14,11 +14,13 @@ module.exports = {
     ios: {
       icon: './assets/expo.icon',
       bundleIdentifier: 'com.lifeclient.app',
-      googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST ?? './GoogleService-Info.plist',
+      // || (not ??) so an EAS env var that resolves to "" still falls back
+      // to the local file instead of pointing at an empty path.
+      googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST || './GoogleService-Info.plist',
     },
     android: {
       package: 'com.lifeclient.app',
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || './google-services.json',
       adaptiveIcon: {
         backgroundColor: '#FAF1E3',
         foregroundImage: './assets/images/android-icon-foreground.png',
