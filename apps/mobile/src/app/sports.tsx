@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
   challengeCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   challengeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   challengeActions: { flexDirection: 'row', gap: Spacing.two },
-  challengeStatsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
+  challengeStatsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.three, rowGap: Spacing.one },
   logTodayButton: { marginLeft: 'auto', borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   doneTodayBadge: { marginLeft: 'auto', borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   dayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },

@@ -245,7 +245,8 @@ function GoalCard({
             <View key={task.id} style={styles.linkedTaskRow}>
               <ThemedText
                 type="small"
-                style={task.status === 'done' ? styles.doneText : undefined}
+                numberOfLines={1}
+                style={[{ flex: 1 }, task.status === 'done' ? styles.doneText : undefined]}
                 themeColor={task.status === 'done' ? 'textSecondary' : 'text'}>
                 {task.title}
               </ThemedText>
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   progressTrack: { flex: 1, height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },
-  linkedTaskRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  linkedTaskRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
   doneText: { textDecorationLine: 'line-through' },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
