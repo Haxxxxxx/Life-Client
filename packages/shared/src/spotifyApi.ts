@@ -1,31 +1,12 @@
-import { errorMessageFromBody, type KnowledgeApiClient } from "./knowledgeApi";
+import { apiRequest, type KnowledgeApiClient } from "./knowledgeApi";
 import type { NowPlayingTrack } from "./types";
 
 /** Live proxy to Spotify's currently-playing endpoint — not part of the periodic sync, since polling this every ~15s while the Music page is open gives near-real-time status without needing frequent cron runs. */
-export async function getNowPlaying(client: KnowledgeApiClient): Promise<NowPlayingTrack> {
-  const token = await client.getIdToken();
-  if (!token) throw new Error("Not signed in");
-  const response = await fetch(`${client.baseUrl}/api/spotify/now-playing`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(errorMessageFromBody(text, `Request to /api/spotify/now-playing failed: ${response.status}`));
-  }
-  return (await response.json()) as NowPlayingTrack;
+export function getNowPlaying(client: KnowledgeApiClient): Promise<NowPlayingTrack> {
+  return apiRequest<NowPlayingTrack>(client, "/api/spotify/now-playing");
 }
 
 /** Refreshes recently-played/top-artists on demand, rather than waiting for the once-daily cron. */
-export async function syncSpotifyNow(client: KnowledgeApiClient): Promise<{ ok: true }> {
-  const token = await client.getIdToken();
-  if (!token) throw new Error("Not signed in");
-  const response = await fetch(`${client.baseUrl}/api/spotify/sync`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(errorMessageFromBody(text, `Request to /api/spotify/sync failed: ${response.status}`));
-  }
-  return (await response.json()) as { ok: true };
+export function syncSpotifyNow(client: KnowledgeApiClient): Promise<{ ok: true }> {
+  return apiRequest<{ ok: true }>(client, "/api/spotify/sync", { method: "POST" });
 }

@@ -8,26 +8,44 @@ export interface KnowledgeApiClient {
 
 // A misconfigured/unreachable baseUrl (e.g. a web app not actually deployed at
 // the configured origin) returns an HTML error page rather than JSON — that
-// full markup must never reach the UI as an error message verbatim.
+// full markup must never reach the UI as an error message verbatim. Any body
+// that opens with a tag (not just <!doctype/<html>, which misses fragments
+// like "<b>502 Bad Gateway</b>" from a proxy/CDN) is treated as markup, not text.
 export function errorMessageFromBody(text: string, fallback: string): string {
   const trimmed = text.trim();
-  if (!trimmed || /^<(!doctype|html)/i.test(trimmed) || trimmed.length > 300) return fallback;
+  if (!trimmed || trimmed.startsWith("<") || trimmed.length > 300) return fallback;
   return trimmed;
 }
 
-async function post<T>(client: KnowledgeApiClient, path: string, body: unknown): Promise<T> {
+// The single fetch path every API client in this package goes through, so
+// error-body sanitization (errorMessageFromBody) can't be bypassed by a call
+// site that forgets to apply it — see knowledgeApi/spotifyApi/remindersApi/
+// calendarApi, none of which call `fetch` directly anymore.
+export async function apiRequest<T>(
+  client: KnowledgeApiClient,
+  path: string,
+  init: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown } = {},
+): Promise<T> {
   const token = await client.getIdToken();
   if (!token) throw new Error("Not signed in");
+  const hasBody = init.body !== undefined;
   const response = await fetch(`${client.baseUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body ?? {}),
+    method: init.method ?? "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(hasBody ? { body: JSON.stringify(init.body) } : {}),
   });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(errorMessageFromBody(text, `Request to ${path} failed: ${response.status}`));
   }
   return (await response.json()) as T;
+}
+
+function post<T>(client: KnowledgeApiClient, path: string, body: unknown): Promise<T> {
+  return apiRequest<T>(client, path, { method: "POST", body: body ?? {} });
 }
 
 export function generateDailyLesson(client: KnowledgeApiClient): Promise<DailyLesson> {

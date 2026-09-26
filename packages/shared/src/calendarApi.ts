@@ -1,24 +1,4 @@
-import { errorMessageFromBody, type KnowledgeApiClient } from "./knowledgeApi";
-
-async function call<T>(
-  client: KnowledgeApiClient,
-  path: string,
-  method: "POST" | "PATCH" | "DELETE",
-  body: unknown,
-): Promise<T> {
-  const token = await client.getIdToken();
-  if (!token) throw new Error("Not signed in");
-  const response = await fetch(`${client.baseUrl}${path}`, {
-    method,
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body ?? {}),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(errorMessageFromBody(text, `Request to ${path} failed: ${response.status}`));
-  }
-  return (await response.json()) as T;
-}
+import { apiRequest, type KnowledgeApiClient } from "./knowledgeApi";
 
 export interface NewCalendarEventInput {
   title: string;
@@ -32,7 +12,7 @@ export function createCalendarEvent(
   client: KnowledgeApiClient,
   input: NewCalendarEventInput,
 ): Promise<{ id: string }> {
-  return call(client, "/api/calendar/events", "POST", input);
+  return apiRequest<{ id: string }>(client, "/api/calendar/events", { method: "POST", body: input });
 }
 
 export function updateCalendarEvent(
@@ -40,9 +20,12 @@ export function updateCalendarEvent(
   eventId: string,
   input: NewCalendarEventInput,
 ): Promise<{ id: string }> {
-  return call(client, "/api/calendar/events", "PATCH", { eventId, ...input });
+  return apiRequest<{ id: string }>(client, "/api/calendar/events", {
+    method: "PATCH",
+    body: { eventId, ...input },
+  });
 }
 
 export function deleteCalendarEvent(client: KnowledgeApiClient, eventId: string): Promise<{ ok: true }> {
-  return call(client, "/api/calendar/events", "DELETE", { eventId });
+  return apiRequest<{ ok: true }>(client, "/api/calendar/events", { method: "DELETE", body: { eventId } });
 }
