@@ -33,9 +33,12 @@ export function countPerDay(timestamps: string[], days: string[]): number[] {
   return counts;
 }
 
+// A single narrow-format letter collides for two weekday pairs in English
+// (Tue/Thu both "T", Sat/Sun both "S") — a 2-letter prefix of the short name
+// disambiguates ("Tu"/"Th", "Sa"/"Su") while staying compact and locale-aware.
 export function weekdayInitial(day: string): string {
   const [y, m, d] = day.split('-').map(Number);
-  return new Date(y!, m! - 1, d!).toLocaleDateString(undefined, { weekday: 'narrow' });
+  return new Date(y!, m! - 1, d!).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2);
 }
 
 export function ChartCard({ title, summary, children }: { title: string; summary?: string; children: ReactNode }) {
