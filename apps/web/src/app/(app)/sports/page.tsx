@@ -14,7 +14,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { WeeklySessionsChart } from "@/components/charts";
 import { Button, Card, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -372,8 +372,8 @@ function ChallengeCard({
   onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
   onLogToday: () => void;
 }) {
-  const progress = computeChallengeProgress(challenge, activities);
-  const milestones = computeChallengeMilestones(challenge, progress);
+  const progress = useMemo(() => computeChallengeProgress(challenge, activities), [challenge, activities]);
+  const milestones = useMemo(() => computeChallengeMilestones(challenge, progress), [challenge, progress]);
   const today = todayLocalDate();
   const todayEntry = progress.days.find((d) => d.date === today);
   const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;

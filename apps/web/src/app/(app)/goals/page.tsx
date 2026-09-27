@@ -10,7 +10,7 @@ import {
   computeGoalProgress,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
 import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -106,9 +106,14 @@ function GoalCard({
   onUnlinkTask: (taskId: string) => void;
   onNewTask: (title: string) => void;
 }) {
-  const progress = computeGoalProgress(goal, tasks);
-  const linkedTasks = tasks.filter((t) => t.goalId === goal.id);
-  const unlinkedTasks = tasks.filter((t) => !t.goalId);
+  const { progress, linkedTasks, unlinkedTasks } = useMemo(
+    () => ({
+      progress: computeGoalProgress(goal, tasks),
+      linkedTasks: tasks.filter((t) => t.goalId === goal.id),
+      unlinkedTasks: tasks.filter((t) => !t.goalId),
+    }),
+    [goal, tasks],
+  );
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(goal.title);
@@ -347,14 +352,17 @@ export default function GoalsPage() {
 
   const activeViceLogs = viceLogs.filter((v) => !v.compensated);
 
-  const activeGoals = goals.filter((g) => g.status === "active");
-  const completedGoals = goals.filter((g) => g.status === "completed");
-  const overallPercent =
-    activeGoals.length > 0
-      ? Math.round(
-          (activeGoals.reduce((sum, g) => sum + computeGoalProgress(g, tasks).percent, 0) / activeGoals.length) * 100,
-        )
-      : 0;
+  const { activeGoals, completedGoals, overallPercent } = useMemo(() => {
+    const activeGoals = goals.filter((g) => g.status === "active");
+    const completedGoals = goals.filter((g) => g.status === "completed");
+    const overallPercent =
+      activeGoals.length > 0
+        ? Math.round(
+            (activeGoals.reduce((sum, g) => sum + computeGoalProgress(g, tasks).percent, 0) / activeGoals.length) * 100,
+          )
+        : 0;
+    return { activeGoals, completedGoals, overallPercent };
+  }, [goals, tasks]);
 
   function renderGoalCard(goal: Goal) {
     return (
