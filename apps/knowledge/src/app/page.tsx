@@ -35,6 +35,7 @@ import {
   SectionHeader,
   Textarea,
 } from "@/components/ui";
+import { ProgressCharts } from "@/components/charts";
 import { useAuth } from "@/lib/auth-context";
 import { knowledgeApiClient } from "@/lib/knowledgeClient";
 
@@ -845,6 +846,7 @@ export default function KnowledgeHomePage() {
           <ProgressBar progress={insightLevel.progress} />
         </Card>
       </div>
+      <ProgressCharts lessons={lessons} drills={drills} words={vocabWords} readingItems={readingItems} />
       <DailyLessonSection />
       <CodeDrillsSection />
       <VocabularySection />
