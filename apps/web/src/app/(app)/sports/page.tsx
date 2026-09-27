@@ -372,9 +372,14 @@ function ChallengeCard({
   onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
   onLogToday: () => void;
 }) {
-  const progress = useMemo(() => computeChallengeProgress(challenge, activities), [challenge, activities]);
-  const milestones = useMemo(() => computeChallengeMilestones(challenge, progress), [challenge, progress]);
   const today = todayLocalDate();
+  // today isn't read in the callback below, but computeChallengeProgress defaults its
+  // `now` param to `new Date()` internally, so it's a real (if invisible-to-the-linter)
+  // dependency — without it the memo stays stale across a day boundary until
+  // challenge/activities themselves change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const progress = useMemo(() => computeChallengeProgress(challenge, activities), [challenge, activities, today]);
+  const milestones = useMemo(() => computeChallengeMilestones(challenge, progress), [challenge, progress]);
   const todayEntry = progress.days.find((d) => d.date === today);
   const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;
 

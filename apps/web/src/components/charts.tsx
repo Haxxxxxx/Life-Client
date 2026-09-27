@@ -154,7 +154,12 @@ function parseLocalDay(day: string): Date {
 function completedTimestamps(tasks: Task[]): string[] {
   return tasks
     .filter((t) => t.status === "done")
-    .map((t) => taskTimestampToIso(t.completedAt))
+    // completedAt is only set going forward from when this field shipped — tasks
+    // completed before that have none, so without a fallback they'd silently
+    // disappear from these charts despite being real completed-task history.
+    // updatedAt is an imperfect stand-in (see setTaskStatus's doc comment) but a
+    // closer approximation than omitting the task entirely.
+    .map((t) => taskTimestampToIso(t.completedAt) ?? taskTimestampToIso(t.updatedAt))
     .filter((iso): iso is string => iso !== null);
 }
 
@@ -270,7 +275,7 @@ export function MoneyCharts({ transactions }: { transactions: Transaction[] }) {
 
       <ChartCard
         eyebrow={`Last ${TREND_MONTHS} months`}
-        headline={`Net ${net >= 0 ? "+" : "−"}${moneyShort.format(Math.abs(net))}`}
+        headline={hasTrend ? `Net ${net >= 0 ? "+" : "−"}${moneyShort.format(Math.abs(net))}` : "No activity yet"}
       >
         {hasTrend ? (
           <>
