@@ -17,6 +17,20 @@ export function errorMessageFromBody(text: string, fallback: string): string {
   return trimmed;
 }
 
+// Every API route in this codebase replies with `{ error: string }` on failure —
+// pulls that string out so it (not the enclosing JSON) is what gets sanitized/shown.
+function extractErrorField(text: string): string | null {
+  try {
+    const body: unknown = JSON.parse(text);
+    if (body && typeof body === "object" && "error" in body && typeof body.error === "string") {
+      return body.error;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // The single fetch path every API client in this package goes through, so
 // error-body sanitization (errorMessageFromBody) can't be bypassed by a call
 // site that forgets to apply it — see knowledgeApi/spotifyApi/remindersApi/
@@ -39,7 +53,13 @@ export async function apiRequest<T>(
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(errorMessageFromBody(text, `Request to ${path} failed: ${response.status}`));
+    // API routes reply with a `{ error: string }` envelope, but that `error` string
+    // can itself be a third-party API's raw error body wrapped by our own server code
+    // (e.g. syncSpotifyForUser embedding Spotify's response text into an Error message)
+    // — sanitize the EXTRACTED message, not the enclosing JSON, so a short embedded
+    // HTML fragment doesn't slip past the length heuristic by hiding inside `{"error":"..."}`.
+    const message = extractErrorField(text) ?? text;
+    throw new Error(errorMessageFromBody(message, `Request to ${path} failed: ${response.status}`));
   }
   return (await response.json()) as T;
 }
