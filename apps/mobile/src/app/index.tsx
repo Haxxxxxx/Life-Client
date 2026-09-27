@@ -25,6 +25,7 @@ import {
   nextOccurrenceDate,
   reminderUrgency,
   syncReminderToCalendar,
+  taskTimestampToIso,
   todayLessonId,
   visibleGoals,
   visibleTasks,
@@ -32,7 +33,7 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { Link, type Href } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -718,21 +719,28 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
   );
 }
 
-// Rolls up two already-subscribed streams into one "did I show up this week"
-// view; done tasks use updatedAt as their completion time (Task has no completedAt).
+// Rolls up two already-subscribed streams into one "did I show up this week" view.
 function WeekActivity({ tasks, activities }: { tasks: Task[]; activities: SportActivity[] }) {
   const theme = useTheme();
-  const days = lastNDays(7);
-  const taskCounts = countPerDay(
-    tasks.filter((t) => t.status === 'done').map((t) => t.updatedAt),
-    days,
-  );
-  const sessionCounts = countPerDay(
-    activities.map((a) => a.startDate),
-    days,
-  );
-  const total = [...taskCounts, ...sessionCounts].reduce((a, b) => a + b, 0);
-  const activeDays = days.filter((_, i) => taskCounts[i]! + sessionCounts[i]! > 0).length;
+  const { days, taskCounts, sessionCounts, total, activeDays } = useMemo(() => {
+    const days = lastNDays(7);
+    const doneTimestamps = tasks
+      .filter((t) => t.status === 'done')
+      .map((t) => taskTimestampToIso(t.completedAt))
+      .filter((iso): iso is string => iso !== null);
+    const taskCounts = countPerDay(doneTimestamps, days);
+    const sessionCounts = countPerDay(
+      activities.map((a) => a.startDate),
+      days,
+    );
+    return {
+      days,
+      taskCounts,
+      sessionCounts,
+      total: [...taskCounts, ...sessionCounts].reduce((a, b) => a + b, 0),
+      activeDays: days.filter((_, i) => taskCounts[i]! + sessionCounts[i]! > 0).length,
+    };
+  }, [tasks, activities]);
   const taskColor = theme.primary;
   const sessionColor = withAlpha(theme.primary, 0.45);
 

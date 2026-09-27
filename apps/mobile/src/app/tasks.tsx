@@ -12,6 +12,7 @@ import {
   type TaskDifficulty,
   type TaskPriority,
   type TaskStatus,
+  taskTimestampToIso,
   visibleTasks,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
@@ -46,15 +47,16 @@ const TREND_DAYS = 14;
 
 function CompletionChart({ tasks }: { tasks: Task[] }) {
   const theme = useTheme();
-  const days = lastNDays(TREND_DAYS);
-  // Task has no completedAt; a done task's updatedAt is the moment it flipped to
-  // done (later edits to done tasks are rare), and archived ones are still in
-  // `tasks`, so the full window is covered.
-  const counts = countPerDay(
-    tasks.filter((t) => t.status === 'done').map((t) => t.updatedAt),
-    days,
-  );
-  const total = counts.reduce((a, b) => a + b, 0);
+  const { days, counts, total } = useMemo(() => {
+    const days = lastNDays(TREND_DAYS);
+    // archived done tasks are still in `tasks`, so the full window is covered.
+    const timestamps = tasks
+      .filter((t) => t.status === 'done')
+      .map((t) => taskTimestampToIso(t.completedAt))
+      .filter((iso): iso is string => iso !== null);
+    const counts = countPerDay(timestamps, days);
+    return { days, counts, total: counts.reduce((a, b) => a + b, 0) };
+  }, [tasks]);
 
   return (
     <View style={styles.chartSection}>

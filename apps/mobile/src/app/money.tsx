@@ -16,7 +16,7 @@ import {
   type TransactionType,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -71,27 +71,29 @@ function monthlyTrend(transactions: Transaction[], months: number): { key: strin
 
 function SpendingCharts({ transactions, month }: { transactions: Transaction[]; month: string }) {
   const theme = useTheme();
-  const byCategory = spendByCategory(transactions, month);
-  // The real "other" category always folds into the tail bucket so it can't collide with the rolled-up "Other" slice.
-  const ranked = byCategory.filter((c) => c.category !== 'other');
-  const top = ranked.slice(0, DONUT_MAX_SLICES - 1);
-  const rest = [...ranked.slice(DONUT_MAX_SLICES - 1), ...byCategory.filter((c) => c.category === 'other')];
-  const slices = [
-    ...top.map((c, i) => ({ label: CATEGORY_LABEL[c.category], value: c.amount, color: withAlpha(theme.primary, DONUT_TINTS[i]!) })),
-    ...(rest.length > 0
-      ? [
-          {
-            label: rest.length === 1 ? CATEGORY_LABEL[rest[0]!.category] : CATEGORY_LABEL.other,
-            value: rest.reduce((sum, c) => sum + c.amount, 0),
-            color: withAlpha(theme.primary, DONUT_TINTS[DONUT_MAX_SLICES - 1]!),
-          },
-        ]
-      : []),
-  ];
-  const monthTotal = byCategory.reduce((sum, c) => sum + c.amount, 0);
-
-  const trend = monthlyTrend(transactions, TREND_MONTHS);
-  const net = trend.reduce((sum, r) => sum + r.income - r.spend, 0);
+  const { slices, monthTotal, trend, net } = useMemo(() => {
+    const byCategory = spendByCategory(transactions, month);
+    // The real "other" category always folds into the tail bucket so it can't collide with the rolled-up "Other" slice.
+    const ranked = byCategory.filter((c) => c.category !== 'other');
+    const top = ranked.slice(0, DONUT_MAX_SLICES - 1);
+    const rest = [...ranked.slice(DONUT_MAX_SLICES - 1), ...byCategory.filter((c) => c.category === 'other')];
+    const slices = [
+      ...top.map((c, i) => ({ label: CATEGORY_LABEL[c.category], value: c.amount, color: withAlpha(theme.primary, DONUT_TINTS[i]!) })),
+      ...(rest.length > 0
+        ? [
+            {
+              label: rest.length === 1 ? CATEGORY_LABEL[rest[0]!.category] : CATEGORY_LABEL.other,
+              value: rest.reduce((sum, c) => sum + c.amount, 0),
+              color: withAlpha(theme.primary, DONUT_TINTS[DONUT_MAX_SLICES - 1]!),
+            },
+          ]
+        : []),
+    ];
+    const monthTotal = byCategory.reduce((sum, c) => sum + c.amount, 0);
+    const trend = monthlyTrend(transactions, TREND_MONTHS);
+    const net = trend.reduce((sum, r) => sum + r.income - r.spend, 0);
+    return { slices, monthTotal, trend, net };
+  }, [transactions, month, theme.primary]);
   const incomeColor = theme.primary;
   const spendColor = withAlpha(theme.textSecondary, 0.55);
 

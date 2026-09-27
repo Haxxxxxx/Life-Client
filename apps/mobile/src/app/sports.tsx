@@ -11,7 +11,7 @@ import {
   updateChallenge,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -271,7 +271,7 @@ function weeklySessions(activities: SportActivity[], weeks: number): { start: Da
 // covers one exercise type against its target, so this isn't a duplicate of it.
 function WeeklyActivityChart({ activities }: { activities: SportActivity[] }) {
   const theme = useTheme();
-  const weeks = weeklySessions(activities, TREND_WEEKS);
+  const weeks = useMemo(() => weeklySessions(activities, TREND_WEEKS), [activities]);
   const thisWeek = weeks[weeks.length - 1]!;
   const thisWeekCount = thisWeek.endurance + thisWeek.strength;
   const enduranceColor = theme.primary;
