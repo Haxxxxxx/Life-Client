@@ -98,41 +98,47 @@ function ActivityChart({ lessons, drills, words }: { lessons: DailyLesson[]; dri
 
   return (
     <ChartCard eyebrow={`Last ${ACTIVITY_DAYS} days`} headline={`${activeDays} active days`}>
-      <BarChart
-        responsive
-        style={{ width: "100%", height: 160 }}
-        data={activity}
-        margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
-        barCategoryGap={2}
-        accessibilityLayer
-      >
-        <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis
-          dataKey="label"
-          tick={AXIS_TICK}
-          tickLine={false}
-          axisLine={false}
-          interval={6}
-          minTickGap={8}
-        />
-        <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} width={24} />
-        <Tooltip
-          cursor={CURSOR_FILL}
-          isAnimationActive={false}
-          content={({ active, payload }) => {
-            const day = payload?.[0]?.payload as ActivityDay | undefined;
-            if (!active || !day) return null;
-            return (
-              <ChartTooltip title={day.label}>
-                <p>{day.lessons} lesson{day.lessons === 1 ? "" : "s"}</p>
-                <p>{day.drills} drill{day.drills === 1 ? "" : "s"}</p>
-                <p>{day.words} word{day.words === 1 ? "" : "s"}</p>
-              </ChartTooltip>
-            );
-          }}
-        />
-        <Bar dataKey="total" name="Items" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-      </BarChart>
+      {activeDays === 0 ? (
+        <EmptyState className="flex h-40 items-center justify-center">
+          Generate a lesson, drill, or vocab word to start your streak.
+        </EmptyState>
+      ) : (
+        <BarChart
+          responsive
+          style={{ width: "100%", height: 160 }}
+          data={activity}
+          margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+          barCategoryGap={2}
+          accessibilityLayer
+        >
+          <CartesianGrid vertical={false} stroke="var(--border)" />
+          <XAxis
+            dataKey="label"
+            tick={AXIS_TICK}
+            tickLine={false}
+            axisLine={false}
+            interval={6}
+            minTickGap={8}
+          />
+          <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} width={24} />
+          <Tooltip
+            cursor={CURSOR_FILL}
+            isAnimationActive={false}
+            content={({ active, payload }) => {
+              const day = payload?.[0]?.payload as ActivityDay | undefined;
+              if (!active || !day) return null;
+              return (
+                <ChartTooltip title={day.label}>
+                  <p>{day.lessons} lesson{day.lessons === 1 ? "" : "s"}</p>
+                  <p>{day.drills} drill{day.drills === 1 ? "" : "s"}</p>
+                  <p>{day.words} word{day.words === 1 ? "" : "s"}</p>
+                </ChartTooltip>
+              );
+            }}
+          />
+          <Bar dataKey="total" name="Items" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      )}
     </ChartCard>
   );
 }
@@ -157,12 +163,18 @@ function DrillScoreChart({ drills }: { drills: CodeDrill[] }) {
 
   const recent = points.slice(-10);
   const average = recent.length ? recent.reduce((sum, p) => sum + p.score, 0) / recent.length : 0;
+  // Gated on the same points.length < 2 threshold as the chart body below —
+  // otherwise a single graded drill shows a headline average while the body
+  // still claims there's no data yet.
+  const headline =
+    points.length >= 2
+      ? `${average.toFixed(1)} / 10 recent avg`
+      : points.length === 1
+        ? "1 drill graded so far"
+        : "No graded drills yet";
 
   return (
-    <ChartCard
-      eyebrow="Drill scores"
-      headline={recent.length ? `${average.toFixed(1)} / 10 recent avg` : "No graded drills yet"}
-    >
+    <ChartCard eyebrow="Drill scores" headline={headline}>
       {points.length < 2 ? (
         <EmptyState className="flex h-40 items-center justify-center">
           Grade a couple of drills to see your trend.
@@ -228,10 +240,11 @@ const READING_STATUSES: { id: ReadingListItem["status"]; label: string }[] = [
 ];
 
 function ReadingStatusChart({ items }: { items: ReadingListItem[] }) {
-  const rows = READING_STATUSES.map((s) => ({
-    label: s.label,
-    count: items.filter((item) => item.status === s.id).length,
-  })).filter((row) => row.label !== "Failed" || row.count > 0);
+  const counts = new Map<ReadingListItem["status"], number>();
+  for (const item of items) counts.set(item.status, (counts.get(item.status) ?? 0) + 1);
+  const rows = READING_STATUSES.map((s) => ({ label: s.label, count: counts.get(s.id) ?? 0 })).filter(
+    (row) => row.label !== "Failed" || row.count > 0,
+  );
   const read = rows.find((r) => r.label === "Read")?.count ?? 0;
 
   return (
