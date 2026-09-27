@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -40,6 +41,29 @@ const DIFFICULTY_LABEL = Object.fromEntries(TASK_DIFFICULTIES.map((d) => [d.id, 
   TaskDifficulty,
   string
 >;
+
+const TREND_DAYS = 14;
+
+function CompletionChart({ tasks }: { tasks: Task[] }) {
+  const theme = useTheme();
+  const days = lastNDays(TREND_DAYS);
+  // Task has no completedAt; a done task's updatedAt is the moment it flipped to
+  // done (later edits to done tasks are rare), and archived ones are still in
+  // `tasks`, so the full window is covered.
+  const counts = countPerDay(
+    tasks.filter((t) => t.status === 'done').map((t) => t.updatedAt),
+    days,
+  );
+  const total = counts.reduce((a, b) => a + b, 0);
+
+  return (
+    <View style={styles.chartSection}>
+      <ChartCard title={`Completed · last ${TREND_DAYS} days`} summary={`${total} done`}>
+        <BarTrend colors={[theme.primary]} groups={days.map((d, i) => ({ label: weekdayInitial(d), values: [counts[i]!] }))} />
+      </ChartCard>
+    </View>
+  );
+}
 
 function nextStatus(status: TaskStatus): TaskStatus {
   const idx = STATUS_ORDER.indexOf(status);
@@ -368,6 +392,7 @@ export default function TasksScreen() {
           data={shownTasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={tasks.some((t) => t.status === 'done') ? <CompletionChart tasks={tasks} /> : null}
           ListEmptyComponent={
             <ThemedView type="backgroundElement" style={styles.emptyState}>
               <ThemedText themeColor="textSecondary">
@@ -447,6 +472,7 @@ const styles = StyleSheet.create({
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   error: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
+  chartSection: { marginBottom: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   taskCard: {
     flexDirection: 'row',

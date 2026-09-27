@@ -36,6 +36,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -717,6 +718,45 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
   );
 }
 
+// Rolls up two already-subscribed streams into one "did I show up this week"
+// view; done tasks use updatedAt as their completion time (Task has no completedAt).
+function WeekActivity({ tasks, activities }: { tasks: Task[]; activities: SportActivity[] }) {
+  const theme = useTheme();
+  const days = lastNDays(7);
+  const taskCounts = countPerDay(
+    tasks.filter((t) => t.status === 'done').map((t) => t.updatedAt),
+    days,
+  );
+  const sessionCounts = countPerDay(
+    activities.map((a) => a.startDate),
+    days,
+  );
+  const total = [...taskCounts, ...sessionCounts].reduce((a, b) => a + b, 0);
+  const activeDays = days.filter((_, i) => taskCounts[i]! + sessionCounts[i]! > 0).length;
+  const taskColor = theme.primary;
+  const sessionColor = withAlpha(theme.primary, 0.45);
+
+  if (total === 0) return null;
+
+  return (
+    <View style={styles.weekSection}>
+      <ChartCard title="This week" summary={`${activeDays}/7 active days`}>
+        <BarTrend
+          height={88}
+          colors={[taskColor, sessionColor]}
+          groups={days.map((d, i) => ({ label: weekdayInitial(d), values: [taskCounts[i]!, sessionCounts[i]!] }))}
+        />
+        <Legend
+          items={[
+            { label: 'Tasks done', color: taskColor },
+            { label: 'Sport sessions', color: sessionColor },
+          ]}
+        />
+      </ChartCard>
+    </View>
+  );
+}
+
 export default function DashboardScreen() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -862,6 +902,8 @@ export default function DashboardScreen() {
             </Card>
           </View>
 
+          <WeekActivity tasks={tasks} activities={activities} />
+
           <View style={styles.sections}>
             <TasksSection tasks={shownTasks} uid={user.uid} />
             <GoalsSection goals={shownGoals} tasks={tasks} uid={user.uid} />
@@ -908,6 +950,7 @@ const styles = StyleSheet.create({
   cardEyebrow: { letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: Spacing.one },
   bigNumber: { fontSize: 32, lineHeight: 36 },
   sections: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.five },
+  weekSection: { width: '100%', maxWidth: MaxContentWidth },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },

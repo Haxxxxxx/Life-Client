@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -235,6 +236,66 @@ function todayLocalDate(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+const TREND_WEEKS = 12;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function startOfWeek(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+function weeklySessions(activities: SportActivity[], weeks: number): { start: Date; endurance: number; strength: number }[] {
+  const firstStart = startOfWeek(new Date());
+  firstStart.setDate(firstStart.getDate() - 7 * (weeks - 1));
+  const rows = Array.from({ length: weeks }, (_, i) => ({
+    start: new Date(firstStart.getFullYear(), firstStart.getMonth(), firstStart.getDate() + 7 * i),
+    endurance: 0,
+    strength: 0,
+  }));
+  for (const activity of activities) {
+    const d = new Date(activity.startDate);
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    // Rounded because DST shifts make a local-midnight difference an hour off a whole number of days.
+    const index = Math.floor(Math.round((day.getTime() - firstStart.getTime()) / MS_PER_DAY) / 7);
+    const row = rows[index];
+    if (!row) continue;
+    row[activity.kind] += 1;
+  }
+  return rows;
+}
+
+// A trend across *all* logged activity — the per-challenge day grid below only
+// covers one exercise type against its target, so this isn't a duplicate of it.
+function WeeklyActivityChart({ activities }: { activities: SportActivity[] }) {
+  const theme = useTheme();
+  const weeks = weeklySessions(activities, TREND_WEEKS);
+  const thisWeek = weeks[weeks.length - 1]!;
+  const thisWeekCount = thisWeek.endurance + thisWeek.strength;
+  const enduranceColor = theme.primary;
+  const strengthColor = withAlpha(theme.primary, 0.45);
+
+  return (
+    <View style={styles.trendSection}>
+      <ChartCard title={`Sessions · last ${TREND_WEEKS} weeks`} summary={`${thisWeekCount} this week`}>
+        <BarTrend
+          colors={[enduranceColor, strengthColor]}
+          groups={weeks.map((w, i) => ({
+            label: i % 4 === 3 || i === weeks.length - 1 ? `${w.start.getMonth() + 1}/${w.start.getDate()}` : '',
+            values: [w.endurance, w.strength],
+          }))}
+        />
+        <Legend
+          items={[
+            { label: 'Endurance', color: enduranceColor },
+            { label: 'Strength', color: strengthColor },
+          ]}
+        />
+      </ChartCard>
+    </View>
+  );
 }
 
 function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof createChallenge>[2]) => void }) {
@@ -554,18 +615,22 @@ function ChallengeCard({
         ))}
       </View>
       <View style={styles.dayGrid}>
-        {progress.days.map((day) => (
-          <View
-            key={day.date}
-            style={[
-              styles.daySquare,
-              {
-                borderColor: day.completed ? theme.primary : theme.border,
-                backgroundColor: day.completed ? theme.primary : 'transparent',
-              },
-            ]}
-          />
-        ))}
+        {progress.days.map((day) => {
+          // Partial days (logged but under target) get a faint fill so near-misses read differently from blanks.
+          const partial = !day.completed && day.value > 0;
+          return (
+            <View
+              key={day.date}
+              style={[
+                styles.daySquare,
+                {
+                  borderColor: day.completed ? theme.primary : partial ? withAlpha(theme.primary, 0.4) : theme.border,
+                  backgroundColor: day.completed ? theme.primary : partial ? theme.accent : 'transparent',
+                },
+              ]}
+            />
+          );
+        })}
       </View>
     </ThemedView>
   );
@@ -736,7 +801,12 @@ export default function SportsScreen() {
           data={activities}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          ListHeaderComponent={<ChallengesSection activities={activities} />}
+          ListHeaderComponent={
+            <>
+              {activities.length > 0 && <WeeklyActivityChart activities={activities} />}
+              <ChallengesSection activities={activities} />
+            </>
+          }
           ListEmptyComponent={
             <ThemedView type="backgroundElement" style={styles.emptyState}>
               <ThemedText themeColor="textSecondary">
@@ -834,6 +904,7 @@ const styles = StyleSheet.create({
   formField: { flex: 1, gap: Spacing.half },
   input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
   logButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
+  trendSection: { marginBottom: Spacing.four },
   challengesSection: { gap: Spacing.two, marginBottom: Spacing.four },
   challengeCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   challengeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
