@@ -19,6 +19,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { MoneyCharts } from "@/components/charts";
 import { Button, Card, ErrorText, Input, PageHeader, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
@@ -272,6 +273,8 @@ export default function MoneyPage() {
         <StatTile value={formatMoney(monthlyExpense)} label="Spent this month" tone="danger" />
         <StatTile value={formatMoney(monthlyIncome)} label="Income this month" tone="primary" />
       </div>
+
+      {transactions.length > 0 && <MoneyCharts transactions={transactions} />}
 
       <ErrorText>{error}</ErrorText>
 

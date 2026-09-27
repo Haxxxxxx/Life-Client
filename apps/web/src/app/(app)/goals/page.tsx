@@ -11,6 +11,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
+import { GoalStatusChart } from "@/components/charts";
 import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
@@ -405,6 +406,8 @@ export default function GoalsPage() {
         <StatTile value={completedGoals.length} label="Completed" />
         <StatTile value={`${overallPercent}%`} label="Avg. progress" />
       </div>
+
+      {goals.length > 0 && <GoalStatusChart goals={goals} />}
 
       {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
       <ErrorText>{error}</ErrorText>

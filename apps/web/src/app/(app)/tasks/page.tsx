@@ -13,6 +13,7 @@ import {
 import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { TasksCompletedChart } from "@/components/charts";
 import { Button, ErrorText, Input, PageHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -123,6 +124,8 @@ export default function TasksPage() {
       </form>
 
       <ErrorText>{error}</ErrorText>
+
+      {tasks.length > 0 && <TasksCompletedChart tasks={tasks} />}
 
       <ul className="flex flex-col gap-2">
         {sortedTasks.map((task) => {

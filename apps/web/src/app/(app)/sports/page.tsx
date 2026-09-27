@@ -15,8 +15,13 @@ import {
 import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { WeeklySessionsChart } from "@/components/charts";
 import { Button, Card, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+
+// Passed explicitly (matches the shared default) so the sessions chart knows
+// when older weeks may be cut off by the listener's cap.
+const ACTIVITY_LIMIT = 50;
 
 function formatDistance(meters?: number): string {
   if (!meters) return "—";
@@ -520,7 +525,11 @@ function ChallengeCard({
             key={day.date}
             title={`${day.date}: ${formatMetricValue(challenge.metric, day.value)}`}
             className={`h-3 w-3 rounded-sm border ${
-              day.completed ? "border-primary bg-primary" : "border-border bg-background"
+              day.completed
+                ? "border-primary bg-primary"
+                : day.value > 0
+                  ? "border-primary/40 bg-primary/20"
+                  : "border-border bg-background"
             }`}
           />
         ))}
@@ -624,10 +633,15 @@ export default function SportsPage() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeSportActivities(user.uid, (a) => {
-      setActivities(a);
-      setLoaded(true);
-    });
+    return data.subscribeSportActivities(
+      user.uid,
+      (a) => {
+        setActivities(a);
+        setLoaded(true);
+      },
+      undefined,
+      ACTIVITY_LIMIT,
+    );
   }, [user]);
 
   async function handleLog(input: {
@@ -674,6 +688,8 @@ export default function SportsPage() {
 
       {formOpen && <LogActivityForm onSubmit={handleLog} />}
       <ErrorText>{error}</ErrorText>
+
+      {activities.length > 0 && <WeeklySessionsChart activities={activities} limit={ACTIVITY_LIMIT} />}
 
       <ChallengesSection activities={activities} />
 
