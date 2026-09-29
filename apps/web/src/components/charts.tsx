@@ -3,7 +3,7 @@
 import {
   TRANSACTION_CATEGORIES,
   monthKey,
-  taskTimestampToIso,
+  taskCompletedIso,
   toDateStr,
   type Goal,
   type GoalStatus,
@@ -154,12 +154,7 @@ function parseLocalDay(day: string): Date {
 function completedTimestamps(tasks: Task[]): string[] {
   return tasks
     .filter((t) => t.status === "done")
-    // completedAt is only set going forward from when this field shipped — tasks
-    // completed before that have none, so without a fallback they'd silently
-    // disappear from these charts despite being real completed-task history.
-    // updatedAt is an imperfect stand-in (see setTaskStatus's doc comment) but a
-    // closer approximation than omitting the task entirely.
-    .map((t) => taskTimestampToIso(t.completedAt) ?? taskTimestampToIso(t.updatedAt))
+    .map(taskCompletedIso)
     .filter((iso): iso is string => iso !== null);
 }
 

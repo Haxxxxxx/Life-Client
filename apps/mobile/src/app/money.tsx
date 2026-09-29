@@ -16,10 +16,11 @@ import {
   type TransactionType,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BarTrend, ChartCard, Donut, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -33,6 +34,95 @@ const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.i
 
 function formatMoney(amount: number): string {
   return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+}
+
+function formatMoneyShort(amount: number): string {
+  return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
+const DONUT_TINTS = [1, 0.72, 0.5, 0.34, 0.22];
+const DONUT_MAX_SLICES = DONUT_TINTS.length;
+const TREND_MONTHS = 6;
+
+function spendByCategory(transactions: Transaction[], month: string): { category: TransactionCategory; amount: number }[] {
+  const totals = new Map<TransactionCategory, number>();
+  for (const t of transactions) {
+    if (t.type !== 'expense' || !t.date.startsWith(month)) continue;
+    totals.set(t.category, (totals.get(t.category) ?? 0) + t.amount);
+  }
+  return [...totals].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
+}
+
+function monthlyTrend(transactions: Transaction[], months: number): { key: string; label: string; income: number; spend: number }[] {
+  const now = new Date();
+  const rows = Array.from({ length: months }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
+    return { key: monthKey(d), label: d.toLocaleDateString(undefined, { month: 'short' }), income: 0, spend: 0 };
+  });
+  const byKey = new Map(rows.map((r) => [r.key, r]));
+  for (const t of transactions) {
+    const row = byKey.get(t.date.slice(0, 7));
+    if (!row) continue;
+    if (t.type === 'income') row.income += t.amount;
+    else row.spend += t.amount;
+  }
+  return rows;
+}
+
+function SpendingCharts({ transactions, month }: { transactions: Transaction[]; month: string }) {
+  const theme = useTheme();
+  const { slices, monthTotal, trend, net } = useMemo(() => {
+    const byCategory = spendByCategory(transactions, month);
+    // The real "other" category always folds into the tail bucket so it can't collide with the rolled-up "Other" slice.
+    const ranked = byCategory.filter((c) => c.category !== 'other');
+    const top = ranked.slice(0, DONUT_MAX_SLICES - 1);
+    const rest = [...ranked.slice(DONUT_MAX_SLICES - 1), ...byCategory.filter((c) => c.category === 'other')];
+    const slices = [
+      ...top.map((c, i) => ({ label: CATEGORY_LABEL[c.category], value: c.amount, color: withAlpha(theme.primary, DONUT_TINTS[i]!) })),
+      ...(rest.length > 0
+        ? [
+            {
+              label: rest.length === 1 ? CATEGORY_LABEL[rest[0]!.category] : CATEGORY_LABEL.other,
+              value: rest.reduce((sum, c) => sum + c.amount, 0),
+              color: withAlpha(theme.primary, DONUT_TINTS[DONUT_MAX_SLICES - 1]!),
+            },
+          ]
+        : []),
+    ];
+    const monthTotal = byCategory.reduce((sum, c) => sum + c.amount, 0);
+    const trend = monthlyTrend(transactions, TREND_MONTHS);
+    const net = trend.reduce((sum, r) => sum + r.income - r.spend, 0);
+    return { slices, monthTotal, trend, net };
+  }, [transactions, month, theme.primary]);
+  const incomeColor = theme.primary;
+  const spendColor = withAlpha(theme.textSecondary, 0.55);
+
+  return (
+    <View style={{ gap: Spacing.two }}>
+      <ChartCard title="Spending by category" summary="This month">
+        {monthTotal > 0 ? (
+          <Donut slices={slices} centerValue={formatMoneyShort(monthTotal)} centerCaption="spent" formatValue={formatMoneyShort} />
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary">
+            No spending logged this month yet.
+          </ThemedText>
+        )}
+      </ChartCard>
+      <ChartCard title={`Last ${TREND_MONTHS} months`} summary={`Net ${net >= 0 ? '+' : '−'}${formatMoneyShort(Math.abs(net))}`}>
+        <BarTrend
+          layout="grouped"
+          colors={[incomeColor, spendColor]}
+          groups={trend.map((r) => ({ label: r.label, values: [r.income, r.spend] }))}
+        />
+        <Legend
+          items={[
+            { label: 'Income', color: incomeColor },
+            { label: 'Spend', color: spendColor },
+          ]}
+        />
+      </ChartCard>
+    </View>
+  );
 }
 
 function RecurrencePicker({
@@ -321,6 +411,8 @@ export default function MoneyScreen() {
               </ThemedText>
             </View>
           </View>
+
+          {transactions.length > 0 && <SpendingCharts transactions={transactions} month={thisMonth} />}
 
           {error && (
             <ThemedText themeColor="text" style={styles.error}>
