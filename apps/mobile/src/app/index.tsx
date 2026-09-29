@@ -25,7 +25,7 @@ import {
   nextOccurrenceDate,
   reminderUrgency,
   syncReminderToCalendar,
-  taskTimestampToIso,
+  taskCompletedIso,
   todayLessonId,
   visibleGoals,
   visibleTasks,
@@ -726,7 +726,7 @@ function WeekActivity({ tasks, activities }: { tasks: Task[]; activities: SportA
     const days = lastNDays(7);
     const doneTimestamps = tasks
       .filter((t) => t.status === 'done')
-      .map((t) => taskTimestampToIso(t.completedAt))
+      .map(taskCompletedIso)
       .filter((iso): iso is string => iso !== null);
     const taskCounts = countPerDay(doneTimestamps, days);
     const sessionCounts = countPerDay(

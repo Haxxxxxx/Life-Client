@@ -114,6 +114,17 @@ export function taskTimestampToIso(value: string | Timestamp | null | undefined)
 }
 
 /**
+ * Best available "when was this actually finished" timestamp for a done task.
+ * completedAt is only set going forward from when that field shipped — tasks
+ * completed before that have none, so anything charting completion history
+ * falls back to updatedAt (imperfect — see setTaskStatus — but a closer
+ * approximation than omitting historical completions entirely).
+ */
+export function taskCompletedIso(task: Task): string | null {
+  return taskTimestampToIso(task.completedAt) ?? taskTimestampToIso(task.updatedAt);
+}
+
+/**
  * Sets a task's status, and — if it's a recurring task transitioning to "done" —
  * also creates the next occurrence (same fields, advanced dueDate, status reset to "todo").
  * If the task is a vice's compensating task (Task.viceLogId), marking it done also

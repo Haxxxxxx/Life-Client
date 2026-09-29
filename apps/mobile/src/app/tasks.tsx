@@ -12,7 +12,7 @@ import {
   type TaskDifficulty,
   type TaskPriority,
   type TaskStatus,
-  taskTimestampToIso,
+  taskCompletedIso,
   visibleTasks,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
@@ -52,7 +52,7 @@ function CompletionChart({ tasks }: { tasks: Task[] }) {
     // archived done tasks are still in `tasks`, so the full window is covered.
     const timestamps = tasks
       .filter((t) => t.status === 'done')
-      .map((t) => taskTimestampToIso(t.completedAt))
+      .map(taskCompletedIso)
       .filter((iso): iso is string => iso !== null);
     const counts = countPerDay(timestamps, days);
     return { days, counts, total: counts.reduce((a, b) => a + b, 0) };

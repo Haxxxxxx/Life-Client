@@ -271,7 +271,12 @@ function weeklySessions(activities: SportActivity[], weeks: number): { start: Da
 // covers one exercise type against its target, so this isn't a duplicate of it.
 function WeeklyActivityChart({ activities }: { activities: SportActivity[] }) {
   const theme = useTheme();
-  const weeks = useMemo(() => weeklySessions(activities, TREND_WEEKS), [activities]);
+  const today = todayLocalDate();
+  // today isn't read in the callback below, but weeklySessions computes its "current
+  // week" bucket from `new Date()` internally, so it's a real (if invisible-to-the-linter)
+  // dependency — without it the memo stays stale until `activities` itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const weeks = useMemo(() => weeklySessions(activities, TREND_WEEKS), [activities, today]);
   const thisWeek = weeks[weeks.length - 1]!;
   const thisWeekCount = thisWeek.endurance + thisWeek.strength;
   const enduranceColor = theme.primary;
