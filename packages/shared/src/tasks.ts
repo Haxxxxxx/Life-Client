@@ -1,5 +1,7 @@
 import {
+  Timestamp,
   type Firestore,
+  type PartialWithFieldValue,
   addDoc,
   collection,
   deleteDoc,
@@ -62,7 +64,7 @@ export async function updateTask(
   db: Firestore,
   uid: string,
   taskId: string,
-  patch: Partial<NewTask>,
+  patch: PartialWithFieldValue<NewTask>,
 ): Promise<void> {
   await updateDoc(doc(db, "users", uid, "tasks", taskId), {
     ...patch,
@@ -78,8 +80,16 @@ export async function setTaskStatus(
 ): Promise<void> {
   // Moving a task off "done" un-archives it too — otherwise a task the cron
   // auto-archived (done 30+ days) would stay invisible forever even after
-  // being reopened, since nothing else ever clears the flag.
-  await updateTask(db, uid, taskId, status === "done" ? { status } : { status, archived: false });
+  // being reopened, since nothing else ever clears the flag. completedAt is
+  // set/cleared here too, alongside status — see its doc comment on Task.
+  await updateTask(
+    db,
+    uid,
+    taskId,
+    status === "done"
+      ? { status, completedAt: serverTimestamp() }
+      : { status, archived: false, completedAt: null },
+  );
 }
 
 export async function deleteTask(db: Firestore, uid: string, taskId: string): Promise<void> {
@@ -89,6 +99,29 @@ export async function deleteTask(db: Firestore, uid: string, taskId: string): Pr
 /** Drops tasks the daily cleanup cron auto-archived (done 30+ days) from a list view — they're never deleted, just hidden here. */
 export function visibleTasks(tasks: Task[]): Task[] {
   return tasks.filter((t) => !t.archived);
+}
+
+/**
+ * Task.completedAt/updatedAt are typed as ISO strings but are actually set via
+ * serverTimestamp(), which resolves to a Firestore Timestamp once read back from
+ * a live listener — code that trusts the declared string type (e.g. `new Date(...)`
+ * for charting) silently gets an Invalid Date. Normalizes either shape to a real ISO
+ * string.
+ */
+export function taskTimestampToIso(value: string | Timestamp | null | undefined): string | null {
+  if (!value) return null;
+  return value instanceof Timestamp ? value.toDate().toISOString() : value;
+}
+
+/**
+ * Best available "when was this actually finished" timestamp for a done task.
+ * completedAt is only set going forward from when that field shipped — tasks
+ * completed before that have none, so anything charting completion history
+ * falls back to updatedAt (imperfect — see setTaskStatus — but a closer
+ * approximation than omitting historical completions entirely).
+ */
+export function taskCompletedIso(task: Task): string | null {
+  return taskTimestampToIso(task.completedAt) ?? taskTimestampToIso(task.updatedAt);
 }
 
 /**
@@ -104,7 +137,17 @@ export async function advanceTaskStatus(
   nextStatus: TaskStatus,
 ): Promise<void> {
   if (nextStatus === "done" && task.recurrence && task.dueDate) {
-    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = task;
+    // archived/completedAt must NOT carry over — the source task is the one
+    // becoming done (and getting those set by setTaskStatus below), while the
+    // occurrence created here starts fresh as "todo".
+    const {
+      id: _id,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      archived: _archived,
+      completedAt: _completedAt,
+      ...rest
+    } = task;
     await createTask(db, uid, {
       ...rest,
       dueDate: nextOccurrenceDate(task.dueDate, task.recurrence),

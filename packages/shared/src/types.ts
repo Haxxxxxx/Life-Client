@@ -81,6 +81,10 @@ export interface Task {
   prMeta?: TaskPrMeta; // present only on github/gitlab-sourced tasks — drives the PR badges
   prEvents?: PrEvent[]; // append-only (capped) log of PR changes the sync has observed
   archived?: boolean; // set by the daily cleanup cron once done 30+ days — hidden from lists, never deleted
+  // Set only on the todo/in-progress -> done transition, cleared when it moves back off
+  // done — unlike updatedAt, which bumps on any field edit, so a later rename/link
+  // doesn't reattribute a task's completion date to whenever it was last touched.
+  completedAt?: string | null; // ISO datetime
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }

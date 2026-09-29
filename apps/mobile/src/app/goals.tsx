@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -23,6 +24,31 @@ function daysUntil(dateStr: string): number {
 }
 
 const GOAL_EXAMPLES = ['Ship WeSplit v2', 'Read 12 books this year', 'Run a half marathon'];
+
+function GoalStatusChart({ goals }: { goals: Goal[] }) {
+  const theme = useTheme();
+  const count = (status: Goal['status']) => goals.filter((g) => g.status === status).length;
+  const active = count('active');
+  const completed = count('completed');
+  const archived = count('archived');
+  // Archived goals were dropped, not finished, so they stay out of the hit rate.
+  const decided = active + completed;
+  const hitRate = decided > 0 ? Math.round((completed / decided) * 100) : 0;
+
+  return (
+    <ChartCard title="Goal split" summary={`${goals.length} total`}>
+      <Donut
+        centerValue={`${hitRate}%`}
+        centerCaption="done"
+        slices={[
+          { label: 'Active', value: active, color: theme.primary },
+          { label: 'Completed', value: completed, color: withAlpha(theme.primary, 0.45) },
+          { label: 'Archived', value: archived, color: withAlpha(theme.textSecondary, 0.35) },
+        ]}
+      />
+    </ChartCard>
+  );
+}
 
 function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; onCancel: () => void }) {
   const theme = useTheme();
@@ -434,6 +460,8 @@ export default function GoalsScreen() {
               </ThemedText>
             </View>
           </View>
+
+          {goals.length > 0 && <GoalStatusChart goals={goals} />}
 
           {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
           {error && (
