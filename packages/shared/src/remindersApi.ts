@@ -1,24 +1,4 @@
-import type { KnowledgeApiClient } from "./knowledgeApi";
-
-async function call<T>(
-  client: KnowledgeApiClient,
-  path: string,
-  method: "POST" | "DELETE",
-  body: unknown,
-): Promise<T> {
-  const token = await client.getIdToken();
-  if (!token) throw new Error("Not signed in");
-  const response = await fetch(`${client.baseUrl}${path}`, {
-    method,
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body ?? {}),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Request to ${path} failed: ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
+import { apiRequest, type KnowledgeApiClient } from "./knowledgeApi";
 
 /**
  * Best-effort mirrors a reminder to the user's connected Google Calendar (a
@@ -29,7 +9,7 @@ export function syncReminderToCalendar(
   client: KnowledgeApiClient,
   reminderId: string,
 ): Promise<{ ok: true }> {
-  return call(client, "/api/reminders/sync", "POST", { reminderId });
+  return apiRequest<{ ok: true }>(client, "/api/reminders/sync", { method: "POST", body: { reminderId } });
 }
 
 /**
@@ -41,5 +21,5 @@ export function deleteReminderEverywhere(
   client: KnowledgeApiClient,
   reminderId: string,
 ): Promise<{ ok: true }> {
-  return call(client, "/api/reminders/sync", "DELETE", { reminderId });
+  return apiRequest<{ ok: true }>(client, "/api/reminders/sync", { method: "DELETE", body: { reminderId } });
 }

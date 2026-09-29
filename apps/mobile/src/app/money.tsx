@@ -421,7 +421,9 @@ export default function MoneyScreen() {
           )}
 
           <View style={styles.sectionHeaderRow}>
-            <ThemedText type="subtitle">Log a transaction</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionHeaderTitle}>
+              Log a transaction
+            </ThemedText>
             {!txFormOpen && (
               <Pressable
                 onPress={() => setTxFormOpen(true)}
@@ -435,7 +437,9 @@ export default function MoneyScreen() {
           {txFormOpen && <TransactionForm onSubmit={handleAddTransaction} />}
 
           <View style={styles.sectionHeaderRow}>
-            <ThemedText type="subtitle">Budgets</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionHeaderTitle}>
+              Budgets
+            </ThemedText>
             {!budgetFormOpen && (
               <Pressable
                 onPress={() => setBudgetFormOpen(true)}
@@ -454,7 +458,9 @@ export default function MoneyScreen() {
               return (
                 <ThemedView key={budget.id} type="backgroundElement" style={[styles.budgetCard, { borderColor: theme.border }]}>
                   <View style={styles.sectionHeaderRow}>
-                    <ThemedText type="smallBold">{CATEGORY_LABEL[budget.category]}</ThemedText>
+                    <ThemedText type="smallBold" style={styles.sectionHeaderTitle}>
+                      {CATEGORY_LABEL[budget.category]}
+                    </ThemedText>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
                       <ThemedText type="code" style={over ? { color: '#dc2626' } : undefined} themeColor={over ? undefined : 'textSecondary'}>
                         {formatMoney(status.spent)} / {formatMoney(status.limit)}
@@ -551,7 +557,8 @@ const styles = StyleSheet.create({
   statTile: { flex: 1, borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center', gap: 2 },
   statLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   error: {},
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
+  sectionHeaderTitle: { flexShrink: 1 },
   logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
