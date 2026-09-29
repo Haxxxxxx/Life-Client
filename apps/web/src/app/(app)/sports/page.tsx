@@ -14,9 +14,14 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { WeeklySessionsChart } from "@/components/charts";
 import { Button, Card, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+
+// Passed explicitly (matches the shared default) so the sessions chart knows
+// when older weeks may be cut off by the listener's cap.
+const ACTIVITY_LIMIT = 50;
 
 function formatDistance(meters?: number): string {
   if (!meters) return "—";
@@ -367,9 +372,14 @@ function ChallengeCard({
   onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
   onLogToday: () => void;
 }) {
-  const progress = computeChallengeProgress(challenge, activities);
-  const milestones = computeChallengeMilestones(challenge, progress);
   const today = todayLocalDate();
+  // today isn't read in the callback below, but computeChallengeProgress defaults its
+  // `now` param to `new Date()` internally, so it's a real (if invisible-to-the-linter)
+  // dependency — without it the memo stays stale across a day boundary until
+  // challenge/activities themselves change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const progress = useMemo(() => computeChallengeProgress(challenge, activities), [challenge, activities, today]);
+  const milestones = useMemo(() => computeChallengeMilestones(challenge, progress), [challenge, progress]);
   const todayEntry = progress.days.find((d) => d.date === today);
   const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;
 
@@ -520,7 +530,11 @@ function ChallengeCard({
             key={day.date}
             title={`${day.date}: ${formatMetricValue(challenge.metric, day.value)}`}
             className={`h-3 w-3 rounded-sm border ${
-              day.completed ? "border-primary bg-primary" : "border-border bg-background"
+              day.completed
+                ? "border-primary bg-primary"
+                : day.value > 0
+                  ? "border-primary/40 bg-primary/20"
+                  : "border-border bg-background"
             }`}
           />
         ))}
@@ -624,10 +638,15 @@ export default function SportsPage() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeSportActivities(user.uid, (a) => {
-      setActivities(a);
-      setLoaded(true);
-    });
+    return data.subscribeSportActivities(
+      user.uid,
+      (a) => {
+        setActivities(a);
+        setLoaded(true);
+      },
+      undefined,
+      ACTIVITY_LIMIT,
+    );
   }, [user]);
 
   async function handleLog(input: {
@@ -674,6 +693,8 @@ export default function SportsPage() {
 
       {formOpen && <LogActivityForm onSubmit={handleLog} />}
       <ErrorText>{error}</ErrorText>
+
+      {activities.length > 0 && <WeeklySessionsChart activities={activities} limit={ACTIVITY_LIMIT} />}
 
       <ChallengesSection activities={activities} />
 

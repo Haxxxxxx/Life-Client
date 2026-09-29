@@ -34,6 +34,7 @@ import {
 import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { WeekActivityChart } from "@/components/charts";
 import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -736,6 +737,8 @@ export default function DashboardPage() {
           </ExternalCard>
         )}
       </div>
+
+      <WeekActivityChart tasks={tasks} activities={activities} />
 
       <TasksSection tasks={shownTasks} uid={user.uid} />
       <GoalsSection goals={shownGoals} tasks={tasks} uid={user.uid} />

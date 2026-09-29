@@ -18,7 +18,8 @@ import {
   type TransactionType,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { MoneyCharts } from "@/components/charts";
 import { Button, Card, ErrorText, Input, PageHeader, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
@@ -254,11 +255,19 @@ export default function MoneyPage() {
   }
 
   const thisMonth = monthKey();
-  const monthlyExpense = computeMonthlySpend(transactions, undefined, thisMonth);
-  const monthlyIncome = transactions
-    .filter((t) => t.type === "income" && t.date.startsWith(thisMonth))
-    .reduce((sum, t) => sum + t.amount, 0);
-  const subscriptions = transactions.filter((t) => t.recurrence);
+  const { monthlyExpense, monthlyIncome, subscriptions } = useMemo(() => {
+    return {
+      monthlyExpense: computeMonthlySpend(transactions, undefined, thisMonth),
+      monthlyIncome: transactions
+        .filter((t) => t.type === "income" && t.date.startsWith(thisMonth))
+        .reduce((sum, t) => sum + t.amount, 0),
+      subscriptions: transactions.filter((t) => t.recurrence),
+    };
+  }, [transactions, thisMonth]);
+  const budgetStatuses = useMemo(
+    () => budgets.map((budget) => ({ budget, status: computeBudgetStatus(budget, transactions, thisMonth) })),
+    [budgets, transactions, thisMonth],
+  );
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -272,6 +281,8 @@ export default function MoneyPage() {
         <StatTile value={formatMoney(monthlyExpense)} label="Spent this month" tone="danger" />
         <StatTile value={formatMoney(monthlyIncome)} label="Income this month" tone="primary" />
       </div>
+
+      {transactions.length > 0 && <MoneyCharts transactions={transactions} />}
 
       <ErrorText>{error}</ErrorText>
 
@@ -298,8 +309,7 @@ export default function MoneyPage() {
         </div>
         {budgetFormOpen && <BudgetForm onSubmit={handleAddBudget} />}
         <div className="flex flex-col gap-2">
-          {budgets.map((budget) => {
-            const status = computeBudgetStatus(budget, transactions, thisMonth);
+          {budgetStatuses.map(({ budget, status }) => {
             const over = status.percent > 1;
             return (
               <Card key={budget.id} padding="sm" className="flex flex-col gap-2">
