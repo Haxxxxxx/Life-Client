@@ -654,7 +654,16 @@ const styles = StyleSheet.create({
   error: { marginBottom: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
-  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  // Matches the other eight screens (radius two / padding three) and clears
+  // the 44pt touch minimum. These three used a smaller, sharper variant,
+  // which made their forms read as a different app.
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   goalCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   goalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },

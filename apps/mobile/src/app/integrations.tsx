@@ -167,7 +167,10 @@ const styles = StyleSheet.create({
   list: { gap: Spacing.three },
   card: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.three },
   cardHeader: { flexDirection: 'row', gap: Spacing.two, alignItems: 'flex-start' },
-  badge: { borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  // Pill, matching goals/index/search. These two were squares using the
+  // off-scale values 4 and 6, so the same concept rendered as two
+  // different components depending on the screen.
+  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   badgeText: { fontSize: 10 },
   cardText: { flex: 1, gap: 2 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },

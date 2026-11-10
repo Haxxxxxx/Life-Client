@@ -512,3 +512,17 @@ export function EmptyPanel({
     </div>
   );
 }
+
+/**
+ * The visual treatment of TextButton, as a class, for anchors and Links.
+ *
+ * Several of these row actions are navigation (`<a>`, `next/link`), not
+ * buttons — rendering them as <button> to reuse TextButton would break the
+ * semantics and lose middle-click/open-in-new-tab. They get the same padded,
+ * tinted treatment instead of the bare `hover:underline`, which gave them a
+ * ~16px hit area and read like a 1998 hyperlink.
+ */
+export const textLinkClassName = cx(
+  "rounded-md px-2 py-1 font-mono text-micro font-bold tracking-wide uppercase transition",
+  "text-muted hover:bg-surface-2 hover:text-foreground",
+);

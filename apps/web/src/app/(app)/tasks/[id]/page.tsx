@@ -11,7 +11,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Badge, Button, Card, Eyebrow } from "@/components/ui";
+import { Badge, Button, Card, Eyebrow, textLinkClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { EditTaskForm } from "../_components";
 import {
@@ -109,7 +109,7 @@ function PrPanel({ task }: { task: Task }) {
             href={task.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-xs font-bold uppercase hover:underline"
+            className={textLinkClassName}
           >
             {task.sourceRef ?? "Open"} ↗
           </a>
@@ -177,7 +177,7 @@ export default function TaskDetailPage() {
   if (!task) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <Link href="/tasks" className="font-mono text-xs font-bold uppercase text-muted hover:underline">
+        <Link href="/tasks" className={textLinkClassName}>
           ← Tasks
         </Link>
         <p className="text-sm text-muted">This task no longer exists.</p>
@@ -189,7 +189,7 @@ export default function TaskDetailPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <Link href="/tasks" className="font-mono text-xs font-bold uppercase text-muted hover:underline">
+      <Link href="/tasks" className={textLinkClassName}>
         ← Tasks
       </Link>
 

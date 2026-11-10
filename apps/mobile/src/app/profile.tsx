@@ -398,7 +398,9 @@ const styles = StyleSheet.create({
   cardText: { flex: 1, gap: 2 },
   levelBadge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   levelText: { fontSize: 11 },
-  progressTrack: { height: 10, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
+  // 8, matching goals/money and the web ProgressBar's h-2. music.tsx keeps 6
+  // deliberately: that one is an inline track scrubber, not a stat bar.
+  progressTrack: { height: 8, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
   progressFill: { height: '100%' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
@@ -415,5 +417,14 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
-  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  // Matches the other eight screens (radius two / padding three) and clears
+  // the 44pt touch minimum. These three used a smaller, sharper variant,
+  // which made their forms read as a different app.
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
 });

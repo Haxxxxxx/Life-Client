@@ -26,7 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner } from '@/components/ui';
+import { ErrorBanner, SkeletonList } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -813,6 +813,12 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
 
 export default function SportsScreen() {
   const { user } = useAuth();
+  // Keyed on uid, not a boolean reset inside the effect: setState in an effect
+  // body cascades a render (the react-compiler lint rule rejects it), and
+  // deriving it stops a user switch briefly showing the previous account's
+  // rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
   const theme = useTheme();
   const [activities, setActivities] = useState<SportActivity[]>([]);
   const [formOpen, setFormOpen] = useState(false);
@@ -820,7 +826,10 @@ export default function SportsScreen() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeSportActivities(user.uid, setActivities);
+    return data.subscribeSportActivities(user.uid, (next) => {
+        setActivities(next);
+        setLoadedFor(user.uid);
+      });
   }, [user]);
 
   async function handleLog(input: LogInput) {
@@ -887,11 +896,15 @@ export default function SportsScreen() {
             </>
           }
           ListEmptyComponent={
-            <ThemedView type="backgroundElement" style={styles.emptyState}>
-              <ThemedText themeColor="textSecondary">
-                No activities yet. Connect Strava from the Integrations tab, or log one by hand above.
-              </ThemedText>
-            </ThemedView>
+            !loaded ? (
+              <SkeletonList rows={3} />
+            ) : (
+              <ThemedView type="backgroundElement" style={styles.emptyState}>
+                <ThemedText themeColor="textSecondary">
+                  No activities yet. Connect Strava from the Integrations tab, or log one by hand above.
+                </ThemedText>
+              </ThemedView>
+            )
           }
           renderItem={({ item }) => (
             <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
@@ -981,7 +994,16 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
-  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  // Matches the other eight screens (radius two / padding three) and clears
+  // the 44pt touch minimum. These three used a smaller, sharper variant,
+  // which made their forms read as a different app.
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   logButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   trendSection: { marginBottom: Spacing.four },
   challengesSection: { gap: Spacing.two, marginBottom: Spacing.four },
