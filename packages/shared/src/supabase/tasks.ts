@@ -65,30 +65,45 @@ function rowToTask(r: TaskRow): Task {
 }
 
 /** Domain patch → column patch. Only defined keys are written. */
-// Accepts TaskPatch so a null (meaning "clear") maps to a null column, which
-// is Postgres's own way of saying the same thing — no deleteField equivalent
-// is needed on this side.
+/**
+ * Maps a patch onto its columns, writing ONLY the keys the patch actually has.
+ *
+ * This previously read `put("due_date", t.dueDate ?? null)`, where the `??` is
+ * evaluated before `put`'s `!== undefined` guard — so an *absent* key became an
+ * explicit `null` and was written. That made it a full-row overwrite rather
+ * than a patch builder: `updateTask(uid, id, { status: "done" })` nulled
+ * description, due_date, source_ref, source_url, goal_id, recurrence,
+ * vice_log_id, pr_meta and pr_events. Ticking a task off destroyed its
+ * deadline, goal link, recurrence rule and entire PR history.
+ *
+ * `put("tags", t.tags)` was the one field written without `?? null`, which is
+ * what gives the copy-paste away.
+ *
+ * Presence is now tested with `in`, which also keeps the TaskPatch contract
+ * intact: an explicit `null` means "clear" and must be written, while an
+ * absent key must be left alone. `?? null` could not express that difference.
+ */
 function taskToRow(t: TaskPatch): Record<string, unknown> {
   const row: Record<string, unknown> = {};
-  const put = (key: string, value: unknown) => {
-    if (value !== undefined) row[key] = value;
+  const put = (key: string, field: keyof TaskPatch, value: unknown) => {
+    if (field in t) row[key] = value ?? null;
   };
-  put("title", t.title);
-  put("description", t.description ?? null);
-  put("status", t.status);
-  put("priority", t.priority);
-  put("difficulty", t.difficulty);
-  put("category", t.category);
-  put("due_date", t.dueDate ?? null);
-  put("source", t.source);
-  put("source_ref", t.sourceRef ?? null);
-  put("source_url", t.sourceUrl ?? null);
-  put("tags", t.tags);
-  put("goal_id", t.goalId ?? null);
-  put("recurrence", t.recurrence ?? null);
-  put("vice_log_id", t.viceLogId ?? null);
-  put("pr_meta", t.prMeta ?? null);
-  put("pr_events", t.prEvents ?? null);
+  put("title", "title", t.title);
+  put("description", "description", t.description);
+  put("status", "status", t.status);
+  put("priority", "priority", t.priority);
+  put("difficulty", "difficulty", t.difficulty);
+  put("category", "category", t.category);
+  put("due_date", "dueDate", t.dueDate);
+  put("source", "source", t.source);
+  put("source_ref", "sourceRef", t.sourceRef);
+  put("source_url", "sourceUrl", t.sourceUrl);
+  put("tags", "tags", t.tags);
+  put("goal_id", "goalId", t.goalId);
+  put("recurrence", "recurrence", t.recurrence);
+  put("vice_log_id", "viceLogId", t.viceLogId);
+  put("pr_meta", "prMeta", t.prMeta);
+  put("pr_events", "prEvents", t.prEvents);
   return row;
 }
 
@@ -137,6 +152,11 @@ export async function createTaskSb(client: SupabaseClient, userId: string, task:
   if (error) throw new Error(error.message);
   return id;
 }
+
+/** Exported for tests only — the presence-vs-absence contract above is the
+ * thing that broke, so it is worth pinning directly rather than through a
+ * mocked Supabase client. */
+export const __taskToRowForTests = taskToRow;
 
 export async function updateTaskSb(
   client: SupabaseClient,
