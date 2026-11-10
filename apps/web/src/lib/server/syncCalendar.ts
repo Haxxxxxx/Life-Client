@@ -40,17 +40,29 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
     url.searchParams.set("timeMax", timeMax);
     url.searchParams.set("singleEvents", "true");
     url.searchParams.set("orderBy", "startTime");
-    url.searchParams.set("maxResults", "20");
+    // 250 with paging below, not 20. A busy week silently lost everything past
+    // the twentieth event, and nothing ever told the user.
+    url.searchParams.set("maxResults", "250");
 
-    const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!response.ok) {
-      throw new Error(`Google Calendar fetch failed: ${response.status} ${await response.text()}`);
-    }
-    const data = (await response.json()) as { items: GoogleCalendarEvent[] };
+    // Follow nextPageToken rather than taking whatever the first page held.
+    const items: GoogleCalendarEvent[] = [];
+    let pageToken: string | undefined;
+    do {
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!response.ok) {
+        throw new Error(`Google Calendar fetch failed: ${response.status} ${await response.text()}`);
+      }
+      const page = (await response.json()) as { items?: GoogleCalendarEvent[]; nextPageToken?: string };
+      items.push(...(page.items ?? []));
+      pageToken = page.nextPageToken;
+    } while (pageToken);
 
     const batch = adminDb.batch();
     const collection = adminDb.collection("users").doc(uid).collection("calendarEvents");
-    for (const event of data.items ?? []) {
+    const seen = new Set<string>();
+    for (const event of items) {
+      seen.add(event.id);
       batch.set(
         collection.doc(event.id),
         {
@@ -63,6 +75,26 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
         { merge: true },
       );
     }
+
+    // Reconcile: anything mirrored that Google no longer returns for this
+    // window has been cancelled, moved out of it, or deleted.
+    //
+    // The sync only ever upserted, so those rows stayed forever — and because
+    // the client reads the collection ordered by start with a limit, once
+    // enough stale past events accumulated they filled the whole page and the
+    // agenda showed "No events yet" while real upcoming events existed.
+    const mirrored = await collection.get();
+    for (const doc of mirrored.docs) {
+      if (seen.has(doc.id)) continue;
+      const start = doc.data().start as string | undefined;
+      // Only prune inside the window we just fetched; events outside it were
+      // never candidates for this response and must not be deleted on its say-so.
+      if (start && start >= timeMin && start <= timeMax) batch.delete(doc.ref);
+      // Past events are dropped too: nothing renders them, and they are what
+      // crowds out the live ones.
+      else if (start && start < timeMin) batch.delete(doc.ref);
+    }
+
     await batch.commit();
 
     await setIntegrationStatus(uid, "google_calendar", {

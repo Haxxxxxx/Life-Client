@@ -39,7 +39,7 @@ export interface GoogleCalendarEventInput {
   summary: string;
   description?: string;
   location?: string;
-  start: string; // ISO datetime
+  start: string; // ISO datetime, or YYYY-MM-DD for an all-day event
   end: string; // ISO datetime
 }
 
@@ -55,13 +55,24 @@ export interface GoogleCalendarEvent {
 
 const EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
+/**
+ * Google distinguishes all-day events (`date`) from timed ones (`dateTime`),
+ * and this always sent `dateTime`. That silently converted an all-day event
+ * into a timed one on any edit — a Dec 25 all-day entry edited to fix a typo
+ * came back as a one-hour slot. Mirroring the stored shape keeps all-day
+ * events all-day.
+ */
+function googleDate(value: string): { dateTime: string } | { date: string } {
+  return value.includes("T") ? { dateTime: value } : { date: value };
+}
+
 function eventBody(input: GoogleCalendarEventInput) {
   return {
     summary: input.summary,
     description: input.description,
     location: input.location,
-    start: { dateTime: input.start },
-    end: { dateTime: input.end },
+    start: googleDate(input.start),
+    end: googleDate(input.end),
   };
 }
 
