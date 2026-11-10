@@ -13,6 +13,7 @@ import {
 import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
@@ -50,7 +51,7 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
 
       {!title.trim() && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[10px] text-muted uppercase">Try</span>
+          <span className="font-mono text-micro text-muted uppercase">Try</span>
           {GOAL_EXAMPLES.map((example) => (
             <button
               key={example}
@@ -189,7 +190,7 @@ function GoalCard({
         {!editing && (
           <div className="flex shrink-0 flex-col items-end gap-1">
             <span
-              className={`rounded-full border border-border-strong px-2.5 py-1 font-mono text-[10px] font-bold uppercase ${
+              className={`rounded-full border border-border-strong px-2.5 py-1 font-mono text-micro font-bold uppercase ${
                 goal.status === "completed" ? "bg-primary text-primary-foreground" : "bg-primary/15"
               }`}
             >
@@ -241,7 +242,7 @@ function GoalCard({
               <button
                 type="button"
                 onClick={() => onUnlinkTask(task.id)}
-                className="shrink-0 font-mono text-[10px] font-bold text-muted uppercase hover:underline"
+                className="shrink-0 font-mono text-micro font-bold text-muted uppercase hover:underline"
               >
                 Unlink
               </button>
@@ -253,7 +254,7 @@ function GoalCard({
       )}
 
       <div className="flex flex-col gap-1.5 border-t border-border pt-2">
-        <span className="font-mono text-[10px] text-muted uppercase">Link tasks to this goal</span>
+        <span className="font-mono text-micro text-muted uppercase">Link tasks to this goal</span>
         <div className="flex flex-wrap gap-2">
           {unlinkedTasks.length > 0 && (
             <div className="flex gap-1">
@@ -494,13 +495,7 @@ export default function GoalsPage() {
                   <Button size="sm" variant="secondary" onClick={() => handleRestoreGoal(goal.id)}>
                     Restore
                   </Button>
-                  <button
-                    type="button"
-                    onClick={() => user && data.deleteGoal(user.uid, goal.id)}
-                    className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
-                  >
-                    Delete
-                  </button>
+                  <ConfirmButton onConfirm={() => user && data.deleteGoal(user.uid, goal.id)} />
                 </div>
               </li>
             ))}

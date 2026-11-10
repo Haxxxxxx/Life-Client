@@ -33,8 +33,9 @@
   --color-info: var(--info);
   --font-sans: var(--font-display);
   --font-mono: var(--font-mono-retro);
-  /* Named rather than arbitrary: `text-[10px]` appears 35 times across the two
-     apps for badges, eyebrows and stat captions. One token, one size. */
+  /* Named rather than arbitrary. The arbitrary form was hand-typed 35 times
+     across the two apps for badges, eyebrows and stat captions; this is the
+     one token they all now use. */
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1rem;
 }

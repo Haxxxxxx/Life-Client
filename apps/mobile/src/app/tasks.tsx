@@ -25,7 +25,7 @@ import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/c
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SkeletonList } from '@/components/ui';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { confirmDestructive } from '@/lib/confirm';
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   taskActions: { gap: Spacing.one, alignItems: 'flex-end' },
   pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   intervalInput: { width: 44, borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   weekdayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },

@@ -88,7 +88,7 @@ function DailyLessonSection() {
           <Card>
             <p className="font-mono text-xs font-bold text-primary uppercase">Read About</p>
             {lesson.articleSource && (
-              <p className="mt-1 font-mono text-[10px] font-bold text-muted uppercase">{lesson.articleSource}</p>
+              <p className="mt-1 font-mono text-micro font-bold text-muted uppercase">{lesson.articleSource}</p>
             )}
             <p className="mt-1 font-bold">{lesson.articleTopic}</p>
             <p className="mt-1 text-sm text-muted">{lesson.articleReason}</p>
@@ -402,13 +402,13 @@ function PastDrillRow({
             {typeof drill.score === "number" ? `${drill.score}/10` : drill.correct ? "Correct" : "Missed"}
           </Badge>
         ) : (
-          <span className="font-mono text-[10px] font-bold text-muted uppercase">Skipped</span>
+          <span className="font-mono text-micro font-bold text-muted uppercase">Skipped</span>
         )}
         <button
           type="button"
           onClick={onDelete}
           disabled={deleting}
-          className="font-mono text-[10px] font-bold text-danger uppercase hover:underline disabled:opacity-50"
+          className="font-mono text-micro font-bold text-danger uppercase hover:underline disabled:opacity-50"
         >
           {deleting ? "…" : "Delete"}
         </button>
@@ -563,7 +563,7 @@ function VocabCard({ w }: { w: VocabWord }) {
               key={m}
               type="button"
               onClick={() => user && data.setVocabMastery(user.uid, w.id, m)}
-              className={`rounded-full border border-border-strong px-2 py-1 font-mono text-[10px] font-bold uppercase ${
+              className={`rounded-full border border-border-strong px-2 py-1 font-mono text-micro font-bold uppercase ${
                 w.mastery === m ? "bg-primary/15" : ""
               }`}
             >
@@ -603,7 +603,7 @@ function DictionaryEntry({ w }: { w: VocabWord }) {
     <li className="rounded-xl border border-border p-3">
       <div className="flex items-baseline justify-between gap-2">
         <p className="font-bold">{w.word}</p>
-        <span className="shrink-0 font-mono text-[10px] font-bold text-success uppercase">Learned</span>
+        <span className="shrink-0 font-mono text-micro font-bold text-success uppercase">Learned</span>
       </div>
       <p className="mt-1 text-sm text-muted">{w.definition}</p>
       {w.practiceSentence && <p className="mt-1 text-sm italic text-muted">&ldquo;{w.practiceSentence}&rdquo;</p>}
@@ -757,7 +757,7 @@ function ReadingListSection() {
                 {item.status === "error" && <p className="mt-2 text-sm text-danger">{item.error}</p>}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className="font-mono text-[10px] font-bold text-muted uppercase">{item.status}</span>
+                <span className="font-mono text-micro font-bold text-muted uppercase">{item.status}</span>
                 {(item.status === "pending" || item.status === "error") && (
                   <button
                     type="button"

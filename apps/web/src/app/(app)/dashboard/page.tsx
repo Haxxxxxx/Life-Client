@@ -35,6 +35,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WeekActivityChart } from "@/components/charts";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -190,7 +191,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
               onSave={(next) => db && data.updateTask(uid, task.id, { title: next })}
               className={`min-w-0 flex-1 truncate text-sm ${task.status === "done" ? "text-muted line-through" : ""}`}
             />
-            <span className="shrink-0 font-mono text-[10px] text-muted uppercase">{task.status}</span>
+            <span className="shrink-0 font-mono text-micro text-muted uppercase">{task.status}</span>
             {task.sourceUrl && (
               <a
                 href={task.sourceUrl}
@@ -242,7 +243,7 @@ function GoalsSection({ goals, tasks, uid, loaded }: { goals: Goal[]; tasks: Tas
                 onSave={(next) => db && data.updateGoal(uid, goal.id, { title: next })}
                 className="min-w-0 flex-1 truncate text-sm"
               />
-              <span className="shrink-0 font-mono text-[10px] text-muted uppercase">
+              <span className="shrink-0 font-mono text-micro text-muted uppercase">
                 {progress.completedTaskCount}/{progress.linkedTaskCount} · {goal.status}
               </span>
               {goal.status === "active" && (
@@ -261,13 +262,7 @@ function GoalsSection({ goals, tasks, uid, loaded }: { goals: Goal[]; tasks: Tas
               >
                 Archive
               </button>
-              <button
-                type="button"
-                onClick={() => db && data.deleteGoal(uid, goal.id)}
-                className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
-              >
-                Delete
-              </button>
+              <ConfirmButton onConfirm={() => db && data.deleteGoal(uid, goal.id)} className="shrink-0" />
             </li>
           );
         })}
@@ -313,7 +308,7 @@ function ChallengesSection({
                 onSave={(next) => db && data.updateChallenge(uid, challenge.id, { title: next })}
                 className="min-w-0 flex-1 truncate text-sm"
               />
-              <span className="shrink-0 font-mono text-[10px] text-muted uppercase">
+              <span className="shrink-0 font-mono text-micro text-muted uppercase">
                 {progress.currentStreak}d streak{challenge.archived ? " · archived" : ""}
               </span>
               {!challenge.archived && (
@@ -425,7 +420,7 @@ function RecurrencePicker({
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              className={`rounded-full border px-1.5 py-1 text-[10px] font-bold ${
+              className={`rounded-full border px-1.5 py-1 text-micro font-bold ${
                 daysOfWeek.includes(i) ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
               }`}
             >

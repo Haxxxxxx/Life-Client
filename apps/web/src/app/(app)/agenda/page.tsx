@@ -8,7 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SkeletonRows } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -124,9 +124,24 @@ export default function AgendaPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Keyed on uid rather than a boolean reset inside the effect: setState in an
+  // effect body cascades a render, and deriving it stops a user switch from
+  // briefly showing the previous account's rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
   useEffect(() => {
     if (!user) return;
-    return data.subscribeCalendarEvents(user.uid, setEvents, (err) => setError(err.message), 50);
+    const uid = user.uid;
+    return data.subscribeCalendarEvents(
+      uid,
+      (next) => {
+        setEvents(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+      50,
+    );
   }, [user]);
 
   async function handleCreate(input: { title: string; start: string; end: string; location?: string }) {
@@ -184,7 +199,9 @@ export default function AgendaPage() {
       {formOpen && <EventForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} submitLabel="Create" />}
       <ErrorText>{error}</ErrorText>
 
-      {groups.length === 0 && !formOpen && (
+      {!loaded && <SkeletonRows rows={3} />}
+
+      {loaded && groups.length === 0 && !formOpen && (
         <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
           No events yet — connect Google Calendar from Integrations, add one above, or check back once it&apos;s
           synced.

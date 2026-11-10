@@ -25,7 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Donut, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 
@@ -397,7 +397,7 @@ export default function MoneyScreen() {
 
           <View style={styles.statsRow}>
             <View style={[styles.statTile, { borderColor: theme.border }]}>
-              <ThemedText type="subtitle" style={{ color: '#dc2626' }}>
+              <ThemedText type="subtitle" style={{ color: theme.danger }}>
                 {formatMoney(monthlyExpense)}
               </ThemedText>
               <ThemedText type="code" themeColor="textSecondary" style={styles.statLabel}>
@@ -464,7 +464,7 @@ export default function MoneyScreen() {
                       {CATEGORY_LABEL[budget.category]}
                     </ThemedText>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
-                      <ThemedText type="code" style={over ? { color: '#dc2626' } : undefined} themeColor={over ? undefined : 'textSecondary'}>
+                      <ThemedText type="code" style={over ? { color: theme.danger } : undefined} themeColor={over ? undefined : 'textSecondary'}>
                         {formatMoney(status.spent)} / {formatMoney(status.limit)}
                       </ThemedText>
                       <Pressable onPress={() => user && data.deleteBudget(user.uid, budget.id)}>
@@ -478,7 +478,7 @@ export default function MoneyScreen() {
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${Math.min(100, Math.round(status.percent * 100))}%`, backgroundColor: over ? '#dc2626' : theme.primary },
+                        { width: `${Math.min(100, Math.round(status.percent * 100))}%`, backgroundColor: over ? theme.danger : theme.primary },
                       ]}
                     />
                   </View>
@@ -525,7 +525,7 @@ export default function MoneyScreen() {
                   </ThemedText>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: Spacing.half }}>
-                  <ThemedText type="smallBold" style={tx.type === 'expense' ? { color: '#dc2626' } : { color: theme.primary }}>
+                  <ThemedText type="smallBold" style={tx.type === 'expense' ? { color: theme.danger } : { color: theme.primary }}>
                     {tx.type === 'expense' ? '-' : '+'}
                     {formatMoney(tx.amount)}
                   </ThemedText>
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   budgetCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   progressTrack: { height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   row: {

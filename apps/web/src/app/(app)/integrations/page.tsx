@@ -68,9 +68,19 @@ export default function IntegrationsPage() {
     text: string;
   } | null>(null);
 
+  // Keyed on uid rather than a boolean reset inside the effect: setState in an
+  // effect body cascades a render, and deriving it stops a user switch from
+  // briefly showing the previous account's rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
   useEffect(() => {
     if (!user) return;
-    return data.subscribeIntegrations(user.uid, setConnections);
+    const uid = user.uid;
+    return data.subscribeIntegrations(uid, (next) => {
+      setConnections(next);
+      setLoadedFor(uid);
+    });
   }, [user]);
 
   async function handleSync(provider: IntegrationProvider) {
@@ -114,7 +124,7 @@ export default function IntegrationsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="rounded border border-border-strong bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] font-bold">
+                    <span className="rounded border border-border-strong bg-primary/15 px-1.5 py-0.5 font-mono text-micro font-bold">
                       {meta.badge}
                     </span>
                     <p className="font-bold">{meta.label}</p>
@@ -124,15 +134,20 @@ export default function IntegrationsPage() {
               </div>
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <span
-                  className={`min-w-0 flex-1 truncate font-mono text-[10px] font-bold tracking-wide uppercase ${
+                  className={`min-w-0 flex-1 truncate font-mono text-micro font-bold tracking-wide uppercase ${
                     connected ? "text-primary" : errored ? "text-danger" : "text-muted"
                   }`}
                 >
-                  {connected
-                    ? `Connected${connection?.externalAccountLabel ? ` · ${connection.externalAccountLabel}` : ""}`
-                    : errored
-                      ? "Connection failed"
-                      : "Not connected"}
+                  {/* "Checking…" while the first snapshot is in flight. The
+                      cards always render, so without this every provider
+                      claimed "Not connected" before we actually knew. */}
+                  {!loaded
+                    ? "Checking…"
+                    : connected
+                      ? `Connected${connection?.externalAccountLabel ? ` · ${connection.externalAccountLabel}` : ""}`
+                      : errored
+                        ? "Connection failed"
+                        : "Not connected"}
                 </span>
                 <div className="flex shrink-0 items-center gap-2">
                   {connected && (
@@ -167,15 +182,15 @@ export default function IntegrationsPage() {
                 </div>
               </div>
               {connected && connection?.lastSyncAt && syncResult?.provider !== provider && (
-                <p className="text-[10px] text-muted">Last synced {relativeTime(connection.lastSyncAt)}</p>
+                <p className="text-micro text-muted">Last synced {relativeTime(connection.lastSyncAt)}</p>
               )}
               {syncResult?.provider === provider && (
-                <p className={`text-[10px] ${syncResult.ok ? "text-primary" : "text-danger"}`}>
+                <p className={`text-micro ${syncResult.ok ? "text-primary" : "text-danger"}`}>
                   {syncResult.text}
                 </p>
               )}
               {errored && connection?.lastError && syncResult?.provider !== provider && (
-                <p className="truncate text-[10px] text-danger" title={connection.lastError}>
+                <p className="truncate text-micro text-danger" title={connection.lastError}>
                   {connection.lastError}
                 </p>
               )}

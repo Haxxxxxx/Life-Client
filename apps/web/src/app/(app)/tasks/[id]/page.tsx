@@ -116,7 +116,7 @@ function PrPanel({ task }: { task: Task }) {
       <dl className="flex flex-col gap-2">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3">
-            <dt className="w-24 shrink-0 font-mono text-[10px] tracking-wide text-muted uppercase">{r.label}</dt>
+            <dt className="w-24 shrink-0 font-mono text-micro tracking-wide text-muted uppercase">{r.label}</dt>
             <dd>{r.value}</dd>
           </div>
         ))}
@@ -124,7 +124,7 @@ function PrPanel({ task }: { task: Task }) {
 
       {events.length > 0 && (
         <div>
-          <p className="mb-2 font-mono text-[10px] tracking-wide text-muted uppercase">Activity</p>
+          <p className="mb-2 font-mono text-micro tracking-wide text-muted uppercase">Activity</p>
           <ul className="flex flex-col gap-1.5">
             {events.map((e, i) => (
               <li key={i} className="flex items-baseline gap-2 text-xs">

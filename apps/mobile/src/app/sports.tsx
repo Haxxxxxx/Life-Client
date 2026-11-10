@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 
@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
   info: { flex: 1, gap: 2, minWidth: 0 },
   stats: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   stat: { alignItems: 'flex-end' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginTop: Spacing.three },
   chipRow: { flexDirection: 'row', gap: Spacing.one },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },

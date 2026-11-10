@@ -21,7 +21,8 @@ import {
 import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { MoneyCharts } from "@/components/charts";
-import { Button, Card, ErrorText, Input, PageHeader, StatTile } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
+import { Button, Card, ErrorText, Input, PageHeader, SkeletonRows, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.id, c.label])) as Record<
@@ -91,7 +92,7 @@ function RecurrencePicker({
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              className={`rounded-full border px-1.5 py-1 text-[10px] font-bold ${
+              className={`rounded-full border px-1.5 py-1 text-micro font-bold ${
                 daysOfWeek.includes(i) ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
               }`}
             >
@@ -227,9 +228,23 @@ export default function MoneyPage() {
   const [budgetFormOpen, setBudgetFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Keyed on uid rather than a boolean reset inside the effect: setState in an
+  // effect body cascades a render, and deriving it stops a user switch from
+  // briefly showing the previous account's rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
   useEffect(() => {
     if (!user) return;
-    return data.subscribeTransactions(user.uid, setTransactions, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeTransactions(
+      uid,
+      (next) => {
+        setTransactions(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -324,13 +339,7 @@ export default function MoneyPage() {
                     <p className={`font-mono text-xs ${over ? "text-danger" : "text-muted"}`}>
                       {formatMoney(status.spent)} / {formatMoney(status.limit)}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => user && data.deleteBudget(user.uid, budget.id)}
-                      className="font-mono text-xs font-bold text-danger uppercase hover:underline"
-                    >
-                      Delete
-                    </button>
+                    <ConfirmButton onConfirm={() => user && data.deleteBudget(user.uid, budget.id)} />
                   </div>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full border border-border-strong bg-background">
@@ -390,17 +399,16 @@ export default function MoneyPage() {
                   {tx.type === "expense" ? "-" : "+"}
                   {formatMoney(tx.amount)}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => user && data.deleteTransaction(user.uid, tx.id)}
-                  className="font-mono text-xs font-bold text-danger uppercase hover:underline"
-                >
-                  Delete
-                </button>
+                <ConfirmButton onConfirm={() => user && data.deleteTransaction(user.uid, tx.id)} />
               </div>
             </li>
           ))}
-          {transactions.length === 0 && (
+          {!loaded && (
+            <li>
+              <SkeletonRows rows={3} />
+            </li>
+          )}
+          {loaded && transactions.length === 0 && (
             <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
               No transactions yet — log your first one above.
             </li>

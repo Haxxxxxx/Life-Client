@@ -17,7 +17,7 @@ import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SkeletonList } from '@/components/ui';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { confirmDestructive } from '@/lib/confirm';
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   goalActions: { flexDirection: 'row', gap: Spacing.two },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   progressTrack: { flex: 1, height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },

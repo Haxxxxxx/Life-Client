@@ -8,7 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Button, Card, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
+import { Button, Card, ErrorText, PageHeader, SectionHeader, SkeletonRows } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -199,18 +199,34 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
 export default function MusicPage() {
   const { user } = useAuth();
   const [summary, setSummary] = useState<SpotifySummary | null>(null);
+  // Keyed on uid rather than a boolean reset inside the effect: setState in an
+  // effect body cascades a render, and deriving it stops a user switch from
+  // briefly showing the previous account's rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeSpotifySummary(user.uid, setSummary);
+    const uid = user.uid;
+    return data.subscribeSpotifySummary(uid, (next) => {
+      setSummary(next);
+      setLoadedFor(uid);
+    });
   }, [user]);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-10">
       <PageHeader eyebrow="Listen" title="Music" description="Your Spotify listening — live, recent, and in aggregate." />
       <NowPlayingSection />
-      <RecentTracksSection summary={summary} />
-      <StatsSection summary={summary} />
+      {loaded ? (
+        <>
+          <RecentTracksSection summary={summary} />
+          <StatsSection summary={summary} />
+        </>
+      ) : (
+        <SkeletonRows rows={3} />
+      )}
     </div>
   );
 }

@@ -123,7 +123,7 @@ function Donut({
       </PieChart>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <p className="text-base font-bold text-foreground">{centerValue}</p>
-        <p className="font-mono text-[10px] text-muted uppercase">{centerCaption}</p>
+        <p className="font-mono text-micro text-muted uppercase">{centerCaption}</p>
       </div>
     </div>
   );

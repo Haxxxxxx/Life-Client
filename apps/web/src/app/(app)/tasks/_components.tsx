@@ -73,7 +73,7 @@ export function RecurrencePicker({
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              className={`rounded-full border px-1.5 py-1 text-[10px] font-bold ${
+              className={`rounded-full border px-1.5 py-1 text-micro font-bold ${
                 daysOfWeek.includes(i) ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
               }`}
             >

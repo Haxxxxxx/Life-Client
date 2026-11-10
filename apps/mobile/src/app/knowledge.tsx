@@ -25,13 +25,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { knowledgeApiClient } from '@/lib/knowledgeClient';
 
-const CORRECT_COLOR = '#16a34a';
-const INCORRECT_COLOR = '#dc2626';
+const CORRECT_COLOR = Colors.dark.success;
+const INCORRECT_COLOR = Colors.dark.danger;
 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (

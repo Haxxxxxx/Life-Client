@@ -190,7 +190,7 @@ export function Badge({
   return (
     <span
       className={cx(
-        "rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide",
+        "rounded-full border px-1.5 py-0.5 font-mono text-micro font-bold uppercase tracking-wide",
         subtle ? BADGE_TONE_SUBTLE[tone] : BADGE_TONE[tone],
         className,
       )}
@@ -282,7 +282,7 @@ export function StatTile({
   return (
     <div className={cardClassName({ padding: "sm", className: "text-center" })}>
       <p className={cx("text-2xl font-bold text-foreground", STAT_TILE_TONE[tone])}>{value}</p>
-      <p className="font-mono text-[10px] text-muted uppercase">{label}</p>
+      <p className="font-mono text-micro text-muted uppercase">{label}</p>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { webApiClient } from '@/lib/webApiClient';
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
   openButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   openButtonText: { fontWeight: '700', textTransform: 'uppercase' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginBottom: Spacing.three },
   input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
   formActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },

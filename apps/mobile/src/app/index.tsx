@@ -40,7 +40,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -365,8 +365,10 @@ const QUICK_OFFSETS = [
   { label: '1mo', days: 30 },
 ];
 
-const URGENCY_BORDER: Record<ReminderUrgency, string> = {
-  overdue: '#dc2626',
+// Theme keys, not a mix of key names and one raw hex — the old shape forced
+// the call site into a two-step ternary to tell them apart.
+const URGENCY_BORDER: Record<ReminderUrgency, 'danger' | 'primary' | 'border'> = {
+  overdue: 'danger',
   'due-today': 'primary',
   'due-soon': 'primary',
   upcoming: 'border',
@@ -664,8 +666,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
         {reminders.map((reminder) => {
           const urgency = reminderUrgency(reminder.deadline);
           const days = daysUntil(reminder.deadline);
-          const borderKey = URGENCY_BORDER[urgency];
-          const borderColor = borderKey === 'primary' ? theme.primary : borderKey === 'border' ? theme.border : borderKey;
+          const borderColor = theme[URGENCY_BORDER[urgency]];
           if (editingId === reminder.id) {
             return (
               <ThemedView key={reminder.id} type="backgroundElement" style={[styles.reminderCard, { borderColor }]}>
@@ -975,7 +976,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 16, height: 16, borderWidth: 1, borderRadius: 4 },
   renameInput: { borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   doneText: { textDecorationLine: 'line-through' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
   input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },

@@ -46,7 +46,7 @@ export default function LoginPage() {
         <ErrorText className="mx-auto mt-4 max-w-sm text-center">{error}</ErrorText>
         <div className="mt-7 flex items-center gap-4">
           <div className="h-px flex-1 bg-border" />
-          <span className="font-mono text-[10px] tracking-[0.15em] whitespace-nowrap text-muted uppercase">
+          <span className="font-mono text-micro tracking-[0.15em] whitespace-nowrap text-muted uppercase">
             Secure sign-in
           </span>
           <div className="h-px flex-1 bg-border" />
