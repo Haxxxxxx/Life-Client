@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
 import "./data-backend"; // configures the shared data.* facade on load
+import { unregisterThisDevice } from "@/hooks/use-push-registration";
 import { auth, GOOGLE_WEB_CLIENT_ID } from "./firebase";
 
 interface AuthContextValue {
@@ -51,8 +52,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOutUser() {
     if (!auth) return;
+    const uid = auth.currentUser?.uid;
+    // Before signing out, while we still have the uid and Firestore access:
+    // otherwise the token stays registered against this account and its
+    // notifications keep arriving on a device somebody else may now be using.
+    // Best-effort — failing to clean up must not block the sign-out itself.
+    if (uid) {
+      await unregisterThisDevice(uid).catch((err) =>
+        console.error('Could not unregister this device for push', err),
+      );
+    }
     await signOut(auth);
-    await GoogleSignin.signOut();
+    // Errors here used to reject *after* the Firebase sign-out had already
+    // succeeded, and the only caller does not catch — an unhandled rejection
+    // for a step that cannot be meaningfully retried.
+    await GoogleSignin.signOut().catch((err) =>
+      console.error('Google sign-out failed after Firebase sign-out', err),
+    );
   }
 
   return (

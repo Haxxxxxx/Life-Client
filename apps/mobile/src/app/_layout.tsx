@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppTabs from '@/components/app-tabs';
 import { LoginScreen } from '@/components/login-screen';
 import { Colors } from '@/constants/theme';
+import { useNotificationRouting } from '@/hooks/use-notification-routing';
 import { usePushRegistration } from '@/hooks/use-push-registration';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 
@@ -26,6 +27,7 @@ const AppNavigationTheme = {
 function Gate() {
   const { user, loading } = useAuth();
   usePushRegistration(user?.uid);
+  useNotificationRouting(Boolean(user));
   if (loading) return null;
   return user ? <AppTabs /> : <LoginScreen />;
 }
