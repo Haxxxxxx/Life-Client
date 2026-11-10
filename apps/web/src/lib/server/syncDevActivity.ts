@@ -557,8 +557,12 @@ async function syncTasksFromPullRequests(
           prMeta: nextMeta,
           prEvents: appendEvents(prev?.prEvents, diffPrEvents(prevMeta, nextMeta, nowIso)),
           updatedAt: nowIso,
+          // archived: false alongside the status reset — the daily cleanup may
+          // already have filed this task away, and visibleTasks drops archived
+          // items, so reopening the status alone would leave a live PR's task
+          // invisible in every list.
           ...(wasWronglyResolved && prev?.status === "done"
-            ? { status: "todo", completedAt: null }
+            ? { status: "todo", completedAt: null, archived: false }
             : {}),
         },
         { merge: true },
