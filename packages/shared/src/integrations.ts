@@ -1,4 +1,5 @@
 import { type Firestore, collection, doc, onSnapshot } from "firebase/firestore";
+import { apiRequest, type KnowledgeApiClient } from "./knowledgeApi";
 import type { IntegrationConnection, IntegrationProvider } from "./types";
 
 const ALL_PROVIDERS: IntegrationProvider[] = ["github", "gitlab", "google_calendar", "strava"];
@@ -31,32 +32,37 @@ export function integrationDocRef(db: Firestore, uid: string, provider: Integrat
 }
 
 /**
- * Builds the URL that kicks off the server-side OAuth flow for a provider.
- * `webAppBaseUrl` is the deployed web app's origin, e.g. https://life-client.vercel.app
- * (its /api/oauth/* routes handle the exchange — see apps/web/src/app/api/oauth).
+ * Asks the web app to begin a provider OAuth flow and returns the provider's
+ * authorization URL for the caller to navigate to.
+ *
+ * These were `buildConnectUrl`/`buildDisconnectUrl`, which pasted the uid into
+ * a query string that the server then trusted — so anyone could act on anyone
+ * else's account. The uid is gone: the server derives it from the ID token that
+ * `apiRequest` attaches, so a client can only ever act on itself.
+ *
+ * The caller performs the navigation (`location.href` on web,
+ * `WebBrowser.openBrowserAsync` on mobile) because the bearer token can't ride
+ * on a top-level browser navigation.
  */
-export function buildConnectUrl(
-  webAppBaseUrl: string,
+export async function startOAuthConnect(
+  client: KnowledgeApiClient,
   provider: IntegrationProvider,
-  uid: string,
   returnTo: string,
-): string {
-  const url = new URL(`${webAppBaseUrl}/api/oauth/start`);
-  url.searchParams.set("provider", provider);
-  url.searchParams.set("uid", uid);
-  url.searchParams.set("returnTo", returnTo);
-  return url.toString();
+): Promise<string> {
+  const { url } = await apiRequest<{ url: string }>(client, "/api/oauth/start", {
+    method: "POST",
+    body: { provider, returnTo },
+  });
+  return url;
 }
 
-export function buildDisconnectUrl(
-  webAppBaseUrl: string,
+/** Revokes the stored tokens for a provider on the caller's own account. */
+export function disconnectIntegration(
+  client: KnowledgeApiClient,
   provider: IntegrationProvider,
-  uid: string,
-  returnTo: string,
-): string {
-  const url = new URL(`${webAppBaseUrl}/api/oauth/disconnect`);
-  url.searchParams.set("provider", provider);
-  url.searchParams.set("uid", uid);
-  url.searchParams.set("returnTo", returnTo);
-  return url.toString();
+): Promise<{ ok: true }> {
+  return apiRequest<{ ok: true }>(client, "/api/oauth/disconnect", {
+    method: "POST",
+    body: { provider },
+  });
 }

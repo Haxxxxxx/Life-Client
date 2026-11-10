@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  buildConnectUrl,
-  buildDisconnectUrl,
+  disconnectIntegration,
+  startOAuthConnect,
   type IntegrationConnection,
   type IntegrationProvider,
 } from "@life-client/shared";
@@ -62,6 +62,7 @@ export default function IntegrationsPage() {
     IntegrationConnection
   > | null>(null);
   const [syncing, setSyncing] = useState<IntegrationProvider | null>(null);
+  const [pending, setPending] = useState<IntegrationProvider | null>(null);
   const [syncResult, setSyncResult] = useState<{
     provider: IntegrationProvider;
     ok: boolean;
@@ -93,7 +94,30 @@ export default function IntegrationsPage() {
     }
   }
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  // Connect/disconnect are authenticated POSTs now (the uid comes from the ID
+  // token server-side), so they can't be plain links any more — the bearer
+  // token can't ride on a top-level navigation. Connect fetches the provider
+  // URL first, then navigates; disconnect needs no navigation at all, since the
+  // integrations subscription pushes the new status.
+  async function handleConnection(provider: IntegrationProvider, connected: boolean) {
+    setPending(provider);
+    setSyncResult(null);
+    try {
+      if (connected) {
+        await disconnectIntegration(webApiClient, provider);
+      } else {
+        window.location.href = await startOAuthConnect(webApiClient, provider, "/integrations");
+        return; // navigating away — leave `pending` set so the button stays busy
+      }
+    } catch (err) {
+      setSyncResult({
+        provider,
+        ok: false,
+        text: err instanceof Error ? err.message : "Request failed",
+      });
+    }
+    setPending(null);
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -145,25 +169,20 @@ export default function IntegrationsPage() {
                       {syncing === provider ? "Syncing…" : "Sync now"}
                     </Button>
                   )}
-                  <a
-                    href={
-                      !user
-                        ? undefined
-                        : connected
-                          ? buildDisconnectUrl(origin, provider, user.uid, "/integrations")
-                          : buildConnectUrl(origin, provider, user.uid, "/integrations")
-                    }
-                    aria-disabled={!user}
+                  <button
+                    type="button"
+                    onClick={() => handleConnection(provider, connected)}
+                    disabled={!user || pending === provider}
                     className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                      !user
-                        ? "pointer-events-none border border-border opacity-40"
+                      !user || pending === provider
+                        ? "cursor-not-allowed border border-border opacity-40"
                         : connected
                           ? "border border-border text-foreground hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
                           : "bg-primary text-primary-foreground shadow-md shadow-black/20 hover:-translate-y-0.5"
                     }`}
                   >
-                    {connected ? "Disconnect" : errored ? "Retry" : "Connect"}
-                  </a>
+                    {pending === provider ? "…" : connected ? "Disconnect" : errored ? "Retry" : "Connect"}
+                  </button>
                 </div>
               </div>
               {connected && connection?.lastSyncAt && syncResult?.provider !== provider && (
