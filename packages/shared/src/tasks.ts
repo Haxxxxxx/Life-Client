@@ -9,7 +9,6 @@ import {
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
 import { nextOccurrenceDate } from "./recurrence";
@@ -18,6 +17,39 @@ import { setViceLogCompensated } from "./vices";
 
 function tasksCollection(db: Firestore, uid: string) {
   return collection(db, "users", uid, "tasks");
+}
+
+/**
+ * Normalises a timestamp field to an ISO string.
+ *
+ * `createdAt` was written two different ways into the same collection:
+ * `serverTimestamp()` (a Firestore Timestamp) by createTask, and an ISO string
+ * by the dev-activity sync. Firestore orders by *type* before value, so the
+ * two never interleaved and `orderBy("createdAt", "desc")` returned two
+ * separate blocks — the task list was simply in the wrong order. The `as Task`
+ * cast hid it, because the declared type says `string`.
+ *
+ * New writes are ISO strings (below), but documents written the old way are
+ * still in the database, so reads normalise rather than assume.
+ */
+function toIsoString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const ts = value as { toDate?: () => Date; seconds?: number };
+    if (typeof ts.toDate === "function") return ts.toDate().toISOString();
+    if (typeof ts.seconds === "number") return new Date(ts.seconds * 1000).toISOString();
+  }
+  return new Date(0).toISOString();
+}
+
+/** Shapes a raw Firestore document into a Task with consistent timestamps. */
+function toTask(id: string, raw: Record<string, unknown>): Task {
+  return {
+    ...(raw as Omit<Task, "id">),
+    id,
+    createdAt: toIsoString(raw.createdAt),
+    updatedAt: toIsoString(raw.updatedAt),
+  };
 }
 
 export function subscribeTasks(
@@ -30,7 +62,7 @@ export function subscribeTasks(
   return onSnapshot(
     q,
     (snapshot) => {
-      const tasks = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Task);
+      const tasks = snapshot.docs.map((d) => toTask(d.id, d.data()));
       onChange(tasks);
     },
     (error) => onError?.(error),
@@ -46,16 +78,21 @@ export function subscribeTask(
 ): () => void {
   return onSnapshot(
     doc(db, "users", uid, "tasks", taskId),
-    (snapshot) => onChange(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Task) : null),
+    (snapshot) => onChange(snapshot.exists() ? toTask(snapshot.id, snapshot.data()) : null),
     (error) => onError?.(error),
   );
 }
 
 export async function createTask(db: Firestore, uid: string, task: NewTask): Promise<string> {
+  // ISO strings, not serverTimestamp(): the dev-activity sync and challenges
+  // already write strings, and mixing the two types in one ordered collection
+  // broke `orderBy("createdAt")` (see toIsoString above). One representation
+  // for every writer; reads normalise whatever is already stored.
+  const now = new Date().toISOString();
   const ref = await addDoc(tasksCollection(db, uid), {
     ...task,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
   });
   return ref.id;
 }
@@ -68,7 +105,8 @@ export async function updateTask(
 ): Promise<void> {
   await updateDoc(doc(db, "users", uid, "tasks", taskId), {
     ...patch,
-    updatedAt: serverTimestamp(),
+    // ISO string, matching createTask and the sync — see toIsoString above.
+    updatedAt: new Date().toISOString(),
   });
 }
 
@@ -87,7 +125,7 @@ export async function setTaskStatus(
     uid,
     taskId,
     status === "done"
-      ? { status, completedAt: serverTimestamp() }
+      ? { status, completedAt: new Date().toISOString() }
       : { status, archived: false, completedAt: null },
   );
 }

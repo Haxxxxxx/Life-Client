@@ -6,6 +6,7 @@ import {
   describeRecurrence,
   monthKey,
   nextOccurrenceDate,
+  toDateStr,
   type Budget,
   type NewBudget,
   type NewTransaction,
@@ -210,7 +211,11 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<TransactionCategory>('food');
   const [note, setNote] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // toDateStr (local), not toISOString (UTC). computeMonthlySpend buckets
+  // with monthKey(), which is local, so a UTC default booked an evening
+  // transaction at UTC-8 into next month — missing from the month the user
+  // was still in, for both spend and budgets.
+  const [date, setDate] = useState(() => toDateStr(new Date()));
   const [recurrence, setRecurrence] = useState<Recurrence | undefined>(undefined);
 
   const parsedAmount = Number(amount);

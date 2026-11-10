@@ -126,11 +126,27 @@ async function pickArticle(
   }
 }
 
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+function resolveLessonId(localDate: string | undefined): string {
+  const serverToday = todayLessonId();
+  if (!localDate || !DATE_KEY.test(localDate)) return serverToday;
+  const offsetDays = Math.round(
+    (Date.parse(`${localDate}T00:00:00Z`) - Date.parse(`${serverToday}T00:00:00Z`)) / 86_400_000,
+  );
+  return Number.isFinite(offsetDays) && Math.abs(offsetDays) <= 1 ? localDate : serverToday;
+}
+
 export async function POST(req: NextRequest) {
   const uid = await requireUid(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const lessonId = todayLessonId();
+  // The client's own local date, because "today" is only meaningful in the
+  // user's timezone — the server's is UTC on Vercel. Validated against the
+  // server clock so a client cannot write arbitrarily far into the past or
+  // future: +/-1 day covers every real offset (UTC-12..UTC+14).
+  const body = (await req.json().catch(() => ({}))) as { localDate?: string };
+  const lessonId = resolveLessonId(body.localDate);
   const ref = adminDb.collection("users").doc(uid).collection("dailyLessons").doc(lessonId);
 
   const existing = await ref.get();
