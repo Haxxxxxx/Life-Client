@@ -140,6 +140,18 @@ export function visibleTasks(tasks: Task[]): Task[] {
 }
 
 /**
+ * The complement of `visibleTasks`, for the archive view.
+ *
+ * Kept an exact complement on purpose: the cron archives unattended, so a task
+ * hidden by one and not surfaced by the other is unreachable. The predicate is
+ * the truthiness of `archived`, matching visibleTasks, so a task with the
+ * field absent reads as "not archived" on both sides.
+ */
+export function archivedTasks(tasks: Task[]): Task[] {
+  return tasks.filter((t) => Boolean(t.archived));
+}
+
+/**
  * Task.completedAt/updatedAt are typed as ISO strings but are actually set via
  * serverTimestamp(), which resolves to a Firestore Timestamp once read back from
  * a live listener — code that trusts the declared string type (e.g. `new Date(...)`

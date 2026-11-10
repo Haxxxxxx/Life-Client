@@ -4,6 +4,7 @@ import {
   type NewGoal,
   type Task,
   type ViceLog,
+  archivedGoals as selectArchivedGoals,
   computeGoalProgress,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
@@ -337,6 +338,7 @@ export default function GoalsScreen() {
   const [viceLogs, setViceLogs] = useState<ViceLog[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -376,8 +378,24 @@ export default function GoalsScreen() {
 
   const activeViceLogs = viceLogs.filter((v) => !v.compensated);
 
+  /**
+   * Restores to "active", not "completed" — a goal can be archived from either
+   * state and nothing records which, so restoring as completed would invent an
+   * achievement and inflate the stats. Matches the web behaviour.
+   */
+  async function handleRestoreGoal(goalId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.setGoalStatus(user.uid, goalId, 'active');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not restore this goal');
+    }
+  }
+
   const activeGoals = goals.filter((g) => g.status === 'active');
   const completedGoals = goals.filter((g) => g.status === 'completed');
+  const archived = selectArchivedGoals(goals);
   const overallPercent =
     activeGoals.length > 0
       ? Math.round(
@@ -490,6 +508,46 @@ export default function GoalsScreen() {
             </View>
           )}
 
+          {archived.length > 0 && (
+            <View style={{ gap: Spacing.two }}>
+              <Pressable
+                onPress={() => setShowArchived((v) => !v)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showArchived }}
+                accessibilityLabel={`Archived goals, ${archived.length}`}>
+                <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+                  {showArchived ? '▾' : '▸'} Archived ({archived.length})
+                </ThemedText>
+              </Pressable>
+              {showArchived && (
+                <View style={{ gap: Spacing.two }}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Goals you archived, plus any completed goal the daily cleanup filed away after 30 days.
+                    Nothing here is deleted — restore one to put it back in your active list.
+                  </ThemedText>
+                  {archived.map((goal) => (
+                    <ThemedView
+                      key={goal.id}
+                      type="backgroundElement"
+                      style={[styles.archivedRow, { borderColor: theme.border }]}>
+                      <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
+                        {goal.title}
+                      </ThemedText>
+                      <Pressable
+                        onPress={() => handleRestoreGoal(goal.id)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Restore goal ${goal.title}`}
+                        style={[styles.restoreButton, { borderColor: theme.border }]}>
+                        <ThemedText type="small">Restore</ThemedText>
+                      </Pressable>
+                    </ThemedView>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
           <View style={[styles.section, styles.viceSection, { borderColor: theme.border }]}>
             <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
               Slipped up?
@@ -540,6 +598,24 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
+  archivedRow: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  archivedTitle: { flex: 1 },
+  restoreButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
+  },
   screen: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },

@@ -13,6 +13,7 @@ import {
   type TaskPriority,
   type TaskStatus,
   taskCompletedIso,
+  archivedTasks,
   visibleTasks,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
@@ -285,6 +286,7 @@ export default function TasksScreen() {
   const [category, setCategory] = useState<TaskCategory>('work');
   const [difficulty, setDifficulty] = useState<TaskDifficulty>('medium');
   const [error, setError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -317,6 +319,23 @@ export default function TasksScreen() {
   }
 
   const shownTasks = useMemo(() => visibleTasks(tasks), [tasks]);
+  const archived = useMemo(() => archivedTasks(tasks), [tasks]);
+
+  /**
+   * Un-archiving keeps the task's status. `archived` is a flag separate from
+   * status (unlike goals, where archived *is* the status), so a restored task
+   * comes back still done — which is what you want from something the daily
+   * cleanup filed away rather than something you un-finished.
+   */
+  async function handleRestoreTask(taskId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.updateTask(user.uid, taskId, { archived: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not restore this task');
+    }
+  }
 
   return (
     <ThemedView style={styles.screen}>
@@ -395,6 +414,48 @@ export default function TasksScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={tasks.some((t) => t.status === 'done') ? <CompletionChart tasks={tasks} /> : null}
+          ListFooterComponent={
+            archived.length > 0 ? (
+              <View style={{ gap: Spacing.two, marginTop: Spacing.four }}>
+                <Pressable
+                  onPress={() => setShowArchived((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showArchived }}
+                  accessibilityLabel={`Archived tasks, ${archived.length}`}>
+                  <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+                    {showArchived ? '▾' : '▸'} Archived ({archived.length})
+                  </ThemedText>
+                </Pressable>
+                {showArchived && (
+                  <View style={{ gap: Spacing.two }}>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      Tasks the daily cleanup filed away after being done for 30 days. Nothing here is deleted —
+                      restore one to put it back in the list above.
+                    </ThemedText>
+                    {archived.map((task) => (
+                      <ThemedView
+                        key={task.id}
+                        type="backgroundElement"
+                        style={[styles.archivedRow, { borderColor: theme.border }]}>
+                        <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
+                          {task.title}
+                        </ThemedText>
+                        <Pressable
+                          onPress={() => handleRestoreTask(task.id)}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Restore task ${task.title}`}
+                          style={[styles.restoreButton, { borderColor: theme.border }]}>
+                          <ThemedText type="small">Restore</ThemedText>
+                        </Pressable>
+                      </ThemedView>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <ThemedView type="backgroundElement" style={styles.emptyState}>
               <ThemedText themeColor="textSecondary">
@@ -463,6 +524,24 @@ export default function TasksScreen() {
 }
 
 const styles = StyleSheet.create({
+  archivedRow: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  archivedTitle: { flex: 1 },
+  restoreButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
   screen: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   header: { marginTop: Spacing.four, gap: Spacing.one },

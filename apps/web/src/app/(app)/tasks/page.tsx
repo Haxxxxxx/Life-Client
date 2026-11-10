@@ -3,6 +3,7 @@
 import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
+  archivedTasks,
   describeRecurrence,
   visibleTasks,
   type Goal,
@@ -83,6 +84,24 @@ export default function TasksPage() {
     };
     return visibleTasks(tasks).sort((a, b) => rank(a) - rank(b));
   }, [tasks]);
+
+  const archived = useMemo(() => archivedTasks(tasks), [tasks]);
+
+  /**
+   * Un-archiving keeps the task's status. `archived` is a separate flag from
+   * status (unlike goals, where archived *is* the status), so restoring one
+   * puts a done task back in the list still done — which is what the user
+   * expects from something the cleanup filed away.
+   */
+  async function handleRestoreTask(taskId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.updateTask(user.uid, taskId, { archived: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not restore this task");
+    }
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -206,6 +225,42 @@ export default function TasksPage() {
           </li>
         )}
       </ul>
+
+      {archived.length > 0 && (
+        <details className="flex flex-col gap-3">
+          <summary className="cursor-pointer font-mono text-xs font-bold tracking-[0.2em] text-muted uppercase">
+            Archived ({archived.length})
+          </summary>
+          <p className="mt-3 text-xs text-muted">
+            Tasks the daily cleanup filed away after being done for 30 days. Nothing here is deleted — restore one
+            to put it back in the list above.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {archived.map((task) => (
+              <li
+                key={task.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3"
+              >
+                <Link href={`/tasks/${task.id}`} className="min-w-0 flex-1 truncate text-sm hover:underline">
+                  {task.title}
+                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => handleRestoreTask(task.id)}>
+                    Restore
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => user && data.deleteTask(user.uid, task.id)}
+                    className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

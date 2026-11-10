@@ -7,6 +7,7 @@ import {
   type NewGoal,
   type Task,
   type ViceLog,
+  archivedGoals as selectArchivedGoals,
   computeGoalProgress,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
@@ -340,6 +341,25 @@ export default function GoalsPage() {
     }
   }
 
+  /**
+   * Restores to "active", not "completed".
+   *
+   * A goal can be archived from either state (the card's Archive action is on
+   * every card, and the cron archives completed ones), and nothing records
+   * which. Restoring to "completed" would invent an achievement for a goal
+   * that may never have been finished, inflating the completion stats and XP.
+   * Coming back as active is honest and is one click away from completed.
+   */
+  async function handleRestoreGoal(goalId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.setGoalStatus(user.uid, goalId, "active" as GoalStatus);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not restore this goal");
+    }
+  }
+
   async function handleLogVice(vicePresetId: string) {
     if (!user) return;
     setError(null);
@@ -352,16 +372,17 @@ export default function GoalsPage() {
 
   const activeViceLogs = viceLogs.filter((v) => !v.compensated);
 
-  const { activeGoals, completedGoals, overallPercent } = useMemo(() => {
+  const { activeGoals, completedGoals, archived, overallPercent } = useMemo(() => {
     const activeGoals = goals.filter((g) => g.status === "active");
     const completedGoals = goals.filter((g) => g.status === "completed");
+    const archived = selectArchivedGoals(goals);
     const overallPercent =
       activeGoals.length > 0
         ? Math.round(
             (activeGoals.reduce((sum, g) => sum + computeGoalProgress(g, tasks).percent, 0) / activeGoals.length) * 100,
           )
         : 0;
-    return { activeGoals, completedGoals, overallPercent };
+    return { activeGoals, completedGoals, archived, overallPercent };
   }, [goals, tasks]);
 
   function renderGoalCard(goal: Goal) {
@@ -434,6 +455,40 @@ export default function GoalsPage() {
             Completed ({completedGoals.length})
           </summary>
           <div className="mt-3 flex flex-col gap-3">{completedGoals.map(renderGoalCard)}</div>
+        </details>
+      )}
+
+      {archived.length > 0 && (
+        <details className="flex flex-col gap-3">
+          <summary className="cursor-pointer font-mono text-xs font-bold tracking-[0.2em] text-muted uppercase">
+            Archived ({archived.length})
+          </summary>
+          <p className="mt-3 text-xs text-muted">
+            Goals you archived, plus any completed goal the daily cleanup filed away after 30 days. Nothing here
+            is deleted — restore one to put it back in your active list.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {archived.map((goal) => (
+              <li
+                key={goal.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm">{goal.title}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => handleRestoreGoal(goal.id)}>
+                    Restore
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => user && data.deleteGoal(user.uid, goal.id)}
+                    className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </details>
       )}
 
