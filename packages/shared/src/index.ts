@@ -4,6 +4,7 @@ export * from "./tasks";
 export * from "./sports";
 export * from "./integrations";
 export * from "./devActivity";
+export * from "./prOutcome";
 export * from "./calendar";
 export * from "./calendarApi";
 export * from "./characteristics";
