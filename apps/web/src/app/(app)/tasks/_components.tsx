@@ -9,6 +9,7 @@ import {
   type Recurrence,
   type RecurrenceFreq,
   type Task,
+  type TaskPatch,
   type TaskCategory,
   type TaskDifficulty,
   type TaskPriority,
@@ -94,7 +95,7 @@ export function EditTaskForm({
 }: {
   task: Task;
   goals: Goal[];
-  onSave: (patch: Partial<Task>) => void;
+  onSave: (patch: TaskPatch) => void;
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState(task.title);
@@ -175,9 +176,13 @@ export function EditTaskForm({
               category,
               difficulty,
               priority,
-              dueDate: dueDate || undefined,
-              goalId: goalId || undefined,
-              recurrence,
+              // null, not undefined: undefined is dropped by
+              // ignoreUndefinedProperties and leaves the stored value intact,
+              // so clearing a field was a silent no-op. updateTask turns null
+              // into deleteField().
+              dueDate: dueDate || null,
+              goalId: goalId || null,
+              recurrence: recurrence ?? null,
             })
           }
           className="font-mono text-xs font-bold text-primary uppercase hover:underline"

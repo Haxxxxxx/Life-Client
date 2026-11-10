@@ -1,6 +1,6 @@
 import * as fb from "../tasks";
 import * as sb from "../supabase/tasks";
-import type { NewTask, Task, TaskStatus } from "../types";
+import type { TaskPatch, NewTask, Task, TaskStatus } from "../types";
 import { getDataBackend } from "./backend";
 
 export function subscribeTasks(
@@ -33,7 +33,7 @@ export function createTask(uid: string, task: NewTask): Promise<string> {
     : sb.createTaskSb(b.client, uid, task);
 }
 
-export function updateTask(uid: string, taskId: string, patch: Partial<NewTask>): Promise<void> {
+export function updateTask(uid: string, taskId: string, patch: TaskPatch): Promise<void> {
   const b = getDataBackend();
   return b.provider === "firebase"
     ? fb.updateTask(b.firestore, uid, taskId, patch)

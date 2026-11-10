@@ -5,6 +5,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   orderBy,
@@ -12,7 +13,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { nextOccurrenceDate } from "./recurrence";
-import type { NewTask, Task, TaskStatus } from "./types";
+import type { TaskPatch, NewTask, Task, TaskStatus } from "./types";
 import { setViceLogCompensated } from "./vices";
 
 function tasksCollection(db: Firestore, uid: string) {
@@ -97,14 +98,34 @@ export async function createTask(db: Firestore, uid: string, task: NewTask): Pro
   return ref.id;
 }
 
+/**
+ * `null` in a patch means "clear this field"; `undefined` means "leave it".
+ *
+ * This used to rely on `ignoreUndefinedProperties`, and the comment in
+ * firebase.ts claimed `dueDate: undefined` would clear it. It does the
+ * opposite: the flag makes Firestore *drop* undefined keys from the write, and
+ * `updateDoc` only touches the keys it is given — so the old value survived.
+ * Choosing "No repeat", clearing a due date or unlinking a goal was a silent
+ * no-op: the form closed as though it had saved, and the old value reappeared
+ * on the next snapshot.
+ *
+ * `null` was already the convention here (setTaskStatus clears completedAt
+ * that way), so it is the one that now actually deletes. Readers are
+ * unaffected: every consumer treats a missing field and a null field the same.
+ */
 export async function updateTask(
   db: Firestore,
   uid: string,
   taskId: string,
-  patch: PartialWithFieldValue<NewTask>,
+  patch: TaskPatch,
 ): Promise<void> {
+  const resolved: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    resolved[key] = value === null ? deleteField() : value;
+  }
   await updateDoc(doc(db, "users", uid, "tasks", taskId), {
-    ...patch,
+    ...resolved,
     // ISO string, matching createTask and the sync — see toIsoString above.
     updatedAt: new Date().toISOString(),
   });

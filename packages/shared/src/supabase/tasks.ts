@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { nextOccurrenceDate } from "../recurrence";
 import type {
   NewTask,
+  TaskPatch,
   PrEvent,
   Recurrence,
   Task,
@@ -64,7 +65,10 @@ function rowToTask(r: TaskRow): Task {
 }
 
 /** Domain patch → column patch. Only defined keys are written. */
-function taskToRow(t: Partial<NewTask>): Record<string, unknown> {
+// Accepts TaskPatch so a null (meaning "clear") maps to a null column, which
+// is Postgres's own way of saying the same thing — no deleteField equivalent
+// is needed on this side.
+function taskToRow(t: TaskPatch): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   const put = (key: string, value: unknown) => {
     if (value !== undefined) row[key] = value;
@@ -138,7 +142,7 @@ export async function updateTaskSb(
   client: SupabaseClient,
   userId: string,
   taskId: string,
-  patch: Partial<NewTask>,
+  patch: TaskPatch,
 ): Promise<void> {
   const { error } = await client
     .from("tasks")

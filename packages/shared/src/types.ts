@@ -119,6 +119,20 @@ export interface PrEvent {
 
 export type NewTask = Omit<Task, "id" | "createdAt" | "updatedAt">;
 
+/**
+ * A task update. `null` means "clear this field"; omitting it means "leave it".
+ *
+ * Needed because `undefined` cannot express "clear": Firestore is initialised
+ * with ignoreUndefinedProperties, which drops undefined keys from the write,
+ * and updateDoc only touches the keys it receives — so sending undefined left
+ * the old value in place and made clearing a field a silent no-op.
+ */
+export type TaskPatch = Partial<Omit<NewTask, "dueDate" | "goalId" | "recurrence">> & {
+  dueDate?: string | null;
+  goalId?: string | null;
+  recurrence?: Recurrence | null;
+};
+
 export type GoalStatus = "active" | "completed" | "archived";
 
 export interface Goal {

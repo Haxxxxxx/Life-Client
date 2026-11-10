@@ -8,6 +8,7 @@ import {
   type Recurrence,
   type RecurrenceFreq,
   type Task,
+  type TaskPatch,
   type TaskCategory,
   type TaskDifficulty,
   type TaskPriority,
@@ -165,7 +166,7 @@ function EditTaskForm({
 }: {
   task: Task;
   goals: Goal[];
-  onSave: (patch: Partial<Task>) => void;
+  onSave: (patch: TaskPatch) => void;
   onCancel: () => void;
 }) {
   const theme = useTheme();
@@ -260,9 +261,10 @@ function EditTaskForm({
               category,
               difficulty,
               priority,
-              dueDate: dueDate || undefined,
-              goalId: goalId || undefined,
-              recurrence,
+              // See the web edit form: null clears, undefined is dropped.
+              dueDate: dueDate || null,
+              goalId: goalId || null,
+              recurrence: recurrence ?? null,
             })
           }>
           <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
