@@ -796,7 +796,7 @@ export default function KnowledgeHomePage() {
   useEffect(() => {
     if (!user) return;
     const unsubs = [
-      data.subscribeDailyLessons(user.uid, setLessons, undefined, 400),
+      data.subscribeDailyLessons(user.uid, setLessons),
       data.subscribeCodeDrills(user.uid, setDrills),
       data.subscribeVocabWords(user.uid, setVocabWords),
       data.subscribeReadingList(user.uid, setReadingItems),

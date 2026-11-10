@@ -89,7 +89,7 @@ export function subscribeSportActivitiesSb(
   userId: string,
   onChange: (activities: SportActivity[]) => void,
   onError?: (error: Error) => void,
-  max = 50,
+  max: number | null = null,
 ): () => void {
   return subscribeCollection<SportRow, SportActivity>({
     client,
@@ -100,7 +100,7 @@ export function subscribeSportActivitiesSb(
     map: rowToActivity,
     order: { column: "start_date", ascending: false },
     sort: (a, b) => (a.startDate < b.startDate ? 1 : a.startDate > b.startDate ? -1 : 0),
-    onChange: (rows) => onChange(rows.slice(0, max)),
+    onChange: (rows) => onChange(max === null ? rows : rows.slice(0, max)),
     onError,
   });
 }

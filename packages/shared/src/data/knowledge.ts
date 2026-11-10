@@ -21,7 +21,7 @@ export function subscribeDailyLessons(
   uid: string,
   onChange: (lessons: DailyLesson[]) => void,
   onError?: (error: Error) => void,
-  max = 30,
+  max: number | null = null,
 ): () => void {
   const b = getDataBackend();
   return b.provider === "firebase"
@@ -33,7 +33,7 @@ export function subscribeCodeDrills(
   uid: string,
   onChange: (drills: CodeDrill[]) => void,
   onError?: (error: Error) => void,
-  max = 50,
+  max: number | null = null,
 ): () => void {
   const b = getDataBackend();
   return b.provider === "firebase"
