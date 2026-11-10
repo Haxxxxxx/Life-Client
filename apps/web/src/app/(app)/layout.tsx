@@ -148,7 +148,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-1 flex-col md:flex-row">
-      <aside className="sticky top-0 z-10 flex max-h-screen shrink-0 flex-col justify-between overflow-y-auto border-b border-border bg-surface p-4 md:h-screen md:w-64 md:border-r md:border-b-0 md:p-6">
+      {/*
+        `static md:sticky`: this was `sticky top-0 max-h-screen` at every width,
+        so on a phone roughly 300px of logo + search + 10-item nav + user block
+        stayed welded to the top of the viewport, leaving a sliver for content.
+        It only needs to stick once it is an actual sidebar.
+      */}
+      <aside className="static z-10 flex shrink-0 flex-col justify-between border-b border-border bg-surface p-4 md:sticky md:top-0 md:h-screen md:max-h-screen md:w-64 md:overflow-y-auto md:border-r md:border-b-0 md:p-6">
         <div className="flex flex-col gap-6">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary font-mono text-sm font-bold text-primary-foreground">
@@ -169,10 +175,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </>,
             )}
             <span className="flex-1 text-left">Search…</span>
-            <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px]">⌘K</span>
+            <span className="hidden rounded-md border border-border px-1.5 py-0.5 font-mono text-micro md:inline">
+              ⌘K
+            </span>
           </button>
 
-          <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
+          {/* The mobile row hides its scrollbar, so a right-edge fade is the
+              only cue that there is more nav off-screen. */}
+          <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,black_88%,transparent)] [scrollbar-width:none] md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0 md:[mask-image:none] [&::-webkit-scrollbar]:hidden">
             {NAV_ITEMS.map((item) => {
               const active = pathname?.startsWith(item.href);
               return (
@@ -210,7 +220,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </nav>
         </div>
-        <div className="mt-4 flex items-center gap-3 border-t border-border pt-4 md:mt-6">
+        <div className="mt-4 hidden items-center gap-3 border-t border-border pt-4 md:mt-6 md:flex">
           {user.photoURL ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={user.photoURL} alt="" className="h-9 w-9 shrink-0 rounded-full" />
@@ -227,7 +237,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
-      <main className="flex-1 p-4 md:p-8">{children}</main>
+      <main className="animate-rise-in flex-1 p-4 md:p-8">{children}</main>
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );

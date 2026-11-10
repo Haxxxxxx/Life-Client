@@ -47,26 +47,29 @@ export default function AppTabs() {
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
   const theme = useTheme();
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
+    <Pressable
+      {...props}
+      android_ripple={{ color: theme.backgroundSelected }}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isFocused }}
+      style={({ pressed }) => pressed && styles.pressed}>
       <View
         style={[
           styles.tabButtonView,
           {
-            borderColor: isFocused ? theme.border : 'transparent',
-            backgroundColor: isFocused ? theme.primary : 'transparent',
-          },
-          isFocused && {
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.3,
-            shadowRadius: 6,
-            elevation: 4,
+            borderColor: isFocused ? theme.primary : 'transparent',
+            // A tinted pill with a primary label, not a solid orange fill with
+            // a drop shadow. The old treatment was the loudest thing on an
+            // otherwise flat dark page, and its shadowColor '#000' was the one
+            // hardcoded colour in this file.
+            backgroundColor: isFocused ? theme.backgroundSelected : 'transparent',
           },
         ]}>
         <ThemedText
           type="code"
-          style={[styles.tabButtonLabel, isFocused ? { color: theme.primaryForeground } : undefined]}
-          themeColor={isFocused ? undefined : 'textSecondary'}>
+          style={[styles.tabButtonLabel, isFocused ? { color: theme.primary } : undefined]}
+          themeColor={isFocused ? undefined : 'textSecondary'}
+          maxFontSizeMultiplier={1.2}>
           {children}
         </ThemedText>
       </View>
@@ -141,13 +144,17 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
   },
   scrollContent: { paddingHorizontal: Spacing.two },
-  tabRow: { flexDirection: 'row', gap: Spacing.half },
+  tabRow: { flexDirection: 'row', gap: Spacing.one },
   pressed: { opacity: 0.7 },
   tabButtonView: {
     borderWidth: 1,
-    borderRadius: Spacing.two,
+    // Pill, matching the Chip/Button radius in components/ui.tsx.
+    borderRadius: 999,
+    justifyContent: 'center',
+    // Was ~24pt tall against a 44pt minimum.
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.two,
   },
   tabButtonLabel: {
     fontWeight: '700',

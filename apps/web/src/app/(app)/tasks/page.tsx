@@ -15,7 +15,8 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { TasksCompletedChart } from "@/components/charts";
-import { Button, ErrorText, Input, PageHeader } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
+import { Button, ErrorText, Input, PageHeader, SkeletonRows } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
   CATEGORY_LABEL,
@@ -37,9 +38,23 @@ export default function TasksPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Keyed on uid rather than a boolean reset inside the effect: setState in an
+  // effect body cascades a render, and deriving it stops a user switch from
+  // briefly showing the previous account's rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
   useEffect(() => {
     if (!user) return;
-    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeTasks(
+      uid,
+      (next) => {
+        setTasks(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -206,18 +221,17 @@ export default function TasksPage() {
                 >
                   Mark {STATUS_LABEL[nextStatus(task.status)]}
                 </Button>
-                <button
-                  type="button"
-                  onClick={() => data.deleteTask(user!.uid, task.id)}
-                  className="rounded-xl px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
-                >
-                  Delete
-                </button>
+                <ConfirmButton onConfirm={() => data.deleteTask(user!.uid, task.id)} />
               </div>
             </li>
           );
         })}
-        {sortedTasks.length === 0 && (
+        {!loaded && (
+          <li>
+            <SkeletonRows rows={4} />
+          </li>
+        )}
+        {loaded && sortedTasks.length === 0 && (
           <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             {tasks.length === 0
               ? "No tasks yet — add your first one above."
@@ -248,13 +262,7 @@ export default function TasksPage() {
                   <Button size="sm" variant="secondary" onClick={() => handleRestoreTask(task.id)}>
                     Restore
                   </Button>
-                  <button
-                    type="button"
-                    onClick={() => user && data.deleteTask(user.uid, task.id)}
-                    className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
-                  >
-                    Delete
-                  </button>
+                  <ConfirmButton onConfirm={() => user && data.deleteTask(user.uid, task.id)} />
                 </div>
               </li>
             ))}

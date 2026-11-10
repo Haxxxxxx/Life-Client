@@ -35,7 +35,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WeekActivityChart } from "@/components/charts";
-import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader } from "@/components/ui";
+import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
@@ -108,7 +108,7 @@ function RenameField({
   );
 }
 
-function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
+function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; loaded: boolean }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   function toggle(id: string) {
@@ -210,13 +210,20 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
             </button>
           </li>
         ))}
-        {tasks.length === 0 && <li className="px-3 py-4 text-center text-sm text-muted">No tasks.</li>}
+        {!loaded && (
+          <li>
+            <SkeletonRows rows={3} />
+          </li>
+        )}
+        {loaded && tasks.length === 0 && (
+          <li className="px-3 py-4 text-center text-sm text-muted">No tasks.</li>
+        )}
       </ul>
     </div>
   );
 }
 
-function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid: string }) {
+function GoalsSection({ goals, tasks, uid, loaded }: { goals: Goal[]; tasks: Task[]; uid: string; loaded: boolean }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
@@ -264,13 +271,30 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
             </li>
           );
         })}
-        {goals.length === 0 && <li className="px-3 py-4 text-center text-sm text-muted">No goals yet.</li>}
+        {!loaded && (
+          <li>
+            <SkeletonRows rows={2} />
+          </li>
+        )}
+        {loaded && goals.length === 0 && (
+          <li className="px-3 py-4 text-center text-sm text-muted">No goals yet.</li>
+        )}
       </ul>
     </div>
   );
 }
 
-function ChallengesSection({ challenges, activities, uid }: { challenges: Challenge[]; activities: SportActivity[]; uid: string }) {
+function ChallengesSection({
+  challenges,
+  activities,
+  uid,
+  loaded,
+}: {
+  challenges: Challenge[];
+  activities: SportActivity[];
+  uid: string;
+  loaded: boolean;
+}) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
@@ -311,7 +335,14 @@ function ChallengesSection({ challenges, activities, uid }: { challenges: Challe
             </li>
           );
         })}
-        {challenges.length === 0 && <li className="px-3 py-4 text-center text-sm text-muted">No challenges yet.</li>}
+        {!loaded && (
+          <li>
+            <SkeletonRows rows={2} />
+          </li>
+        )}
+        {loaded && challenges.length === 0 && (
+          <li className="px-3 py-4 text-center text-sm text-muted">No challenges yet.</li>
+        )}
       </ul>
     </div>
   );
@@ -630,11 +661,25 @@ export default function DashboardPage() {
   const [drills, setDrills] = useState<CodeDrill[]>([]);
   const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
+  /**
+   * False until the first snapshot lands.
+   *
+   * Without this the page renders its *empty* states — "No tasks.", "No goals
+   * yet." — because every array starts empty, then pops to content a moment
+   * later. Being told you have nothing and corrected is the single loudest
+   * "unfinished" signal in the app.
+   */
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
 
   useEffect(() => {
     if (!user) return;
+    const uid = user.uid;
     const unsubs = [
-      data.subscribeTasks(user.uid, setTasks),
+      data.subscribeTasks(uid, (next) => {
+        setTasks(next);
+        setLoadedFor(uid);
+      }),
       data.subscribeGoals(user.uid, setGoals),
       data.subscribeChallenges(user.uid, setChallenges),
       data.subscribeSportActivities(user.uid, setActivities),
@@ -740,9 +785,9 @@ export default function DashboardPage() {
 
       <WeekActivityChart tasks={tasks} activities={activities} />
 
-      <TasksSection tasks={shownTasks} uid={user.uid} />
-      <GoalsSection goals={shownGoals} tasks={tasks} uid={user.uid} />
-      <ChallengesSection challenges={challenges} activities={activities} uid={user.uid} />
+      <TasksSection tasks={shownTasks} uid={user.uid} loaded={loaded} />
+      <GoalsSection goals={shownGoals} tasks={tasks} uid={user.uid} loaded={loaded} />
+      <ChallengesSection challenges={challenges} activities={activities} uid={user.uid} loaded={loaded} />
       <RemindersSection reminders={reminders} uid={user.uid} />
     </div>
   );

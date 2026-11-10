@@ -24,9 +24,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { SkeletonList } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'done'];
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -287,11 +289,26 @@ export default function TasksScreen() {
   const [difficulty, setDifficulty] = useState<TaskDifficulty>('medium');
   const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // Which uid the loaded data belongs to, rather than a bare boolean reset
+  // inside the effect. Two reasons: setState in an effect body triggers a
+  // cascading render (the react-compiler lint rule rejects it), and deriving
+  // it means a user switch cannot briefly show the previous account's rows as
+  // though they were loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeTasks(
+      uid,
+      (next) => {
+        setTasks(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -457,13 +474,17 @@ export default function TasksScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <ThemedView type="backgroundElement" style={styles.emptyState}>
-              <ThemedText themeColor="textSecondary">
-                {tasks.length === 0
-                  ? 'No tasks yet — add your first one above.'
-                  : 'All caught up — everything here has been done long enough to auto-archive.'}
-              </ThemedText>
-            </ThemedView>
+            !loaded ? (
+              <SkeletonList rows={4} />
+            ) : (
+              <ThemedView type="backgroundElement" style={styles.emptyState}>
+                <ThemedText themeColor="textSecondary">
+                  {tasks.length === 0
+                    ? 'No tasks yet — add your first one above.'
+                    : 'All caught up — everything here has been done long enough to auto-archive.'}
+                </ThemedText>
+              </ThemedView>
+            )
           }
           renderItem={({ item }) =>
             editingId === item.id ? (
@@ -508,7 +529,18 @@ export default function TasksScreen() {
                     style={[styles.pillButton, { borderColor: theme.border }]}>
                     <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
                   </Pressable>
-                  <Pressable onPress={() => data.deleteTask(user!.uid, item.id)} style={styles.deleteButton}>
+                  <Pressable
+                    onPress={() =>
+                      confirmDestructive({
+                        title: 'Delete this task?',
+                        message: item.title,
+                        onConfirm: () => data.deleteTask(user!.uid, item.id),
+                      })
+                    }
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete task ${item.title}`}
+                    style={styles.deleteButton}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>

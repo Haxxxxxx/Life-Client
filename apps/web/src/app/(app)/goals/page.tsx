@@ -13,7 +13,7 @@ import {
 import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, StatTile } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function daysUntil(dateStr: string): number {
@@ -315,9 +315,21 @@ export default function GoalsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // See tasks/page.tsx — keyed on uid, not reset inside the effect.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeGoals(
+      uid,
+      (next) => {
+        setGoals(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -441,9 +453,13 @@ export default function GoalsPage() {
       {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
       <ErrorText>{error}</ErrorText>
 
-      {activeGoals.length > 0 && <div className="flex flex-col gap-3">{activeGoals.map(renderGoalCard)}</div>}
+      {loaded && activeGoals.length > 0 && (
+        <div className="flex flex-col gap-3">{activeGoals.map(renderGoalCard)}</div>
+      )}
 
-      {activeGoals.length === 0 && !formOpen && (
+      {!loaded && <SkeletonRows rows={3} />}
+
+      {loaded && activeGoals.length === 0 && !formOpen && (
         <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
           No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
         </div>

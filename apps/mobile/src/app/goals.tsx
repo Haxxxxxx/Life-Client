@@ -16,9 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { SkeletonList } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 function daysUntil(dateStr: string): number {
   const msPerDay = 24 * 60 * 60 * 1000;
@@ -339,10 +341,25 @@ export default function GoalsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // Which uid the loaded data belongs to, rather than a bare boolean reset
+  // inside the effect. Two reasons: setState in an effect body triggers a
+  // cascading render (the react-compiler lint rule rejects it), and deriving
+  // it means a user switch cannot briefly show the previous account's rows as
+  // though they were loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeGoals(
+      uid,
+      (next) => {
+        setGoals(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -413,7 +430,14 @@ export default function GoalsScreen() {
         onEdit={(patch) => user && data.updateGoal(user.uid, goal.id, patch)}
         onComplete={() => user && data.setGoalStatus(user.uid, goal.id, 'completed')}
         onArchive={() => user && data.setGoalStatus(user.uid, goal.id, 'archived')}
-        onDelete={() => user && data.deleteGoal(user.uid, goal.id)}
+        onDelete={() =>
+          user &&
+          confirmDestructive({
+            title: 'Delete this goal?',
+            message: goal.title,
+            onConfirm: () => data.deleteGoal(user.uid, goal.id),
+          })
+        }
         onLinkTask={(taskId) => user && data.updateTask(user.uid, taskId, { goalId: goal.id })}
         onUnlinkTask={(taskId) => user && data.updateTask(user.uid, taskId, { goalId: undefined })}
         onNewTask={(title) =>
@@ -487,9 +511,13 @@ export default function GoalsScreen() {
               {error}
             </ThemedText>
           )}
-          {activeGoals.length > 0 && <View style={{ gap: Spacing.three }}>{activeGoals.map(renderGoalCard)}</View>}
+          {!loaded && <SkeletonList rows={3} />}
 
-          {activeGoals.length === 0 && !formOpen && (
+          {loaded && activeGoals.length > 0 && (
+            <View style={{ gap: Spacing.three }}>{activeGoals.map(renderGoalCard)}</View>
+          )}
+
+          {loaded && activeGoals.length === 0 && !formOpen && (
             <ThemedView type="backgroundElement" style={styles.emptyState}>
               <ThemedText themeColor="textSecondary">
                 No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
