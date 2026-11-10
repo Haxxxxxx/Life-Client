@@ -29,24 +29,46 @@ export async function GET(req: NextRequest) {
     console.error("cron/sync: archiveStaleItemsForAllUsers failed", err);
   }
 
-  const results = await Promise.allSettled([
+  // Each syncAll* now isolates per-user failures internally and reports a
+  // tally, so a provider only rejects here if the whole fan-out blew up
+  // (e.g. listing connected uids failed).
+  const settled = await Promise.allSettled([
     syncAllStrava(),
     syncAllDevActivity(),
     syncAllGoogleCalendar(),
     syncAllSpotify(),
   ]);
-  const failures = results.filter((r) => r.status === "rejected");
-  if (failures.length > 0) {
-    console.error("cron/sync: some syncs failed", failures);
+
+  let userFailures = 0;
+  let providerFailures = 0;
+  for (const result of settled) {
+    if (result.status === "rejected") {
+      providerFailures += 1;
+      console.error("cron/sync: a provider sweep failed outright", result.reason);
+    } else {
+      userFailures += result.value.failed;
+    }
   }
 
   // Runs after syncing so the digest reflects freshly-synced data. A failure
   // here shouldn't mark the whole cron run as failed.
+  let digestFailed = false;
   try {
     await sendDailyDigests();
   } catch (err) {
+    digestFailed = true;
     console.error("cron/sync: sendDailyDigests failed", err);
   }
 
-  return NextResponse.json({ ok: true, failures: failures.length, archived });
+  // Previously this always returned 200 with a `failures` count in the body,
+  // so Vercel Cron and any alerting recorded a clean run no matter how much
+  // had actually failed. A non-200 is the only signal those systems read.
+  const body = {
+    ok: providerFailures === 0 && userFailures === 0,
+    providerFailures,
+    userFailures,
+    digestFailed,
+    archived,
+  };
+  return NextResponse.json(body, { status: body.ok ? 200 : 500 });
 }

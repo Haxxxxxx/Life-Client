@@ -16,6 +16,7 @@ import type {
   TaskPrMeta,
 } from "@life-client/shared";
 import { adminDb } from "./admin";
+import { forEachUser, type FanOutResult } from "./fanOut";
 import { setIntegrationStatus } from "./integrationStatus";
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
@@ -630,13 +631,18 @@ export async function syncGitlabForUser(uid: string): Promise<void> {
   await syncFor(uid, "gitlab");
 }
 
-export async function syncAllDevActivity(): Promise<void> {
+export async function syncAllDevActivity(): Promise<FanOutResult> {
   const [githubUids, gitlabUids] = await Promise.all([
     allConnectedUids("github"),
     allConnectedUids("gitlab"),
   ]);
-  await Promise.all([
-    ...githubUids.map((uid) => syncGithubForUser(uid)),
-    ...gitlabUids.map((uid) => syncGitlabForUser(uid)),
+  const [github, gitlab] = await Promise.all([
+    forEachUser("github", githubUids, syncGithubForUser),
+    forEachUser("gitlab", gitlabUids, syncGitlabForUser),
   ]);
+  return {
+    ok: github.ok + gitlab.ok,
+    failed: github.failed + gitlab.failed,
+    errors: [...github.errors, ...gitlab.errors],
+  };
 }

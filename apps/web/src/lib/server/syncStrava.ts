@@ -1,4 +1,5 @@
 import { adminDb } from "./admin";
+import { forEachUser, type FanOutResult } from "./fanOut";
 import { setIntegrationStatus } from "./integrationStatus";
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
@@ -83,7 +84,7 @@ export async function syncStravaForUser(uid: string): Promise<void> {
   }
 }
 
-export async function syncAllStrava(): Promise<void> {
+export async function syncAllStrava(): Promise<FanOutResult> {
   const uids = await allConnectedUids("strava");
-  await Promise.all(uids.map((uid) => syncStravaForUser(uid)));
+  return forEachUser("strava", uids, syncStravaForUser);
 }

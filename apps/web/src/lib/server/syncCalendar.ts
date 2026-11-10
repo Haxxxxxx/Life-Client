@@ -1,4 +1,5 @@
 import { adminDb } from "./admin";
+import { forEachUser, type FanOutResult } from "./fanOut";
 import { setIntegrationStatus } from "./integrationStatus";
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { allConnectedUids, getTokens } from "./tokens";
@@ -69,7 +70,7 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
   }
 }
 
-export async function syncAllGoogleCalendar(): Promise<void> {
+export async function syncAllGoogleCalendar(): Promise<FanOutResult> {
   const uids = await allConnectedUids("google_calendar");
-  await Promise.all(uids.map((uid) => syncGoogleCalendarForUser(uid)));
+  return forEachUser("google_calendar", uids, syncGoogleCalendarForUser);
 }
