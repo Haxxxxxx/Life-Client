@@ -334,3 +334,181 @@ export function GoogleSignInButton({
     </button>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Polish primitives
+//
+// Each of these replaces markup that was being hand-typed per page and had
+// drifted: row actions, list rows, toggle chips, selects, empty and error
+// states. The point is less about any single look than about there being
+// exactly one of each, so screens stop disagreeing with one another.
+// ---------------------------------------------------------------------------
+
+const TEXT_BUTTON_TONE = {
+  primary: "text-primary hover:bg-primary/10",
+  muted: "text-muted hover:bg-surface-2 hover:text-foreground",
+  danger: "text-danger hover:bg-danger/10",
+};
+
+/**
+ * The small mono-uppercase row action (Delete, Archive, Edit, …).
+ *
+ * These were hand-typed as `font-mono text-xs font-bold uppercase
+ * hover:underline`, which gave them a ~16px hit area and an underline-on-hover
+ * affordance that reads as a 1998 hyperlink rather than a control. The padding
+ * here takes them over a usable target size and swaps the underline for a tint.
+ */
+export function TextButton({
+  tone = "muted",
+  className,
+  ...rest
+}: { tone?: keyof typeof TEXT_BUTTON_TONE } & ComponentPropsWithoutRef<"button">) {
+  return (
+    <button
+      type="button"
+      className={cx(
+        "rounded-md px-2 py-1 font-mono text-micro font-bold tracking-wide uppercase transition",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        TEXT_BUTTON_TONE[tone],
+        className,
+      )}
+      {...rest}
+    />
+  );
+}
+
+/**
+ * One list row. Rows were rendered with px-3 py-2, px-4 py-3, p-3 and p-4
+ * across pages, and alternated between border-border and border-border-strong
+ * — so rows often looked heavier than the cards containing them.
+ */
+export function ListRow({
+  interactive = false,
+  className,
+  children,
+}: {
+  interactive?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cx(
+        "rounded-xl border border-border bg-surface px-4 py-3 transition",
+        interactive && "cursor-pointer hover:border-border-strong hover:bg-surface-2/40",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Toggle pill. There were three different active-state conventions in use
+ * (solid primary fill, primary/15 tint, and a muted-border variant), so the
+ * same control looked like three controls.
+ */
+export function Chip({
+  active = false,
+  className,
+  ...rest
+}: { active?: boolean } & ComponentPropsWithoutRef<"button">) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      className={cx(
+        "rounded-full border px-3 py-1 text-xs font-semibold transition",
+        active
+          ? "border-primary bg-primary/15 text-primary"
+          : "border-border text-muted hover:border-border-strong hover:text-foreground",
+        className,
+      )}
+      {...rest}
+    />
+  );
+}
+
+/** Native select wearing the same field styling as Input — there was no Select, so ~15 raw ones each carried their own classes and none got the focus ring. */
+export function Select({
+  size = "md",
+  className,
+  children,
+  ...rest
+}: { size?: keyof typeof FIELD_SIZE } & Omit<ComponentPropsWithoutRef<"select">, "size">) {
+  return (
+    <select className={cx(FIELD_BASE, FIELD_SIZE[size], "appearance-none pr-8", className)} {...rest}>
+      {children}
+    </select>
+  );
+}
+
+/**
+ * Placeholder block shown while the first snapshot is in flight.
+ *
+ * Without this every screen renders its *empty state* first — "No tasks.",
+ * "No goals yet." — because the data array starts empty, then pops to content.
+ * Being told you have nothing and then corrected is the single biggest reason
+ * the app felt unfinished.
+ */
+export function Skeleton({ className }: { className?: string }) {
+  return <div aria-hidden className={cx("animate-pulse rounded-xl bg-surface-2", className)} />;
+}
+
+/** A few skeleton rows, sized like the list they stand in for. */
+export function SkeletonRows({ rows = 3, className }: { rows?: number; className?: string }) {
+  return (
+    <div className={cx("flex flex-col gap-2", className)} aria-busy role="status" aria-label="Loading">
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className="h-14" />
+      ))}
+    </div>
+  );
+}
+
+/** Error banner. ErrorText renders bare red body copy, which does not read as a distinct state. */
+export function Alert({ children, className }: { children: ReactNode; className?: string }) {
+  if (!children) return null;
+  return (
+    <p
+      role="alert"
+      className={cx(
+        "rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger",
+        className,
+      )}
+    >
+      {children}
+    </p>
+  );
+}
+
+/**
+ * The dashed empty-state box, which was copy-pasted about a dozen times with
+ * drifting padding and background. `action` is the part that was always
+ * missing: an empty list should offer the way out of being empty.
+ */
+export function EmptyPanel({
+  title,
+  hint,
+  action,
+  className,
+}: {
+  title: ReactNode;
+  hint?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cx(
+        "flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center",
+        className,
+      )}
+    >
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      {hint && <p className="max-w-prose text-xs text-muted">{hint}</p>}
+      {action && <div className="mt-1">{action}</div>}
+    </div>
+  );
+}

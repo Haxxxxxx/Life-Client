@@ -1,4 +1,5 @@
 import { DarkTheme, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppTabs from '@/components/app-tabs';
@@ -36,6 +37,10 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={AppNavigationTheme}>
+        {/* expo-status-bar was installed but never rendered, so the status bar
+            used the platform default — dark glyphs on this near-black
+            background on some devices. */}
+        <StatusBar style="light" />
         <AuthProvider>
           <Gate />
         </AuthProvider>

@@ -33,6 +33,10 @@
   --color-info: var(--info);
   --font-sans: var(--font-display);
   --font-mono: var(--font-mono-retro);
+  /* Named rather than arbitrary: `text-[10px]` appears 35 times across the two
+     apps for badges, eyebrows and stat captions. One token, one size. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
 }
 
 body {
@@ -42,9 +46,48 @@ body {
   color: var(--foreground);
 }
 
-/* Keyboard-focus ring — visible only for keyboard nav. */
+/* Keyboard-focus ring — visible only for keyboard nav.
+   No border-radius here: it used to force 4px onto every focused element, so
+   pill buttons and avatars visibly snapped to square corners the moment they
+   took focus. The outline follows the element's own radius instead. */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
-  border-radius: 4px;
+}
+
+/* Dark scrollbars. The OS default is a light bar on these dark surfaces,
+   which is the most obvious "unstyled" tell on any scrollable panel. */
+* {
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+/* Honour the OS reduced-motion setting: the hover lifts, pulses and
+   transitions below are decoration, not information. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Route content fades in rather than snapping. Paired with the skeletons in
+   ui.tsx so a screen resolves instead of popping. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 180ms ease-out both;
 }
