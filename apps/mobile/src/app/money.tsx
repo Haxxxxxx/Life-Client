@@ -5,6 +5,7 @@ import {
   computeMonthlySpend,
   describeRecurrence,
   monthKey,
+  monthlyMoneyTrend,
   nextOccurrenceDate,
   toDateStr,
   type Budget,
@@ -54,25 +55,9 @@ function spendByCategory(transactions: Transaction[], month: string): { category
   return [...totals].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
 }
 
-function monthlyTrend(transactions: Transaction[], months: number): { key: string; label: string; income: number; spend: number }[] {
-  const now = new Date();
-  const rows = Array.from({ length: months }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
-    return { key: monthKey(d), label: d.toLocaleDateString(undefined, { month: 'short' }), income: 0, spend: 0 };
-  });
-  const byKey = new Map(rows.map((r) => [r.key, r]));
-  for (const t of transactions) {
-    const row = byKey.get(t.date.slice(0, 7));
-    if (!row) continue;
-    if (t.type === 'income') row.income += t.amount;
-    else row.spend += t.amount;
-  }
-  return rows;
-}
-
 function SpendingCharts({ transactions, month }: { transactions: Transaction[]; month: string }) {
   const theme = useTheme();
-  const { slices, monthTotal, trend, net } = useMemo(() => {
+  const { slices, monthTotal, trend, net, hasTrend } = useMemo(() => {
     const byCategory = spendByCategory(transactions, month);
     // The real "other" category always folds into the tail bucket so it can't collide with the rolled-up "Other" slice.
     const ranked = byCategory.filter((c) => c.category !== 'other');
@@ -91,9 +76,11 @@ function SpendingCharts({ transactions, month }: { transactions: Transaction[]; 
         : []),
     ];
     const monthTotal = byCategory.reduce((sum, c) => sum + c.amount, 0);
-    const trend = monthlyTrend(transactions, TREND_MONTHS);
-    const net = trend.reduce((sum, r) => sum + r.income - r.spend, 0);
-    return { slices, monthTotal, trend, net };
+    // Shared with web, which already suppressed an all-zero trend. This screen
+    // rendered it whenever any transaction existed, so a user whose history
+    // was all older than the window got six invisible bars and "Net +$0".
+    const { rows: trend, net, hasTrend } = monthlyMoneyTrend(transactions, TREND_MONTHS);
+    return { slices, monthTotal, trend, net, hasTrend };
   }, [transactions, month, theme.primary]);
   const incomeColor = theme.primary;
   const spendColor = withAlpha(theme.textSecondary, 0.55);
@@ -109,18 +96,28 @@ function SpendingCharts({ transactions, month }: { transactions: Transaction[]; 
           </ThemedText>
         )}
       </ChartCard>
-      <ChartCard title={`Last ${TREND_MONTHS} months`} summary={`Net ${net >= 0 ? '+' : '−'}${formatMoneyShort(Math.abs(net))}`}>
-        <BarTrend
-          layout="grouped"
-          colors={[incomeColor, spendColor]}
-          groups={trend.map((r) => ({ label: r.label, values: [r.income, r.spend] }))}
-        />
-        <Legend
-          items={[
-            { label: 'Income', color: incomeColor },
-            { label: 'Spend', color: spendColor },
-          ]}
-        />
+      <ChartCard
+        title={`Last ${TREND_MONTHS} months`}
+        summary={hasTrend ? `Net ${net >= 0 ? '+' : '−'}${formatMoneyShort(Math.abs(net))}` : 'No activity'}>
+        {!hasTrend ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            Nothing logged in the last {TREND_MONTHS} months.
+          </ThemedText>
+        ) : (
+          <>
+            <BarTrend
+              layout="grouped"
+              colors={[incomeColor, spendColor]}
+              groups={trend.map((r) => ({ label: r.label, values: [r.income, r.spend] }))}
+            />
+            <Legend
+              items={[
+                { label: 'Income', color: incomeColor },
+                { label: 'Spend', color: spendColor },
+              ]}
+            />
+          </>
+        )}
       </ChartCard>
     </View>
   );

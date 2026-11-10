@@ -6,6 +6,7 @@ import {
   type ViceLog,
   archivedGoals as selectArchivedGoals,
   computeGoalProgress,
+  goalStatusCounts,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
@@ -28,16 +29,15 @@ const GOAL_EXAMPLES = ['Ship WeSplit v2', 'Read 12 books this year', 'Run a half
 
 function GoalStatusChart({ goals }: { goals: Goal[] }) {
   const theme = useTheme();
-  const count = (status: Goal['status']) => goals.filter((g) => g.status === status).length;
-  const active = count('active');
-  const completed = count('completed');
-  const archived = count('archived');
-  // Archived goals were dropped, not finished, so they stay out of the hit rate.
-  const decided = active + completed;
-  const hitRate = decided > 0 ? Math.round((completed / decided) * 100) : 0;
+  // Shared with web, which used to divide by every goal including archived —
+  // the same data read "2 of 10" there and 50% here. Archived goals were
+  // dropped rather than missed, so they stay out of the denominator.
+  const counts = goalStatusCounts(goals);
+  const { active, completed, archived } = counts;
+  const hitRate = Math.round(counts.hitRate * 100);
 
   return (
-    <ChartCard title="Goal split" summary={`${goals.length} total`}>
+    <ChartCard title="Goal split" summary={`${counts.total} total`}>
       <Donut
         centerValue={`${hitRate}%`}
         centerCaption="done"
