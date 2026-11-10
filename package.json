@@ -11,6 +11,10 @@
     "dev:mobile": "npm run start --workspace=mobile",
     "build:web": "npm run build --workspace=web",
     "build:knowledge": "npm run build --workspace=knowledge",
-    "lint": "npm run lint --workspace=web && npm run lint --workspace=knowledge"
+    "lint": "npm run lint --workspace=web && npm run lint --workspace=knowledge",
+    "test": "npm run test --workspace=@life-client/shared",
+    "typecheck": "tsc --noEmit -p apps/web && tsc --noEmit -p apps/knowledge",
+    "verify": "npm run lint && npm run test",
+    "lint:mobile": "npm run lint --workspace=mobile"
   }
 }

@@ -10,6 +10,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { addDays, computeCurrentStreak, computeLongestStreak, dateRange, toDateStr } from "./streaks";
+import { canonicalExerciseType } from "./types";
 import type {
   Challenge,
   ChallengeDayStatus,
@@ -76,7 +77,9 @@ export function computeChallengeProgress(
 
   const valueByDate = new Map<string, number>();
   for (const activity of activities) {
-    if (activity.type !== challenge.exerciseType) continue;
+    // Canonical on both sides: Strava writes "Run"/"TrailRun", the challenge
+    // form stores "Running". A raw !== compare never matched a synced activity.
+    if (canonicalExerciseType(activity.type) !== canonicalExerciseType(challenge.exerciseType)) continue;
     const date = toDateStr(new Date(activity.startDate));
     if (date < challenge.startDate || date > lastDay) continue;
     const contribution =

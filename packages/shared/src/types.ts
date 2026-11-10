@@ -167,6 +167,47 @@ export const ENDURANCE_EXERCISE_PRESETS = ["Running", "Cycling", "Swimming"];
 export const STRENGTH_EXERCISE_PRESETS = ["Squats", "Push-ups", "Pull-ups", "Dips"];
 
 /**
+ * Strava's activity types use different words than our own presets — Strava
+ * says "Run", the challenge form says "Running" — and it has several variants
+ * per sport ("TrailRun", "VirtualRide", "EBikeRide", …).
+ *
+ * Challenges compared `activity.type` to `challenge.exerciseType` directly,
+ * which meant a synced Strava run could never satisfy a "Running" challenge:
+ * every day read as zero and no milestone ever fired. Both sides now go
+ * through `canonicalExerciseType` instead.
+ *
+ * Mapping at comparison time (rather than rewriting on sync) also fixes the
+ * activities already stored, with no migration.
+ */
+const EXERCISE_TYPE_ALIASES: Record<string, string> = {
+  run: "Running",
+  trailrun: "Running",
+  virtualrun: "Running",
+  running: "Running",
+  ride: "Cycling",
+  virtualride: "Cycling",
+  ebikeride: "Cycling",
+  mountainbikeride: "Cycling",
+  gravelride: "Cycling",
+  handcycle: "Cycling",
+  cycling: "Cycling",
+  swim: "Swimming",
+  swimming: "Swimming",
+};
+
+/**
+ * Normalizes an activity/exercise type to the vocabulary used by
+ * ENDURANCE_EXERCISE_PRESETS. Unknown types (including every strength preset,
+ * which already matches by name) are returned unchanged apart from trimming,
+ * so comparing two canonical values is always safe.
+ */
+export function canonicalExerciseType(type: string | null | undefined): string {
+  if (!type) return "";
+  const trimmed = type.trim();
+  return EXERCISE_TYPE_ALIASES[trimmed.toLowerCase()] ?? trimmed;
+}
+
+/**
  * "reps"/"distanceMeters" sum the matching SportActivity metric across all of
  * that day's logged activities for exerciseType; "sessions" just requires at
  * least one activity of that type to have been logged that day.
