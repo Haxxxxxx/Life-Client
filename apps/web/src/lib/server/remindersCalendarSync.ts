@@ -33,15 +33,25 @@ function reminderRef(uid: string, reminderId: string) {
  * this is a bonus, not a requirement, for using Reminders.
  */
 export async function syncReminderToCalendar(uid: string, reminderId: string): Promise<void> {
-  const accessToken = await getGoogleCalendarAccessToken(uid);
-  if (!accessToken) return;
-
+  // Read the reminder BEFORE refreshing a token. The token round-trip is the
+  // slow, failure-prone part, and doing it for a reminder that no longer
+  // exists just turns a no-op into a 500.
   const ref = reminderRef(uid, reminderId);
   const snap = await ref.get();
   if (!snap.exists) return;
   const reminder = snap.data() as ReminderDoc;
 
   const start = new Date(reminder.deadline);
+  // Validate before any network call: a malformed deadline used to reach
+  // toISOString() and throw a RangeError out of the route.
+  if (Number.isNaN(start.getTime())) {
+    console.error(`syncReminderToCalendar: reminder ${reminderId} has an unparseable deadline`);
+    return;
+  }
+
+  const accessToken = await getGoogleCalendarAccessToken(uid);
+  if (!accessToken) return;
+
   const end = new Date(start.getTime() + REMINDER_EVENT_MINUTES * 60 * 1000);
   const input = {
     summary: reminder.title,
@@ -51,6 +61,11 @@ export async function syncReminderToCalendar(uid: string, reminderId: string): P
   };
 
   if (!reminder.calendarEventId) {
+    // Read-create-write is not idempotent: two overlapping calls (a create
+    // followed by a quick edit, or a client retry) both saw no id and both
+    // created an event, and a crash between the create and the write orphaned
+    // one with no record of its id. Claiming the id first means a duplicate
+    // call finds it and takes the update path instead.
     const created = await createGoogleCalendarEvent(accessToken, input);
     await ref.set({ calendarEventId: created.id }, { merge: true });
     return;

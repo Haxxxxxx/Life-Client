@@ -95,18 +95,23 @@ export async function updateGoogleCalendarEvent(
   eventId: string,
   input: GoogleCalendarEventInput,
 ): Promise<GoogleCalendarEvent> {
-  const res = await fetch(`${EVENTS_URL}/${eventId}`, {
+  const res = await fetch(`${EVENTS_URL}/${encodeURIComponent(eventId)}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(eventBody(input)),
   });
   if (res.ok) return (await res.json()) as GoogleCalendarEvent;
-  if (res.status === 404) return createGoogleCalendarEvent(accessToken, input);
+  // 410 as well as 404. Google returns "Resource has been deleted" (410) for a
+  // cancelled or deleted event far more often than 404, and only 404 was
+  // handled — so the update threw, the reminder never synced again, and the
+  // route 500'd on every subsequent edit. deleteGoogleCalendarEvent below
+  // already treated the two the same, which is what gives the omission away.
+  if (res.status === 404 || res.status === 410) return createGoogleCalendarEvent(accessToken, input);
   throw new Error(`Google Calendar event update failed: ${res.status} ${await res.text()}`);
 }
 
 export async function deleteGoogleCalendarEvent(accessToken: string, eventId: string): Promise<void> {
-  const res = await fetch(`${EVENTS_URL}/${eventId}`, {
+  const res = await fetch(`${EVENTS_URL}/${encodeURIComponent(eventId)}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${accessToken}` },
   });

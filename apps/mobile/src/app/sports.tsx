@@ -1,6 +1,7 @@
 import {
   ENDURANCE_EXERCISE_PRESETS,
   STRENGTH_EXERCISE_PRESETS,
+  canonicalExerciseType,
   type Challenge,
   type ChallengeMetric,
   type SportActivity,
@@ -688,6 +689,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loggingChallengeId, setLoggingChallengeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -708,21 +710,41 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   // Logs an activity that matches this challenge's own exerciseType/metric —
   // avoids the user having to guess the exact type string themselves.
   async function handleLogToday(challenge: Challenge) {
-    if (!user) return;
+    if (!user || loggingChallengeId) return;
     setError(null);
-    const kind: SportActivityKind = challenge.metric === 'distanceMeters' ? 'endurance' : 'strength';
+    setLoggingChallengeId(challenge.id);
+    // Kind follows the EXERCISE, not the metric. Deriving it from the metric
+    // meant a "30 Days of Running" challenge counted by sessions logged a
+    // *strength* activity typed "Running": the weekly chart counted it as
+    // strength, the list rendered it as "1 x 1 reps x sets", and
+    // computeFitnessXp credited strength XP (1*1*1 + 5 = 6) instead of the
+    // endurance 5.
+    const kind: SportActivityKind = ENDURANCE_EXERCISE_PRESETS.includes(
+      canonicalExerciseType(challenge.exerciseType),
+    )
+      ? 'endurance'
+      : 'strength';
     try {
       await data.createManualSportActivity(user.uid, {
         kind,
         type: challenge.exerciseType,
         name: challenge.exerciseType,
         startDate: new Date().toISOString(),
-        ...(kind === 'endurance'
+        // Only attach the metric the challenge actually measures: a sessions
+        // challenge is satisfied by the activity existing, so inventing a
+        // distance or a rep count would feed made-up numbers into the charts.
+        ...(challenge.metric === 'distanceMeters'
           ? { distanceMeters: challenge.dailyTarget }
-          : { reps: challenge.metric === 'reps' ? challenge.dailyTarget : 1, sets: 1 }),
+          : challenge.metric === 'reps'
+            ? { reps: challenge.dailyTarget, sets: 1 }
+            : {}),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not log today');
+    } finally {
+      // Without this, two quick taps wrote two full-target activities before
+      // the snapshot hid the button — inflating both distance and XP.
+      setLoggingChallengeId(null);
     }
   }
 
