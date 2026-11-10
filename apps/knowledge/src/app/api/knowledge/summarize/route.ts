@@ -3,34 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { consumeAiQuota, guardErrorResponse } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
+import { BlockedUrlError, safeFetchText } from "@/lib/server/safeFetch";
 
 const MAX_ARTICLE_CHARS = 8000;
 const FETCH_TIMEOUT_MS = 8000;
+// Hard cap on the downloaded body; the readable-text slice happens after.
+const MAX_FETCH_BYTES = 2_000_000;
 
 const summarySchema = z.object({
   title: z.string().describe("The article's title"),
   summary: z.string().describe("A concise 2-4 sentence summary of the article"),
   keyTakeaways: z.array(z.string()).describe("3-5 short bullet-point key takeaways"),
 });
-
-// Private/loopback/link-local ranges — refuse to let this server-side fetch be
-// used as an SSRF vector to reach internal services or cloud metadata endpoints.
-const BLOCKED_HOSTNAME_PATTERNS = [
-  /^localhost$/i,
-  /^127\./,
-  /^0\.0\.0\.0$/,
-  /^\[?::1\]?$/,
-  /^10\./,
-  /^172\.(1[6-9]|2\d|3[01])\./,
-  /^192\.168\./,
-  /^169\.254\./,
-];
-
-function isBlockedUrl(url: URL): boolean {
-  if (url.protocol !== "http:" && url.protocol !== "https:") return true;
-  return BLOCKED_HOSTNAME_PATTERNS.some((pattern) => pattern.test(url.hostname));
-}
 
 function extractReadableText(html: string): string {
   const withoutScripts = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
@@ -60,26 +46,24 @@ export async function POST(req: NextRequest) {
     await ref.update({ status: "error", error: "Invalid URL", updatedAt: new Date().toISOString() });
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
-  if (isBlockedUrl(parsedUrl)) {
-    await ref.update({ status: "error", error: "URL not allowed", updatedAt: new Date().toISOString() });
-    return NextResponse.json({ error: "URL not allowed" }, { status: 400 });
+  try {
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
   }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    let articleText: string;
-    try {
-      const response = await fetch(parsedUrl, {
-        signal: controller.signal,
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; LifeClientBot/1.0)" },
-      });
-      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-      const html = await response.text();
-      articleText = extractReadableText(html);
-    } finally {
-      clearTimeout(timeout);
-    }
+    // safeFetchText resolves DNS, rejects private/loopback/link-local targets,
+    // follows redirects manually so every hop is re-checked, and caps the body
+    // size instead of buffering the whole response.
+    const html = await safeFetchText(parsedUrl.toString(), {
+      timeoutMs: FETCH_TIMEOUT_MS,
+      maxBytes: MAX_FETCH_BYTES,
+      userAgent: "Mozilla/5.0 (compatible; LifeClientBot/1.0)",
+    });
+    const articleText = extractReadableText(html);
 
     if (!articleText) throw new Error("Could not extract any readable content from the page");
 
@@ -93,9 +77,13 @@ export async function POST(req: NextRequest) {
     await ref.update({ ...output, status: "summarized", error: null, updatedAt });
     return NextResponse.json({ id: itemId, url, status: "summarized", ...output, updatedAt });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not summarize this article";
+    // The detail goes to the server log only. This message is persisted onto a
+    // client-readable document, so it must not carry internal fetch/SDK text.
     console.error("knowledge/summarize failed", error);
+    const message =
+      error instanceof BlockedUrlError ? error.message : "Could not summarize this article";
+    const status = error instanceof BlockedUrlError ? 400 : 502;
     await ref.update({ status: "error", error: message, updatedAt: new Date().toISOString() });
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ error: message }, { status });
   }
 }

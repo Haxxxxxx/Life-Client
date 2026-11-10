@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { boundedText, consumeAiQuota, guardErrorResponse, LIMITS } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const gradeSchema = z.object({
@@ -35,9 +36,15 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as { drillId?: string; answer?: string };
   const drillId = typeof body.drillId === "string" ? body.drillId : undefined;
-  const answer = typeof body.answer === "string" ? body.answer.trim() : "";
-  if (!drillId || !answer) {
-    return NextResponse.json({ error: "Missing drillId or answer" }, { status: 400 });
+  let answer: string;
+  try {
+    answer = boundedText(body.answer, "answer", LIMITS.answer, { required: true })!;
+    if (!drillId) return NextResponse.json({ error: "Missing drillId" }, { status: 400 });
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
   }
 
   const ref = adminDb.collection("users").doc(uid).collection("codeDrills").doc(drillId);

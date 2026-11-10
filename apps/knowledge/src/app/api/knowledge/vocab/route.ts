@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { consumeAiQuota, guardErrorResponse } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const vocabSchema = z.object({
@@ -15,6 +16,14 @@ export async function POST(req: NextRequest) {
   const uid = await requireUid(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  try {
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
+  }
+
   const existingSnap = await adminDb
     .collection("users")
     .doc(uid)
@@ -22,7 +31,10 @@ export async function POST(req: NextRequest) {
     .orderBy("createdAt", "desc")
     .limit(50)
     .get();
-  const existingWords = existingSnap.docs.map((d) => (d.data().word as string).toLowerCase());
+  const existingWords = existingSnap.docs
+    .map((d) => d.data().word as string | undefined)
+    .filter((w): w is string => typeof w === "string")
+    .map((w) => w.toLowerCase());
 
   try {
     const { output } = await generateText({

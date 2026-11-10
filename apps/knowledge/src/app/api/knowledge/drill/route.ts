@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { boundedText, consumeAiQuota, guardErrorResponse, LIMITS } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const DIFFICULTIES: CodeDrillDifficulty[] = ["beginner", "intermediate", "advanced"];
@@ -20,10 +21,19 @@ export async function POST(req: NextRequest) {
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = (await req.json().catch(() => ({}))) as { topic?: string; difficulty?: string };
-  const topic = typeof body.topic === "string" && body.topic.trim() ? body.topic.trim() : "any topic you choose";
   const difficulty: CodeDrillDifficulty = DIFFICULTIES.includes(body.difficulty as CodeDrillDifficulty)
     ? (body.difficulty as CodeDrillDifficulty)
     : "intermediate";
+
+  let topic: string;
+  try {
+    topic = boundedText(body.topic, "topic", LIMITS.topic) ?? "any topic you choose";
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
+  }
 
   try {
     const { output } = await generateText({

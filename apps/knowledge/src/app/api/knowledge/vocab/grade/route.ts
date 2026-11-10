@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { boundedText, consumeAiQuota, guardErrorResponse, LIMITS } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const gradeSchema = z.object({
@@ -18,9 +19,15 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as { wordId?: string; sentence?: string };
   const wordId = typeof body.wordId === "string" ? body.wordId : undefined;
-  const sentence = typeof body.sentence === "string" ? body.sentence.trim() : "";
-  if (!wordId || !sentence) {
-    return NextResponse.json({ error: "Missing wordId or sentence" }, { status: 400 });
+  let sentence: string;
+  try {
+    sentence = boundedText(body.sentence, "sentence", LIMITS.sentence, { required: true })!;
+    if (!wordId) return NextResponse.json({ error: "Missing wordId" }, { status: 400 });
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
   }
 
   const ref = adminDb.collection("users").doc(uid).collection("vocabWords").doc(wordId);

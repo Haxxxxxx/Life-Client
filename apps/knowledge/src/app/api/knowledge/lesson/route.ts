@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { consumeAiQuota, guardErrorResponse } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const lessonSchema = z.object({
@@ -135,6 +136,16 @@ export async function POST(req: NextRequest) {
   const existing = await ref.get();
   if (existing.exists) {
     return NextResponse.json({ id: existing.id, ...existing.data() });
+  }
+
+  // Quota is consumed only when a lesson actually has to be generated — the
+  // cached-lesson path above is free, so opening the app does not cost budget.
+  try {
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
   }
 
   try {
