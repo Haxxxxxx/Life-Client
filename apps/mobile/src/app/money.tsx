@@ -28,6 +28,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.id, c.label])) as Record<
   TransactionCategory,
@@ -467,7 +468,15 @@ export default function MoneyScreen() {
                       <ThemedText type="code" style={over ? { color: theme.danger } : undefined} themeColor={over ? undefined : 'textSecondary'}>
                         {formatMoney(status.spent)} / {formatMoney(status.limit)}
                       </ThemedText>
-                      <Pressable onPress={() => user && data.deleteBudget(user.uid, budget.id)}>
+                      <Pressable
+                        onPress={() =>
+                          user &&
+                          confirmDestructive({
+                            title: 'Delete this budget?',
+                            onConfirm: () => data.deleteBudget(user.uid, budget.id),
+                          })
+                        }
+                        hitSlop={8}>
                         <ThemedText type="small" style={styles.deleteText}>
                           Delete
                         </ThemedText>
@@ -529,7 +538,15 @@ export default function MoneyScreen() {
                     {tx.type === 'expense' ? '-' : '+'}
                     {formatMoney(tx.amount)}
                   </ThemedText>
-                  <Pressable onPress={() => user && data.deleteTransaction(user.uid, tx.id)}>
+                  <Pressable
+                    onPress={() =>
+                      user &&
+                      confirmDestructive({
+                        title: 'Delete this transaction?',
+                        onConfirm: () => data.deleteTransaction(user.uid, tx.id),
+                      })
+                    }
+                    hitSlop={8}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>

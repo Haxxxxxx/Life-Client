@@ -30,6 +30,7 @@ import { ErrorBanner } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 function formatDistance(meters?: number): string {
   if (!meters) return '—';
@@ -783,7 +784,14 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               challenge={challenge}
               activities={activities}
               onArchive={() => user && data.archiveChallenge(user.uid, challenge.id)}
-              onDelete={() => user && data.deleteChallenge(user.uid, challenge.id)}
+              onDelete={() =>
+                user &&
+                confirmDestructive({
+                  title: 'Delete this challenge?',
+                  message: challenge.title,
+                  onConfirm: () => data.deleteChallenge(user.uid, challenge.id),
+                })
+              }
               onSave={(patch) => user && data.updateChallenge(user.uid, challenge.id, patch)}
               onLogToday={() => handleLogToday(challenge)}
             />

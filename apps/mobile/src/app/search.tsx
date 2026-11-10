@@ -3,7 +3,7 @@ import {
   type Reminder,
   type Task,
 } from '@life-client/shared';
-import { data } from '@life-client/shared';
+import { data, visibleGoals, visibleTasks } from '@life-client/shared';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -41,11 +41,22 @@ export default function SearchScreen() {
   }, [user]);
 
   const q = query.trim().toLowerCase();
+  const matches = (title: string | undefined, needle: string) =>
+    typeof title === 'string' && title.toLowerCase().includes(needle);
   const results: SearchResult[] = q
     ? [
-        ...tasks.filter((t) => t.title.toLowerCase().includes(q)).map((t): SearchResult => ({ id: t.id, kind: 'Task', title: t.title, href: '/tasks' })),
-        ...goals.filter((g) => g.title.toLowerCase().includes(q)).map((g): SearchResult => ({ id: g.id, kind: 'Goal', title: g.title, href: '/goals' })),
-        ...reminders.filter((r) => r.title.toLowerCase().includes(q)).map((r): SearchResult => ({ id: r.id, kind: 'Reminder', title: r.title, href: '/' })),
+        // `matches` guards the title: Firestore documents are unvalidated, so a
+        // row with no title threw on .toLowerCase() and took the whole screen
+        // down. Archived items are excluded, as every other view does.
+        ...visibleTasks(tasks)
+          .filter((t) => matches(t.title, q))
+          .map((t): SearchResult => ({ id: t.id, kind: 'Task', title: t.title, href: '/tasks' })),
+        ...visibleGoals(goals)
+          .filter((g) => matches(g.title, q))
+          .map((g): SearchResult => ({ id: g.id, kind: 'Goal', title: g.title, href: '/goals' })),
+        ...reminders
+          .filter((r) => matches(r.title, q))
+          .map((r): SearchResult => ({ id: r.id, kind: 'Reminder', title: r.title, href: '/' })),
       ].slice(0, 50)
     : [];
 
