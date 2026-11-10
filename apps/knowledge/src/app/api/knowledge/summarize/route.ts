@@ -83,7 +83,12 @@ export async function POST(req: NextRequest) {
     const message =
       error instanceof BlockedUrlError ? error.message : "Could not summarize this article";
     const status = error instanceof BlockedUrlError ? 400 : 502;
-    await ref.update({ status: "error", error: message, updatedAt: new Date().toISOString() });
+    // The item may have been deleted during the model call, in which case this
+    // update throws too — from inside the catch, which escaped as a non-JSON
+    // 500. Recording the failure is best-effort; the response is not.
+    await ref
+      .update({ status: "error", error: message, updatedAt: new Date().toISOString() })
+      .catch((updateError) => console.error("knowledge/summarize: could not record failure", updateError));
     return NextResponse.json({ error: message }, { status });
   }
 }

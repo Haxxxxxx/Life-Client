@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
     const { output } = await generateText({
       model: KNOWLEDGE_MODEL,
       output: Output.object({ schema: gradeSchema }),
+      // Deterministic grading: at the default temperature, resubmitting the
+      // same answer returned a different score each time, so a learner could
+      // re-roll for a better one.
+      temperature: 0,
       prompt:
         `The word "${vocabWord.word}" means: "${vocabWord.definition}".\n\n` +
         `A learner wrote this sentence to practice using it:\n"${sentence}"\n\n` +
@@ -46,10 +50,13 @@ export async function POST(req: NextRequest) {
         "understanding of its meaning. Give brief, encouraging feedback.",
     });
 
-    await ref.set(
-      { practiceSentence: sentence, practiceCorrect: output.correct, practiceFeedback: output.feedback },
-      { merge: true },
-    );
+    // See drill/grade: a merging set would resurrect a word deleted during the
+    // model call as a doc with no createdAt, invisible to every ordered query.
+    await ref.update({
+      practiceSentence: sentence,
+      practiceCorrect: output.correct,
+      practiceFeedback: output.feedback,
+    });
     return NextResponse.json({ correct: output.correct, feedback: output.feedback });
   } catch (error) {
     console.error("knowledge/vocab/grade failed", error);
