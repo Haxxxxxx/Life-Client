@@ -1,6 +1,6 @@
 "use client";
 
-import { data } from "@life-client/shared";
+import { data, webPushTokenDocId } from "@life-client/shared";
 import { useEffect } from "react";
 import { db } from "@/lib/firebase";
 
@@ -54,4 +54,29 @@ export function usePushRegistration(uid: string | undefined) {
       cancelled = true;
     };
   }, [uid]);
+}
+
+/**
+ * Removes this browser's push subscription for the user signing out.
+ *
+ * Nothing used to clean up on sign-out, and `getSubscription()` returns the
+ * *browser's* existing subscription rather than creating a per-user one — so
+ * when a second person signed in on the same browser, the same endpoint was
+ * registered under their uid too. Both users then had it, and the first user's
+ * task and digest notifications kept arriving in the second user's session.
+ * That is a cross-account data leak, not just stale state.
+ *
+ * Both halves matter: deleting the token doc stops the server sending to it,
+ * and `unsubscribe()` releases the browser subscription so the next sign-in
+ * mints a fresh endpoint instead of inheriting this one.
+ */
+export async function unregisterThisBrowser(uid: string): Promise<void> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+  const subscription = await registration?.pushManager.getSubscription();
+  if (!subscription) return;
+
+  const endpoint = subscription.toJSON().endpoint;
+  if (endpoint) await data.unregisterPushToken(uid, webPushTokenDocId(endpoint));
+  await subscription.unsubscribe();
 }

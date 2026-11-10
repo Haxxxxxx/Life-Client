@@ -8,6 +8,7 @@ import {
   type User,
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
+import { unregisterThisBrowser } from "@/hooks/use-push-registration";
 import "./data-backend"; // configures the shared data.* facade on load
 import { auth } from "./firebase";
 
@@ -43,6 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOutUser() {
     if (!auth) return;
+    const uid = auth.currentUser?.uid;
+    // Before signing out, while the uid and Firestore access still exist.
+    // Best-effort: failing to clean up must not block the sign-out itself.
+    if (uid) {
+      await unregisterThisBrowser(uid).catch((err) =>
+        console.error("Could not unregister this browser for push", err),
+      );
+    }
     await signOut(auth);
   }
 

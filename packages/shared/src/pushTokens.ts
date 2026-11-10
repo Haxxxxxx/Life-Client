@@ -35,6 +35,14 @@ export async function registerExpoPushToken(db: Firestore, uid: string, expoPush
   );
 }
 
+/**
+ * The doc id a web push endpoint maps to, so a browser can unregister itself
+ * on sign-out. Mirrors expoPushTokenDocId.
+ */
+export function webPushTokenDocId(endpoint: string): string {
+  return tokenDocId(endpoint);
+}
+
 export async function registerWebPushSubscription(
   db: Firestore,
   uid: string,
