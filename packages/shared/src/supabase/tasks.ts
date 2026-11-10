@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nextOccurrenceDate } from "../recurrence";
+import { setViceLogCompensatedSb } from "./vices";
 import type {
   NewTask,
   TaskPatch,
@@ -36,6 +37,11 @@ interface TaskRow {
   vice_log_id: string | null;
   pr_meta: TaskPrMeta | null;
   pr_events: PrEvent[] | null;
+  // Added by 20261110120000_phase2_archive_and_realtime_fixes.sql. Optional on
+  // the type so this code still reads correctly against a database where that
+  // migration has not been applied yet.
+  archived?: boolean | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,6 +65,12 @@ function rowToTask(r: TaskRow): Task {
     viceLogId: r.vice_log_id ?? undefined,
     prMeta: r.pr_meta ?? undefined,
     prEvents: r.pr_events ?? undefined,
+    // `?? undefined` rather than a default: a column that is absent (migration
+    // not yet applied) and one that is NULL must both read as "not archived"
+    // and "no completion date", which is how visibleTasks/archivedTasks and
+    // taskCompletedIso already treat them.
+    archived: r.archived ?? undefined,
+    completedAt: r.completed_at ?? undefined,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -104,6 +116,8 @@ function taskToRow(t: TaskPatch): Record<string, unknown> {
   put("vice_log_id", "viceLogId", t.viceLogId);
   put("pr_meta", "prMeta", t.prMeta);
   put("pr_events", "prEvents", t.prEvents);
+  put("archived", "archived", t.archived);
+  put("completed_at", "completedAt", t.completedAt);
   return row;
 }
 
@@ -178,7 +192,18 @@ export async function setTaskStatusSb(
   taskId: string,
   status: TaskStatus,
 ): Promise<void> {
-  await updateTaskSb(client, userId, taskId, { status });
+  // Mirrors the Firestore setTaskStatus: moving a task off "done" un-archives
+  // it, because the daily cleanup may already have filed it away and nothing
+  // else ever clears the flag — leaving it set would make a reopened task
+  // invisible in every list. completedAt is set and cleared here too.
+  await updateTaskSb(
+    client,
+    userId,
+    taskId,
+    status === "done"
+      ? { status, completedAt: new Date().toISOString() }
+      : { status, archived: false, completedAt: null },
+  );
 }
 
 export async function deleteTaskSb(client: SupabaseClient, userId: string, taskId: string): Promise<void> {
@@ -188,8 +213,8 @@ export async function deleteTaskSb(client: SupabaseClient, userId: string, taskI
 
 /**
  * Mirrors `advanceTaskStatus` from the Firestore module: rolls a recurring task
- * forward on completion. The ViceLog side-effect is deferred until vices are
- * migrated (Phase 1).
+ * forward on completion, refunds any vice-log compensation, and records the
+ * status change.
  */
 export async function advanceTaskStatusSb(
   client: SupabaseClient,
@@ -198,12 +223,30 @@ export async function advanceTaskStatusSb(
   nextStatus: TaskStatus,
 ): Promise<void> {
   if (nextStatus === "done" && task.recurrence && task.dueDate) {
-    const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = task;
+    // archived/completedAt must NOT carry over — the source task is the one
+    // becoming done, while the occurrence created here starts fresh as "todo".
+    // Those two were previously left in `rest`; harmless only while the columns
+    // did not exist, and the Phase 2 migration adds them.
+    const {
+      id: _id,
+      createdAt: _c,
+      updatedAt: _u,
+      archived: _archived,
+      completedAt: _completedAt,
+      ...rest
+    } = task;
     await createTaskSb(client, userId, {
       ...rest,
       dueDate: nextOccurrenceDate(task.dueDate, task.recurrence),
       status: "todo",
     });
+  }
+  // Refund the vice penalty, matching the Firestore path. The comment here used
+  // to say this was "deferred until vices are migrated (Phase 1)" — vices ARE
+  // migrated, so without this a compensating task could be completed on this
+  // backend and the XP penalty would stay applied forever.
+  if (task.viceLogId) {
+    await setViceLogCompensatedSb(client, userId, task.viceLogId, nextStatus === "done");
   }
   await setTaskStatusSb(client, userId, task.id, nextStatus);
 }
