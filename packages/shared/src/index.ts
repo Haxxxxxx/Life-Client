@@ -10,6 +10,7 @@ export * from "./calendarApi";
 export * from "./characteristics";
 export * from "./reminders";
 export * from "./knowledge";
+export * from "./numericInput";
 export * from "./knowledgeApi";
 export * from "./remindersApi";
 export * from "./spotify";

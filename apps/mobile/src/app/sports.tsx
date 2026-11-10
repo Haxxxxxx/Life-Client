@@ -10,7 +10,14 @@ import {
   createChallenge,
   updateChallenge,
 } from '@life-client/shared';
-import { data } from '@life-client/shared';
+import {
+  data,
+  isValidDateKey,
+  kilometresToMetres,
+  parseDecimalInput,
+  parsePositive,
+  parsePositiveInt,
+} from '@life-client/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ErrorBanner } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -173,11 +181,14 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
           onSubmit({
             kind,
             type: customType.trim() || type,
-            distanceKm: Number(distanceKm) || 0,
-            durationMin: Number(durationMin) || 0,
-            reps: Number(reps) || 0,
-            sets: Number(sets) || 0,
-            weightKg: Number(weightKg) || 0,
+            // parseDecimalInput, not Number(): a decimal-pad keyboard types a
+            // COMMA in most of Europe, and `Number("5,5") || 0` logged a 5.5 km
+            // run as a 0 km run — which still earned the flat endurance XP.
+            distanceKm: parseDecimalInput(distanceKm) ?? 0,
+            durationMin: parseDecimalInput(durationMin) ?? 0,
+            reps: parseDecimalInput(reps) ?? 0,
+            sets: parseDecimalInput(sets) ?? 0,
+            weightKg: parseDecimalInput(weightKg) ?? 0,
           })
         }
         style={[styles.logButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
@@ -239,6 +250,9 @@ function todayLocalDate(): string {
 }
 
 const TREND_WEEKS = 12;
+// A sane upper bound: a year-1000 start date made dateRange iterate about
+// 365,000 days on every render of every challenge card.
+const MAX_CHALLENGE_DAYS = 3660;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function startOfWeek(date: Date): Date {
@@ -312,6 +326,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
   const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET_FOR_METRIC.distanceMeters);
   const [durationDays, setDurationDays] = useState('100');
   const [startDate, setStartDate] = useState(todayLocalDate());
+  const [formError, setFormError] = useState<string | null>(null);
 
   const type = customType.trim() || exerciseType;
   const presets = kind === 'endurance' ? ENDURANCE_EXERCISE_PRESETS : STRENGTH_EXERCISE_PRESETS;
@@ -422,15 +437,36 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
           />
         </View>
       </View>
+      {formError ? <ErrorBanner>{formError}</ErrorBanner> : null}
       <Pressable
         onPress={() => {
-          const dailyTargetDisplay = Number(dailyTarget) || 1;
+          // parsePositive rejects negatives, which used to pass straight
+          // through `Number(x) || 1`. A -5 km daily target satisfied
+          // `value >= -5000` every day, so every day read as complete and the
+          // streak grew without any activity at all.
+          const dailyTargetDisplay = parsePositive(dailyTarget);
+          const parsedDurationDays = parsePositiveInt(durationDays, MAX_CHALLENGE_DAYS);
+          if (dailyTargetDisplay === null || parsedDurationDays === null) {
+            setFormError(
+              `Daily target must be above zero, and duration a whole number of days (max ${MAX_CHALLENGE_DAYS}).`,
+            );
+            return;
+          }
+          // The start date is free text. A value like "2026-1-5" or "tomorrow"
+          // is stored happily but fails the lexicographic range comparisons in
+          // computeChallengeProgress, so the challenge silently never progresses.
+          if (!isValidDateKey(startDate)) {
+            setFormError('Start date must be a real date in YYYY-MM-DD form.');
+            return;
+          }
+          setFormError(null);
           onSubmit({
-            title: buildChallengeTitle(Number(durationDays) || 1, metric, dailyTargetDisplay, type),
+            title: buildChallengeTitle(parsedDurationDays, metric, dailyTargetDisplay, type),
             exerciseType: type,
             metric,
-            dailyTarget: metric === 'distanceMeters' ? Math.round(dailyTargetDisplay * 1000) : dailyTargetDisplay,
-            durationDays: Number(durationDays) || 1,
+            dailyTarget:
+              metric === 'distanceMeters' ? kilometresToMetres(dailyTargetDisplay) : dailyTargetDisplay,
+            durationDays: parsedDurationDays,
             startDate,
           });
         }}
@@ -467,7 +503,8 @@ function ChallengeCard({
 
   // Daily target is stored in canonical units (meters for distance); edited/displayed in km for readability.
   const dailyTargetToDisplay = (raw: number) => (challenge.metric === 'distanceMeters' ? raw / 1000 : raw);
-  const dailyTargetToStored = (display: number) => (challenge.metric === 'distanceMeters' ? Math.round(display * 1000) : display);
+  const dailyTargetToStored = (display: number) =>
+    challenge.metric === 'distanceMeters' ? kilometresToMetres(display) : display;
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
@@ -484,8 +521,12 @@ function ChallengeCard({
   function save() {
     onSave({
       title: title.trim() || challenge.title,
-      dailyTarget: Number(dailyTarget) ? dailyTargetToStored(Number(dailyTarget)) : challenge.dailyTarget,
-      durationDays: Number(durationDays) || challenge.durationDays,
+      // Same guards as create. `Number(x) ? … : old` silently kept the
+      // previous value, so an invalid edit looked saved but changed nothing.
+      dailyTarget: parsePositive(dailyTarget) !== null
+        ? dailyTargetToStored(parsePositive(dailyTarget)!)
+        : challenge.dailyTarget,
+      durationDays: parsePositiveInt(durationDays, MAX_CHALLENGE_DAYS) ?? challenge.durationDays,
     });
     setEditing(false);
   }
@@ -762,7 +803,10 @@ export default function SportsScreen() {
         name: input.type,
         startDate: new Date().toISOString(),
         ...(input.kind === 'endurance'
-          ? { distanceMeters: input.distanceKm * 1000, movingTimeSec: input.durationMin * 60 }
+          ? // Rounded: the unrounded product is short of the stored challenge
+            // target for 74 of the two-decimal values, and the comparison is
+            // `>=`, so logging exactly 2.01 km never satisfied a 2.01 km goal.
+            { distanceMeters: kilometresToMetres(input.distanceKm), movingTimeSec: Math.round(input.durationMin * 60) }
           : { reps: input.reps, sets: input.sets, weightKg: input.weightKg || undefined }),
       });
       setFormOpen(false);
