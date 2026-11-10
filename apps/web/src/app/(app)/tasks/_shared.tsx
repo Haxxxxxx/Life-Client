@@ -40,7 +40,12 @@ export function prMetaOf(task: Task): TaskPrMeta | null {
 
 export function relativeTime(iso: string | null | undefined): string {
   if (!iso) return "";
-  const diffMs = Date.now() - new Date(iso).getTime();
+  const then = new Date(iso).getTime();
+  // Firestore documents are unvalidated and some timestamp fields are written
+  // as Firestore Timestamps despite being typed `string`, so an unparseable
+  // value reaches here and used to render "NaNd ago".
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
   const min = Math.round(diffMs / 60000);
   if (min < 1) return "just now";
   if (min < 60) return `${min}m ago`;
@@ -52,7 +57,10 @@ export function relativeTime(iso: string | null | undefined): string {
 /** "8 Sep, 14:32" — absolute date + time in the viewer's locale/zone. */
 export function shortDateTime(iso: string | null | undefined): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleString(undefined, {
+  const date = new Date(iso);
+  // Same reason as relativeTime: this used to print "Invalid Date".
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -80,10 +88,26 @@ export const PR_REVIEW_STYLE: Record<PrReviewDecision, { label: string; tone: Ba
   review_required: { label: "Review", tone: "warning" },
 };
 
+/**
+ * Looks up a badge style, falling back to a neutral badge.
+ *
+ * `PR_STATE_STYLE[meta.state].tone` threw on any value outside the union —
+ * and prMeta comes from whatever GitHub or GitLab returned, stored in
+ * Firestore without validation. A provider adding a state, or a malformed
+ * document, would take out the whole Tasks list rather than render one odd
+ * badge.
+ */
+export function styleFor<K extends string>(
+  map: Record<K, { label: string; tone: BadgeTone }>,
+  key: K | string,
+): { label: string; tone: BadgeTone } {
+  return map[key as K] ?? { label: String(key), tone: "neutral" };
+}
+
 export function PrBadges({ meta }: { meta: TaskPrMeta }) {
-  const state = PR_STATE_STYLE[meta.state];
-  const check = PR_CHECK_STYLE[meta.checks];
-  const review = meta.reviewDecision ? PR_REVIEW_STYLE[meta.reviewDecision] : null;
+  const state = styleFor(PR_STATE_STYLE, meta.state);
+  const check = PR_CHECK_STYLE[meta.checks] ?? null;
+  const review = meta.reviewDecision ? styleFor(PR_REVIEW_STYLE, meta.reviewDecision) : null;
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1.5">
       <Badge tone={state.tone}>{state.label}</Badge>

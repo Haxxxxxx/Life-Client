@@ -25,14 +25,17 @@ import {
   prMetaOf,
   relativeTime,
   shortDateTime,
+  styleFor,
 } from "../_shared";
 
 function PrPanel({ task }: { task: Task }) {
   const meta = prMetaOf(task);
   if (!meta) return null;
-  const state = PR_STATE_STYLE[meta.state];
-  const check = PR_CHECK_STYLE[meta.checks];
-  const review = meta.reviewDecision ? PR_REVIEW_STYLE[meta.reviewDecision] : null;
+  // styleFor, not a bare index: prMeta holds whatever the provider returned,
+  // and an unexpected state used to throw and white-screen this route.
+  const state = styleFor(PR_STATE_STYLE, meta.state);
+  const check = PR_CHECK_STYLE[meta.checks] ?? null;
+  const review = meta.reviewDecision ? styleFor(PR_REVIEW_STYLE, meta.reviewDecision) : null;
 
   const rows: { label: string; value: ReactNode }[] = [
     {
