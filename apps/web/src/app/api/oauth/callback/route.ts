@@ -2,6 +2,7 @@ import type { IntegrationProvider } from "@life-client/shared";
 import { NextRequest, NextResponse, after } from "next/server";
 import { setIntegrationStatus } from "@/lib/server/integrationStatus";
 import { handleOAuthExchange, triggerInitialSync } from "@/lib/server/oauthExchange";
+import { safeReturnTo } from "@/lib/server/returnTo";
 import { consumeOAuthState } from "@/lib/server/state";
 import { storeTokens } from "@/lib/server/tokens";
 
@@ -51,5 +52,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(`${origin}${state.returnTo}`);
+  // `state.returnTo` is sanitized when the state is created, but re-validate on
+  // the way out: state docs written before that change are still in Firestore.
+  return NextResponse.redirect(safeReturnTo(state.returnTo, origin));
 }

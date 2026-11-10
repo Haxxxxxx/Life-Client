@@ -1,6 +1,6 @@
 import {
-  buildConnectUrl,
-  buildDisconnectUrl,
+  disconnectIntegration,
+  startOAuthConnect,
   type IntegrationConnection,
   type IntegrationProvider,
 } from '@life-client/shared';
@@ -16,6 +16,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { WEB_APP_URL } from '@/lib/firebase';
+import { webApiClient } from '@/lib/webApiClient';
 
 const PROVIDER_META: Record<IntegrationProvider, { label: string; description: string; badge: string }> = {
   github: { label: 'GitHub', description: 'Open PRs/issues assigned to you, in Tasks.', badge: 'GH' },
@@ -31,6 +32,8 @@ export default function IntegrationsScreen() {
   const { user } = useAuth();
   const theme = useTheme();
   const [connections, setConnections] = useState<Record<IntegrationProvider, IntegrationConnection> | null>(null);
+  const [pending, setPending] = useState<IntegrationProvider | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -39,12 +42,27 @@ export default function IntegrationsScreen() {
 
   const missingWebAppUrl = !WEB_APP_URL;
 
+  // Both actions are authenticated POSTs to the web app now — the uid is taken
+  // from the ID token server-side rather than from a query param, so these can
+  // no longer be plain browser links. Connect still needs the system browser
+  // (that's where the user authorizes), but we fetch the provider URL first so
+  // the request can carry the bearer token. Disconnect never leaves the app.
   async function handleToggle(provider: IntegrationProvider, connected: boolean) {
-    if (missingWebAppUrl || !user) return;
-    const url = connected
-      ? buildDisconnectUrl(WEB_APP_URL, provider, user.uid, '/integrations')
-      : buildConnectUrl(WEB_APP_URL, provider, user.uid, '/integrations');
-    await WebBrowser.openBrowserAsync(url);
+    if (missingWebAppUrl || !user || pending) return;
+    setPending(provider);
+    setError(null);
+    try {
+      if (connected) {
+        await disconnectIntegration(webApiClient, provider);
+      } else {
+        const url = await startOAuthConnect(webApiClient, provider, '/integrations');
+        await WebBrowser.openBrowserAsync(url);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed');
+    } finally {
+      setPending(null);
+    }
   }
 
   return (
@@ -66,6 +84,14 @@ export default function IntegrationsScreen() {
               <ThemedText type="small" themeColor="textSecondary">
                 EXPO_PUBLIC_WEB_APP_URL isn&apos;t set — connect actions are disabled until
                 the web app is deployed.
+              </ThemedText>
+            </ThemedView>
+          )}
+
+          {error && (
+            <ThemedView type="backgroundElement" style={[styles.notice, { borderColor: theme.border }]}>
+              <ThemedText type="small" themeColor="text">
+                {error}
               </ThemedText>
             </ThemedView>
           )}
@@ -102,19 +128,22 @@ export default function IntegrationsScreen() {
                     </ThemedText>
                     <Pressable
                       onPress={() => handleToggle(provider, connected)}
-                      disabled={missingWebAppUrl}
+                      disabled={missingWebAppUrl || pending !== null}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: missingWebAppUrl || pending !== null }}
+                      accessibilityLabel={`${connected ? 'Disconnect' : 'Connect'} ${meta.label}`}
                       style={[
                         styles.actionButton,
                         {
                           borderColor: theme.border,
                           backgroundColor: connected ? 'transparent' : theme.primary,
-                          opacity: missingWebAppUrl ? 0.4 : 1,
+                          opacity: missingWebAppUrl || pending !== null ? 0.4 : 1,
                         },
                       ]}>
                       <ThemedText
                         type="small"
                         style={connected ? undefined : { color: theme.primaryForeground, fontWeight: '700' }}>
-                        {connected ? 'Disconnect' : 'Connect'}
+                        {pending === provider ? '…' : connected ? 'Disconnect' : 'Connect'}
                       </ThemedText>
                     </Pressable>
                   </View>

@@ -3,8 +3,9 @@ import * as sb from "../supabase/integrations";
 import type { IntegrationConnection, IntegrationProvider } from "../types";
 import { getDataBackend } from "./backend";
 
-// pure URL builders — backend-agnostic
-export { buildConnectUrl, buildDisconnectUrl } from "../integrations";
+// HTTP calls against the web app's OAuth routes — backend-agnostic, and
+// authenticated by the caller's ID token rather than a uid parameter.
+export { startOAuthConnect, disconnectIntegration } from "../integrations";
 
 export function subscribeIntegrations(
   uid: string,
