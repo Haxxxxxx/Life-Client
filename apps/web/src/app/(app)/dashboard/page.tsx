@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  WEEKDAY_LABELS,
   type CalendarEvent,
   type Challenge,
   type CodeDrill,
@@ -10,7 +9,6 @@ import {
   type Goal,
   type ReadingListItem,
   type Recurrence,
-  type RecurrenceFreq,
   type Reminder,
   type ReminderUrgency,
   type SportActivity,
@@ -37,6 +35,7 @@ import { useEffect, useState } from "react";
 import { WeekActivityChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
+import { RecurrencePicker } from "@/components/recurrence-picker";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
@@ -360,77 +359,6 @@ function urgencyLabel(urgency: ReminderUrgency, days: number): string {
 function toDatetimeLocalValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function RecurrencePicker({
-  value,
-  onChange,
-}: {
-  value: Recurrence | undefined;
-  onChange: (next: Recurrence | undefined) => void;
-}) {
-  const freq = value?.freq;
-  const interval = value?.interval ?? 1;
-  const daysOfWeek = value?.daysOfWeek ?? [];
-
-  function setFreq(next: RecurrenceFreq | undefined) {
-    if (!next) {
-      onChange(undefined);
-      return;
-    }
-    onChange({ freq: next, interval, daysOfWeek: next === "weekly" ? daysOfWeek : undefined });
-  }
-
-  function toggleDay(day: number) {
-    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
-    onChange({ freq: "weekly", interval, daysOfWeek: next });
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {(["none", "daily", "weekly", "monthly"] as const).map((f) => (
-        <button
-          key={f}
-          type="button"
-          onClick={() => setFreq(f === "none" ? undefined : f)}
-          className={`rounded-full border px-2.5 py-1 text-xs capitalize ${
-            (f === "none" && !freq) || f === freq ? "border-border-strong bg-primary/15" : "border-border text-muted"
-          }`}
-        >
-          {f === "none" ? "No repeat" : f}
-        </button>
-      ))}
-      {freq && (
-        <label className="flex items-center gap-1 text-xs text-muted">
-          every
-          <input
-            type="number"
-            min={1}
-            value={interval}
-            onChange={(e) => onChange({ freq, interval: Number(e.target.value) || 1, daysOfWeek: value?.daysOfWeek })}
-            className="w-12 rounded-xl border border-border-strong bg-background px-1 py-0.5 text-xs"
-          />
-          {freq === "daily" ? "day(s)" : freq === "weekly" ? "week(s)" : "month(s)"}
-        </label>
-      )}
-      {freq === "weekly" && (
-        <div className="flex gap-1">
-          {WEEKDAY_LABELS.map((label, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => toggleDay(i)}
-              className={`rounded-full border px-1.5 py-1 text-micro font-bold ${
-                daysOfWeek.includes(i) ? "border-border-strong bg-primary text-primary-foreground" : "border-border text-muted"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function EditReminderForm({

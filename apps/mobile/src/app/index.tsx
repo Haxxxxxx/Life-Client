@@ -1,5 +1,4 @@
 import {
-  WEEKDAY_LABELS,
   type CalendarEvent,
   type Challenge,
   type CodeDrill,
@@ -8,7 +7,6 @@ import {
   type Goal,
   type ReadingListItem,
   type Recurrence,
-  type RecurrenceFreq,
   type Reminder,
   type ReminderUrgency,
   type SportActivity,
@@ -38,6 +36,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, withAlpha } from '@/components/charts';
+import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SkeletonList } from '@/components/ui';
@@ -380,85 +379,6 @@ function urgencyLabel(urgency: ReminderUrgency, days: number): string {
   if (urgency === 'overdue') return `Overdue ${Math.abs(days)}d`;
   if (urgency === 'due-today') return 'Today';
   return `${days}d`;
-}
-
-function RecurrencePicker({
-  value,
-  onChange,
-}: {
-  value: Recurrence | undefined;
-  onChange: (next: Recurrence | undefined) => void;
-}) {
-  const theme = useTheme();
-  const freq = value?.freq;
-  const interval = value?.interval ?? 1;
-  const daysOfWeek = value?.daysOfWeek ?? [];
-
-  function setFreq(next: RecurrenceFreq | undefined) {
-    if (!next) {
-      onChange(undefined);
-      return;
-    }
-    onChange({ freq: next, interval, daysOfWeek: next === 'weekly' ? daysOfWeek : undefined });
-  }
-
-  function toggleDay(day: number) {
-    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
-    onChange({ freq: 'weekly', interval, daysOfWeek: next });
-  }
-
-  return (
-    <View style={{ gap: Spacing.one }}>
-      <View style={styles.chipRow}>
-        {(['none', 'daily', 'weekly', 'monthly'] as const).map((f) => {
-          const active = (f === 'none' && !freq) || f === freq;
-          return (
-            <Pressable
-              key={f}
-              onPress={() => setFreq(f === 'none' ? undefined : f)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
-                {f === 'none' ? 'No repeat' : f}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
-      {freq && (
-        <View style={styles.recurrenceIntervalRow}>
-          <ThemedText type="small" themeColor="textSecondary">
-            every
-          </ThemedText>
-          <TextInput
-            value={String(interval)}
-            onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
-            keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
-          />
-          <ThemedText type="small" themeColor="textSecondary">
-            {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
-          </ThemedText>
-        </View>
-      )}
-      {freq === 'weekly' && (
-        <View style={styles.chipRow}>
-          {WEEKDAY_LABELS.map((label, i) => {
-            const active = daysOfWeek.includes(i);
-            return (
-              <Pressable
-                key={i}
-                onPress={() => toggleDay(i)}
-                style={[styles.weekdayChip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-                <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
 }
 
 function EditReminderForm({
@@ -1013,7 +933,4 @@ const styles = StyleSheet.create({
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
-  recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
-  intervalInput: { width: 44, borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
-  weekdayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
 });
