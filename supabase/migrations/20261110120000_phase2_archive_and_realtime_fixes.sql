@@ -104,6 +104,20 @@ end $$;
 -- without replica identity full.
 
 -- ---------------------------------------------------------------------------
+-- 4. push_tokens carries the device's timezone
+-- ---------------------------------------------------------------------------
+-- The daily digest asks "what is due today". Server-side that question has no
+-- answer without the user's zone: the cron's own clock is UTC, so for everyone
+-- outside Greenwich it was reading the wrong calendar day for part of every
+-- day. The zone is recorded per device, refreshed on each registration, so it
+-- follows the user when they travel; `seen_at` is what makes "most recently
+-- used device" answerable, since created_at is deliberately preserved across
+-- re-registrations.
+
+alter table public.push_tokens add column if not exists time_zone text;
+alter table public.push_tokens add column if not exists seen_at timestamptz;
+
+-- ---------------------------------------------------------------------------
 -- Still open after this migration (code, not schema — tracked on #35)
 -- ---------------------------------------------------------------------------
 --   * No server-side writer is ported: all 11 apps/web/src/lib/server/* modules

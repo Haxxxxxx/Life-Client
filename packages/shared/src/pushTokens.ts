@@ -1,4 +1,5 @@
 import { type Firestore, collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
+import { currentTimeZone } from "./timezone";
 import type { PushToken } from "./types";
 
 function pushTokensCollection(db: Firestore, uid: string) {
@@ -28,7 +29,13 @@ export async function registerExpoPushToken(db: Firestore, uid: string, expoPush
   const id = tokenDocId(expoPushToken);
   await setDoc(
     doc(pushTokensCollection(db, uid), id),
-    { platform: "expo", expoPushToken, createdAt: new Date().toISOString() } satisfies Omit<PushToken, "id">,
+    {
+      platform: "expo",
+      expoPushToken,
+      createdAt: new Date().toISOString(),
+      timeZone: currentTimeZone(),
+      seenAt: new Date().toISOString(),
+    } satisfies Omit<PushToken, "id">,
     // merge so a re-register on every app start refreshes the doc rather than
     // rewriting createdAt as if the device had just been seen for the first time.
     { merge: true },
@@ -51,10 +58,17 @@ export async function registerWebPushSubscription(
   const id = tokenDocId(subscription.endpoint);
   await setDoc(
     doc(pushTokensCollection(db, uid), id),
-    { platform: "web", webSubscription: subscription, createdAt: new Date().toISOString() } satisfies Omit<
-      PushToken,
-      "id"
-    >,
+    {
+      platform: "web",
+      webSubscription: subscription,
+      createdAt: new Date().toISOString(),
+      timeZone: currentTimeZone(),
+      seenAt: new Date().toISOString(),
+    } satisfies Omit<PushToken, "id">,
+    // merge for the same reason the Expo registration does: re-subscribing on
+    // every page load otherwise rewrites createdAt as if the browser had just
+    // been seen for the first time. seenAt is the field that tracks that.
+    { merge: true },
   );
 }
 

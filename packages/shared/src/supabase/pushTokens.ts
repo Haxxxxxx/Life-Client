@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { currentTimeZone } from "../timezone";
 import type { PushToken } from "../types";
 
 /** Same FNV-1a hash as the Firestore module — a re-registered device overwrites
@@ -22,6 +23,8 @@ export async function registerExpoPushTokenSb(
     user_id: userId,
     platform: "expo",
     expo_push_token: expoPushToken,
+    time_zone: currentTimeZone() ?? null,
+    seen_at: new Date().toISOString(),
   });
   if (error) throw new Error(error.message);
 }
@@ -36,6 +39,8 @@ export async function registerWebPushSubscriptionSb(
     user_id: userId,
     platform: "web",
     web_subscription: subscription,
+    time_zone: currentTimeZone() ?? null,
+    seen_at: new Date().toISOString(),
   });
   if (error) throw new Error(error.message);
 }
@@ -61,5 +66,7 @@ export async function listPushTokensSb(client: SupabaseClient, userId: string): 
     expoPushToken: (r.expo_push_token as string | null) ?? undefined,
     webSubscription: (r.web_subscription as PushToken["webSubscription"]) ?? undefined,
     createdAt: r.created_at as string,
+    timeZone: (r.time_zone as string | null) ?? undefined,
+    seenAt: (r.seen_at as string | null) ?? undefined,
   }));
 }

@@ -25,7 +25,7 @@ import type {
 } from "@life-client/shared";
 import { adminDb } from "./admin";
 import { forEachUser, type FanOutResult } from "./fanOut";
-import { setIntegrationStatus } from "./integrationStatus";
+import { briefProviderError, setIntegrationStatus } from "./integrationStatus";
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
 
@@ -308,13 +308,43 @@ function mapGitlabChecks(status: string | undefined): PrCheckStatus {
   }
 }
 
+// GitLab's maximum is 100; the previous 50 was one unpaged page, so a user
+// with more open merge requests than that simply never saw the rest mirrored
+// into tasks.
+const GITLAB_PER_PAGE = 100;
+// Bounds one invocation. These are open MRs, so the list is naturally small —
+// the cap is a guard against a pathological account, not a backfill limit.
+const GITLAB_MAX_PAGES = 10;
+
 async function fetchGitlabMRList(accessToken: string, scope: string): Promise<GitlabMergeRequest[]> {
-  const response = await fetch(
-    `https://gitlab.com/api/v4/merge_requests?scope=${scope}&state=opened&per_page=50&with_labels_details=false`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
-  if (!response.ok) throw new Error(`GitLab MR fetch (${scope}) failed: ${response.status} ${await response.text()}`);
-  return (await response.json()) as GitlabMergeRequest[];
+  const all: GitlabMergeRequest[] = [];
+
+  for (let page = 1; page <= GITLAB_MAX_PAGES; page++) {
+    const url = new URL("https://gitlab.com/api/v4/merge_requests");
+    url.searchParams.set("scope", scope);
+    url.searchParams.set("state", "opened");
+    url.searchParams.set("per_page", String(GITLAB_PER_PAGE));
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("with_labels_details", "false");
+
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!response.ok) {
+      throw new Error(
+        `GitLab MR fetch (${scope}) failed: ${briefProviderError(response.status, await response.text())}`,
+      );
+    }
+    const batch = (await response.json()) as GitlabMergeRequest[];
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    all.push(...batch);
+
+    // GitLab reports the next page in a header and leaves it empty on the
+    // last one. Falling back to a short page covers a proxy that strips it.
+    const nextPage = response.headers.get("x-next-page");
+    if (nextPage === null || nextPage === "") break;
+    if (batch.length < GITLAB_PER_PAGE) break;
+  }
+
+  return all;
 }
 
 /** GitLab's list endpoint doesn't include the pipeline, so pull the head pipeline
