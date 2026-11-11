@@ -2,11 +2,12 @@
 
 import {
   TRANSACTION_CATEGORIES,
+  countPerDay,
   goalStatusCounts,
+  lastNDays,
   monthKey,
   monthlyMoneyTrend,
   taskCompletedIso,
-  toDateStr,
   type Goal,
   type GoalStatus,
   type SportActivity,
@@ -129,24 +130,7 @@ function Donut({
   );
 }
 
-/** The last `count` local calendar days, oldest first, as YYYY-MM-DD. */
-function lastNDays(count: number): string[] {
-  const now = new Date();
-  return Array.from({ length: count }, (_, i) =>
-    toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (count - 1 - i))),
-  );
-}
 
-/** Counts ISO timestamps per local day, index-aligned with `days`. */
-function countPerDay(timestamps: string[], days: string[]): number[] {
-  const index = new Map(days.map((d, i) => [d, i]));
-  const counts = days.map(() => 0);
-  for (const ts of timestamps) {
-    const i = index.get(toDateStr(new Date(ts)));
-    if (i !== undefined) counts[i]! += 1;
-  }
-  return counts;
-}
 
 function parseLocalDay(day: string): Date {
   const [y, m, d] = day.split("-").map(Number);

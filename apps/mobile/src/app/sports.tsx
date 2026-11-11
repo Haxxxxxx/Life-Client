@@ -2,14 +2,17 @@ import {
   ENDURANCE_EXERCISE_PRESETS,
   STRENGTH_EXERCISE_PRESETS,
   canonicalExerciseType,
+  computeChallengeMilestones,
+  computeChallengeProgress,
+  createChallenge,
+  formatDistance,
+  formatDuration,
+  toDateStr,
+  updateChallenge,
   type Challenge,
   type ChallengeMetric,
   type SportActivity,
   type SportActivityKind,
-  computeChallengeMilestones,
-  computeChallengeProgress,
-  createChallenge,
-  updateChallenge,
 } from '@life-client/shared';
 import {
   data,
@@ -32,17 +35,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { confirmDestructive } from '@/lib/confirm';
 
-function formatDistance(meters?: number): string {
-  if (!meters) return '—';
-  return `${(meters / 1000).toFixed(2)} km`;
-}
 
-function formatDuration(seconds?: number): string {
-  if (!seconds) return '—';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.round((seconds % 3600) / 60);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
 
 interface LogInput {
   kind: SportActivityKind;
@@ -245,11 +238,6 @@ function buildChallengeTitle(durationDays: number, metric: ChallengeMetric, dail
   return `${durationDays} Days of ${target}${metric === 'distanceMeters' ? 'km' : ''} ${type}`;
 }
 
-function todayLocalDate(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
 
 const TREND_WEEKS = 12;
 // A sane upper bound: a year-1000 start date made dateRange iterate about
@@ -287,7 +275,7 @@ function weeklySessions(activities: SportActivity[], weeks: number): { start: Da
 // covers one exercise type against its target, so this isn't a duplicate of it.
 function WeeklyActivityChart({ activities }: { activities: SportActivity[] }) {
   const theme = useTheme();
-  const today = todayLocalDate();
+  const today = toDateStr(new Date());
   // today isn't read in the callback below, but weeklySessions computes its "current
   // week" bucket from `new Date()` internally, so it's a real (if invisible-to-the-linter)
   // dependency — without it the memo stays stale until `activities` itself changes.
@@ -327,7 +315,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
   const [metric, setMetric] = useState<ChallengeMetric>('distanceMeters');
   const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET_FOR_METRIC.distanceMeters);
   const [durationDays, setDurationDays] = useState('100');
-  const [startDate, setStartDate] = useState(todayLocalDate());
+  const [startDate, setStartDate] = useState(toDateStr(new Date()));
   const [formError, setFormError] = useState<string | null>(null);
 
   const type = customType.trim() || exerciseType;
@@ -499,7 +487,7 @@ function ChallengeCard({
   const theme = useTheme();
   const progress = computeChallengeProgress(challenge, activities);
   const milestones = computeChallengeMilestones(challenge, progress);
-  const today = todayLocalDate();
+  const today = toDateStr(new Date());
   const todayEntry = progress.days.find((d) => d.date === today);
   const canLogToday = !progress.isFinished && challenge.startDate <= today && !todayEntry?.completed;
 

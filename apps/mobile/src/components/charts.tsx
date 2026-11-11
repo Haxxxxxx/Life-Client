@@ -1,4 +1,4 @@
-import { toDateStr } from '@life-client/shared';
+import { countPerDay, lastNDays } from '@life-client/shared';
 import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { BarChart, PieChart, type barDataItem, type stackDataItem } from 'react-native-gifted-charts';
@@ -14,24 +14,7 @@ export function withAlpha(hex: string, alpha: number): string {
   return `${hex.slice(0, 7)}${byte.toString(16).padStart(2, '0')}`;
 }
 
-/** The last `count` local calendar days (oldest first) as YYYY-MM-DD, matching toDateStr bucketing. */
-export function lastNDays(count: number, now: Date = new Date()): string[] {
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (count - 1 - i));
-    return toDateStr(d);
-  });
-}
 
-/** Counts ISO timestamps per local day, index-aligned with `days` (from lastNDays). */
-export function countPerDay(timestamps: string[], days: string[]): number[] {
-  const index = new Map(days.map((d, i) => [d, i]));
-  const counts = days.map(() => 0);
-  for (const ts of timestamps) {
-    const i = index.get(toDateStr(new Date(ts)));
-    if (i !== undefined) counts[i]! += 1;
-  }
-  return counts;
-}
 
 // A single narrow-format letter collides for two weekday pairs in English
 // (Tue/Thu both "T", Sat/Sun both "S") — a 2-letter prefix of the short name
@@ -248,3 +231,8 @@ const styles = StyleSheet.create({
   donutCaption: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   donutLegend: { flex: 1, minWidth: 0 },
 });
+
+// Re-exported so the screens that import these from this module keep working.
+// The implementations moved to packages/shared, where apps/web shares them
+// and they are unit-tested.
+export { countPerDay, lastNDays };

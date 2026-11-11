@@ -5,6 +5,7 @@ import {
   computeBudgetStatus,
   computeMonthlySpend,
   describeRecurrence,
+  formatMoney,
   monthKey,
   nextOccurrenceDate,
   toDateStr,
@@ -29,9 +30,6 @@ const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.i
   string
 >;
 
-function formatMoney(amount: number): string {
-  return amount.toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
 
 function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => void }) {
   const [type, setType] = useState<TransactionType>("expense");

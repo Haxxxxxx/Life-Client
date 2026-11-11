@@ -3,14 +3,17 @@
 import {
   ENDURANCE_EXERCISE_PRESETS,
   STRENGTH_EXERCISE_PRESETS,
+  computeChallengeMilestones,
+  computeChallengeProgress,
+  createChallenge,
+  formatDistance,
+  formatDuration,
+  toDateStr,
+  updateChallenge,
   type Challenge,
   type ChallengeMetric,
   type SportActivity,
   type SportActivityKind,
-  computeChallengeMilestones,
-  computeChallengeProgress,
-  createChallenge,
-  updateChallenge,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import Link from "next/link";
@@ -23,17 +26,7 @@ import { useAuth } from "@/lib/auth-context";
 // when older weeks may be cut off by the listener's cap.
 const ACTIVITY_LIMIT = 50;
 
-function formatDistance(meters?: number): string {
-  if (!meters) return "—";
-  return `${(meters / 1000).toFixed(2)} km`;
-}
 
-function formatDuration(seconds?: number): string {
-  if (!seconds) return "—";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.round((seconds % 3600) / 60);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
 
 function LogActivityForm({
   onSubmit,
@@ -220,11 +213,6 @@ function buildChallengeTitle(durationDays: number, metric: ChallengeMetric, dail
   return `${durationDays} Days of ${target}${metric === "distanceMeters" ? "km" : ""} ${type}`;
 }
 
-function todayLocalDate(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
 
 function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof createChallenge>[2]) => void }) {
   const [kind, setKind] = useState<SportActivityKind>("endurance");
@@ -233,7 +221,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
   const [metric, setMetric] = useState<ChallengeMetric>("distanceMeters");
   const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET_FOR_METRIC.distanceMeters);
   const [durationDays, setDurationDays] = useState(100);
-  const [startDate, setStartDate] = useState(todayLocalDate());
+  const [startDate, setStartDate] = useState(toDateStr(new Date()));
 
   const type = customType.trim() || exerciseType;
   const presets = kind === "endurance" ? ENDURANCE_EXERCISE_PRESETS : STRENGTH_EXERCISE_PRESETS;
@@ -372,7 +360,7 @@ function ChallengeCard({
   onSave: (patch: Parameters<typeof updateChallenge>[3]) => void;
   onLogToday: () => void;
 }) {
-  const today = todayLocalDate();
+  const today = toDateStr(new Date());
   // today isn't read in the callback below, but computeChallengeProgress defaults its
   // `now` param to `new Date()` internally, so it's a real (if invisible-to-the-linter)
   // dependency — without it the memo stays stale across a day boundary until

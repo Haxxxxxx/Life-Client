@@ -3,6 +3,8 @@ import {
   computeBudgetStatus,
   computeMonthlySpend,
   describeRecurrence,
+  formatMoney,
+  formatMoneyShort,
   monthKey,
   monthlyMoneyTrend,
   nextOccurrenceDate,
@@ -35,13 +37,7 @@ const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.i
   string
 >;
 
-function formatMoney(amount: number): string {
-  return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-}
 
-function formatMoneyShort(amount: number): string {
-  return amount.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-}
 
 const DONUT_TINTS = [1, 0.72, 0.5, 0.34, 0.22];
 const DONUT_MAX_SLICES = DONUT_TINTS.length;
