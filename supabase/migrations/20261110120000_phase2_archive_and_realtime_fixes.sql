@@ -4,11 +4,47 @@
 -- `supabase migration up`) only after reading the backfill note on §1, which
 -- is the one step that is not safely re-runnable by accident.
 --
--- Everything here is idempotent: `if not exists`, `add column if not exists`,
--- and guarded DO blocks, so a partial run can be repeated.
+-- Everything here is idempotent with respect to its own effects: `if not
+-- exists`, `add column if not exists`, and guarded DO blocks, so a partial run
+-- can be repeated.
+--
+-- It is NOT, however, safe against the prior phases being unapplied — every
+-- statement below assumes its table already exists, and would otherwise fail
+-- partway with a bare `relation ... does not exist` naming whichever table the
+-- loop happened to reach first. The preflight check turns that into one
+-- actionable message before anything is altered. It deliberately raises rather
+-- than skipping: a migration that silently does nothing and reports success is
+-- the same failure mode as a secret check that passes when the secret is
+-- unset.
 --
 -- Three problems, all found by diffing the Supabase layer against the Firestore
 -- one module by module. None of them can be fixed in TypeScript.
+
+-- ---------------------------------------------------------------------------
+-- 0. Preflight — refuse to run against a database missing the earlier phases
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  required text[] := array[
+    'tasks','push_tokens','goals','challenges','reminders','transactions',
+    'budgets','vice_logs','reading_list','vocab_words','code_drills'
+  ];
+  missing text[];
+  t text;
+begin
+  foreach t in array required loop
+    if to_regclass(format('public.%I', t)) is null then
+      missing := array_append(missing, t);
+    end if;
+  end loop;
+
+  if array_length(missing, 1) > 0 then
+    raise exception
+      'Phase 2 cannot apply: missing table(s) %. Apply the phase 0 and phase 1 migrations (20260908*.sql) first, then re-run this one.',
+      array_to_string(missing, ', ');
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- 1. tasks is missing `archived` and `completed_at`
