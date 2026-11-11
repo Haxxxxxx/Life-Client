@@ -9,6 +9,7 @@ export * from "./calendar";
 export * from "./calendarApi";
 export * from "./characteristics";
 export * from "./reminders";
+export * from "./timezone";
 export * from "./knowledge";
 export * from "./numericInput";
 export * from "./knowledgeApi";

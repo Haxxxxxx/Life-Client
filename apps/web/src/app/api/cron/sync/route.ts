@@ -78,8 +78,12 @@ export async function GET(req: NextRequest) {
   // Runs after syncing so the digest reflects freshly-synced data. A failure
   // here shouldn't mark the whole cron run as failed.
   let digestFailed = false;
+  let digestUserFailures = 0;
   try {
-    await sendDailyDigests();
+    // Per-user failures are isolated inside the fan-out and come back as a
+    // tally; `digestFailed` now means only that the sweep itself blew up, e.g.
+    // listing the users with devices failed.
+    digestUserFailures = (await sendDailyDigests()).failed;
   } catch (err) {
     digestFailed = true;
     console.error("cron/sync: sendDailyDigests failed", err);
@@ -93,6 +97,10 @@ export async function GET(req: NextRequest) {
     providerFailures,
     userFailures,
     digestFailed,
+    // Reported but deliberately not folded into `ok`: a digest is a courtesy
+    // notification, and failing the whole cron run over one would mask the
+    // sync result that actually matters.
+    digestUserFailures,
     archived,
   };
   return NextResponse.json(body, { status: body.ok ? 200 : 500 });

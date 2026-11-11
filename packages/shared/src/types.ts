@@ -574,6 +574,15 @@ export interface PushToken {
   expoPushToken?: string; // set when platform === "expo"
   webSubscription?: { endpoint: string; keys: { p256dh: string; auth: string } }; // set when platform === "web"
   createdAt: string;
+  /**
+   * The device's IANA zone, refreshed on every registration so it follows the
+   * user when they travel. Server crons reason about "today" in this zone
+   * rather than the UTC one they actually run on. Absent for tokens written
+   * before this field existed, and by a runtime without Intl.
+   */
+  timeZone?: string;
+  /** Last registration, i.e. last app start on this device — distinct from createdAt, which a merge preserves. Used to pick the zone the user is actually in. */
+  seenAt?: string;
 }
 
 // ---- Money ----

@@ -17,6 +17,13 @@ export interface IntegrationStatusPatch {
   connectedAt?: string;
   lastSyncAt?: string;
   lastError?: string;
+  /**
+   * Where the last successful sync got to, in whatever form the provider's
+   * API wants back — Strava takes epoch seconds, Spotify a millisecond
+   * cursor. Stored per provider so a sweep resumes instead of re-fetching the
+   * same newest page forever and never reaching what it missed.
+   */
+  syncCursor?: string;
 }
 
 export async function setIntegrationStatus(
@@ -38,4 +45,34 @@ export async function setIntegrationStatus(
       shouldClearError ? { ...patch, lastError: FieldValue.delete() } : patch,
       { merge: true },
     );
+}
+
+/** The cursor the last successful sync stored, or undefined on a first run. */
+export async function getSyncCursor(
+  uid: string,
+  provider: IntegrationProvider,
+): Promise<string | undefined> {
+  const snapshot = await adminDb
+    .collection("users")
+    .doc(uid)
+    .collection("integrations")
+    .doc(provider)
+    .get();
+  const cursor = snapshot.data()?.syncCursor;
+  return typeof cursor === "string" && cursor !== "" ? cursor : undefined;
+}
+
+/**
+ * A provider's error body, trimmed for storage in `lastError`.
+ *
+ * That field is rendered verbatim on the Integrations page, and an upstream
+ * error body is arbitrary third-party text of arbitrary length — an HTML error
+ * page in the worst case. Bounding it keeps one bad response from bloating the
+ * document and from filling the UI with markup.
+ */
+export function briefProviderError(status: number, body: string): string {
+  const flattened = body.replace(/\s+/g, " ").trim();
+  const MAX = 200;
+  const text = flattened.length > MAX ? `${flattened.slice(0, MAX)}…` : flattened;
+  return text ? `${status} ${text}` : String(status);
 }

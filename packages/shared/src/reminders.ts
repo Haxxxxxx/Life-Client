@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
+import { daysUntilInZone } from "./timezone";
 import type { NewReminder, Reminder } from "./types";
 
 function remindersCollection(db: Firestore, uid: string) {
@@ -99,6 +100,29 @@ export function reminderUrgency(deadline: string, now: Date = new Date()): Remin
   // 09:00 today, even though both fall on the same calendar day.
   if (target.getTime() < now.getTime()) return "overdue";
   const days = daysUntil(deadline, now);
+  if (days === 0) return "due-today";
+  if (days <= DUE_SOON_DAYS) return "due-soon";
+  return "upcoming";
+}
+
+/**
+ * `reminderUrgency` for a caller whose own clock is not the user's.
+ *
+ * Server-side code runs on a UTC process clock, so the local-getter version
+ * buckets against UTC's calendar day: a reminder due "today" in Tokyo reads as
+ * due tomorrow for the nine hours that Tokyo is already into the next date,
+ * and the daily digest silently omits it. Overdue stays instant-based and so
+ * needs no zone — 08:00 is past at 09:00 everywhere at once.
+ */
+export function reminderUrgencyInZone(
+  deadline: string,
+  timeZone: string,
+  now: Date = new Date(),
+): ReminderUrgency {
+  const target = new Date(deadline);
+  if (Number.isNaN(target.getTime())) return "upcoming";
+  if (target.getTime() < now.getTime()) return "overdue";
+  const days = daysUntilInZone(deadline, timeZone, now);
   if (days === 0) return "due-today";
   if (days <= DUE_SOON_DAYS) return "due-soon";
   return "upcoming";
