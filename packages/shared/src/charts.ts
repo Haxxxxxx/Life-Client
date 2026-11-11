@@ -152,3 +152,16 @@ export function countPerDay(timestamps: string[], days: string[]): number[] {
   }
   return counts;
 }
+
+/**
+ * Local midnight on the Monday of `date`'s week.
+ *
+ * `(getDay() + 6) % 7` maps Sunday (0) to 6 and Monday (1) to 0, which is what
+ * makes the week start on Monday rather than Sunday. Rebuilding from
+ * year/month/day drops the time component without touching the instant's zone.
+ */
+export function startOfWeek(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}

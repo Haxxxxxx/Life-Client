@@ -1,6 +1,9 @@
 import {
   createCalendarEvent,
   deleteCalendarEvent,
+  isAllDay,
+  timeRangeLabel,
+  toDatetimeLocalValue,
   updateCalendarEvent,
   type CalendarEvent,
 } from '@life-client/shared';
@@ -12,14 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ErrorBanner } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { webApiClient } from '@/lib/webApiClient';
 
-function isAllDay(event: CalendarEvent): boolean {
-  return !event.start.includes('T');
-}
 
 // Deleting a past event through Google's API is unreliable (already-elapsed
 // events can fail in ways that surface as a 500) and there's no real need to
@@ -58,22 +58,12 @@ function dayLabel(key: string): string {
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
-function timeRangeLabel(event: CalendarEvent): string {
-  if (isAllDay(event)) return 'All day';
-  const start = new Date(event.start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  const end = new Date(event.end).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  return `${start} – ${end}`;
-}
 
 interface EventGroup {
   key: string;
   events: CalendarEvent[];
 }
 
-function toDatetimeLocalValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function parseDatetimeLocalValue(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value.trim());
@@ -317,7 +307,7 @@ export default function AgendaScreen() {
                         </Pressable>
                       )}
                       <Pressable onPress={() => handleDelete(event.id)}>
-                        <ThemedText type="small" style={styles.deleteText}>
+                        <ThemedText type="small" themeColor="danger">
                           Delete
                         </ThemedText>
                       </Pressable>
@@ -357,7 +347,6 @@ const styles = StyleSheet.create({
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
   openButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   openButtonText: { fontWeight: '700', textTransform: 'uppercase' },
-  deleteText: { color: Colors.dark.danger },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginBottom: Spacing.three },
   input: {
     borderWidth: 1,
