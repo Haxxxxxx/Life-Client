@@ -1,8 +1,10 @@
 -- Phase 2 — the schema half of the Supabase gap list (issue #35).
 --
--- DRAFT: reviewed but NOT applied. Apply with `supabase db push` (or
--- `supabase migration up`) only after reading the backfill note on §1, which
--- is the one step that is not safely re-runnable by accident.
+-- APPLIED 2026-11-11 to LifeClient (asdcvunofndmetrhcazs, production), via
+-- `supabase db push`, together with phases 0 and 1 — the migration history
+-- table was empty before that push, so none of the earlier phases had ever
+-- been applied either. See the backfill note on §1, which is the one step that
+-- is not safely re-runnable by accident.
 --
 -- Everything here is idempotent with respect to its own effects: `if not
 -- exists`, `add column if not exists`, and guarded DO blocks, so a partial run
