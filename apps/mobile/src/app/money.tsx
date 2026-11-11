@@ -27,7 +27,7 @@ import { ErrorBanner } from '@/components/ui';
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { confirmDestructive } from '@/lib/confirm';
@@ -390,7 +390,7 @@ export default function MoneyScreen() {
                           })
                         }
                         hitSlop={8}>
-                        <ThemedText type="small" style={styles.deleteText}>
+                        <ThemedText type="small" themeColor="danger">
                           Delete
                         </ThemedText>
                       </Pressable>
@@ -460,7 +460,7 @@ export default function MoneyScreen() {
                       })
                     }
                     hitSlop={8}>
-                    <ThemedText type="small" style={styles.deleteText}>
+                    <ThemedText type="small" themeColor="danger">
                       Delete
                     </ThemedText>
                   </Pressable>
@@ -513,7 +513,6 @@ const styles = StyleSheet.create({
   budgetCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   progressTrack: { height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },
-  deleteText: { color: Colors.dark.danger },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   row: {

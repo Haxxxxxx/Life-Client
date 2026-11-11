@@ -26,13 +26,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorBanner } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { knowledgeApiClient } from '@/lib/knowledgeClient';
 
-const CORRECT_COLOR = Colors.dark.success;
-const INCORRECT_COLOR = Colors.dark.danger;
 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -132,7 +130,7 @@ function DailyLessonSection() {
           </Pressable>
         </ThemedView>
       )}
-      {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
     </View>
   );
 }
@@ -186,7 +184,7 @@ function DrillCard({
     }
   }
 
-  const resultColor = result?.correct ? CORRECT_COLOR : INCORRECT_COLOR;
+  const resultColor = result?.correct ? theme.success : theme.danger;
 
   return (
     <ThemedView type="backgroundElement" style={[styles.listCard, { borderColor: theme.border }]}>
@@ -201,7 +199,7 @@ function DrillCard({
             {drill.topic}
           </ThemedText>
           <Pressable onPress={onDelete} disabled={deleting}>
-            <ThemedText type="code" style={styles.errorText}>
+            <ThemedText type="code" themeColor="danger">
               {deleting ? 'Deleting…' : 'Delete'}
             </ThemedText>
           </Pressable>
@@ -252,7 +250,7 @@ function DrillCard({
         </View>
       )}
 
-      {error && <ThemedText style={[styles.errorText, styles.spacedTop]}>{error}</ThemedText>}
+      {error && <ThemedText themeColor="danger" style={styles.spacedTop}>{error}</ThemedText>}
 
       {result && (
         <View style={[styles.resultBox, { borderColor: resultColor, backgroundColor: `${resultColor}1A` }]}>
@@ -308,7 +306,7 @@ function PastDrillRow({
   deleting: boolean;
 }) {
   const theme = useTheme();
-  const scoreColor = drill.graded ? (drill.correct ? CORRECT_COLOR : INCORRECT_COLOR) : theme.textSecondary;
+  const scoreColor = drill.graded ? (drill.correct ? theme.success : theme.danger) : theme.textSecondary;
   return (
     <View style={[styles.pastDrillRow, { borderColor: theme.border }]}>
       <View style={styles.flex1}>
@@ -332,7 +330,7 @@ function PastDrillRow({
           </ThemedText>
         )}
         <Pressable onPress={onDelete} disabled={deleting}>
-          <ThemedText type="code" style={styles.errorText}>
+          <ThemedText type="code" themeColor="danger">
             {deleting ? '…' : 'Delete'}
           </ThemedText>
         </Pressable>
@@ -415,7 +413,7 @@ function CodeDrillsSection({ drills, loaded }: { drills: CodeDrill[]; loaded: bo
           </ThemedText>
         </Pressable>
       </View>
-      {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
       <View style={styles.list}>
         {drills[0] ? (
           <DrillCard
@@ -473,7 +471,7 @@ function VocabCard({ w }: { w: VocabWord }) {
     }
   }
 
-  const resultColor = result?.correct ? CORRECT_COLOR : INCORRECT_COLOR;
+  const resultColor = result?.correct ? theme.success : theme.danger;
 
   return (
     <ThemedView type="backgroundElement" style={[styles.listCard, { borderColor: theme.border }]}>
@@ -521,7 +519,7 @@ function VocabCard({ w }: { w: VocabWord }) {
             {submitting ? 'Checking…' : 'Check my sentence'}
           </ThemedText>
         </Pressable>
-        {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+        {error && <ThemedText themeColor="danger">{error}</ThemedText>}
         {result && (
           <View style={[styles.resultBox, { borderColor: resultColor, backgroundColor: `${resultColor}1A` }]}>
             <ThemedText type="code" style={{ color: resultColor }}>
@@ -543,7 +541,7 @@ function DictionaryEntry({ w }: { w: VocabWord }) {
     <View style={[styles.dictionaryEntry, { borderColor: theme.border }]}>
       <View style={styles.rowBetween}>
         <ThemedText type="smallBold">{w.word}</ThemedText>
-        <ThemedText type="code" style={{ color: CORRECT_COLOR }}>
+        <ThemedText type="code" style={{ color: theme.success }}>
           Learned
         </ThemedText>
       </View>
@@ -601,7 +599,7 @@ function VocabularySection({ words }: { words: VocabWord[] }) {
           </ThemedText>
         </Pressable>
       </View>
-      {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
       <View style={styles.list}>
         {activeWords.map((w) => (
           <VocabCard key={w.id} w={w} />
@@ -689,7 +687,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
           <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add</ThemedText>
         </Pressable>
       </View>
-      {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
       <View style={styles.list}>
         {items.map((item) => (
           <ThemedView key={item.id} type="backgroundElement" style={[styles.listCard, { borderColor: theme.border }]}>
@@ -716,7 +714,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
                 {'•'} {t}
               </ThemedText>
             ))}
-            {item.status === 'error' && <ThemedText style={styles.errorText}>{item.error}</ThemedText>}
+            {item.status === 'error' && <ThemedText themeColor="danger">{item.error}</ThemedText>}
             <View style={[styles.rowBetween, styles.spacedTop]}>
               {(item.status === 'pending' || item.status === 'error') && (
                 <Pressable
@@ -734,7 +732,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
                 </Pressable>
               )}
               <Pressable onPress={() => user && data.deleteReadingListItem(user.uid, item.id)}>
-                <ThemedText type="small" style={styles.errorText}>
+                <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
               </Pressable>
@@ -857,7 +855,6 @@ const styles = StyleSheet.create({
   spacedTop: { marginTop: Spacing.two },
   formGap: { gap: Spacing.two },
   italic: { fontStyle: 'italic' },
-  errorText: { color: INCORRECT_COLOR },
   lessonGrid: { gap: Spacing.two },
   lessonCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.half },
   cardLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },

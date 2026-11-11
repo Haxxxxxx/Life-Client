@@ -36,7 +36,7 @@ import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ErrorBanner, SkeletonList } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { confirmDestructive } from '@/lib/confirm';
@@ -563,7 +563,7 @@ function ChallengeCard({
               </ThemedText>
             </Pressable>
             <Pressable onPress={onDelete}>
-              <ThemedText type="small" style={styles.deleteText}>
+              <ThemedText type="small" themeColor="danger">
                 Delete
               </ThemedText>
             </Pressable>
@@ -918,7 +918,7 @@ export default function SportsScreen() {
                 )}
                 {item.provider === 'manual' && user && (
                   <Pressable onPress={() => data.deleteSportActivity(user.uid, item.id)}>
-                    <ThemedText type="small" style={styles.deleteText}>
+                    <ThemedText type="small" themeColor="danger">
                       Delete
                     </ThemedText>
                   </Pressable>
@@ -955,7 +955,6 @@ const styles = StyleSheet.create({
   info: { flex: 1, gap: 2, minWidth: 0 },
   stats: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   stat: { alignItems: 'flex-end' },
-  deleteText: { color: Colors.dark.danger },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginTop: Spacing.three },
   chipRow: { flexDirection: 'row', gap: Spacing.one },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },

@@ -25,7 +25,7 @@ import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SkeletonList } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { confirmDestructive } from '@/lib/confirm';
@@ -460,7 +460,7 @@ export default function TasksScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`Delete task ${item.title}`}
                     style={styles.deleteButton}>
-                    <ThemedText type="small" style={styles.deleteText}>
+                    <ThemedText type="small" themeColor="danger">
                       Delete
                     </ThemedText>
                   </Pressable>
@@ -531,5 +531,4 @@ const styles = StyleSheet.create({
   taskActions: { gap: Spacing.one, alignItems: 'flex-end' },
   pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  deleteText: { color: Colors.dark.danger },
 });

@@ -40,7 +40,7 @@ import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ErrorBanner, SkeletonList } from '@/components/ui';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -190,7 +190,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
             </ThemedText>
           </Pressable>
           <Pressable onPress={bulkDelete}>
-            <ThemedText type="small" style={styles.deleteText}>
+            <ThemedText type="small" themeColor="danger">
               Delete
             </ThemedText>
           </Pressable>
@@ -227,7 +227,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
               </Pressable>
             )}
             <Pressable onPress={() => db && data.deleteTask(uid, task.id)}>
-              <ThemedText type="small" style={styles.deleteText}>
+              <ThemedText type="small" themeColor="danger">
                 Delete
               </ThemedText>
             </Pressable>
@@ -281,7 +281,7 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
                 </ThemedText>
               </Pressable>
               <Pressable onPress={() => db && data.deleteGoal(uid, goal.id)}>
-                <ThemedText type="small" style={styles.deleteText}>
+                <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
               </Pressable>
@@ -341,7 +341,7 @@ function ChallengesSection({
                 </Pressable>
               )}
               <Pressable onPress={() => db && data.deleteChallenge(uid, challenge.id)}>
-                <ThemedText type="small" style={styles.deleteText}>
+                <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
               </Pressable>
@@ -624,7 +624,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                   </ThemedText>
                 </View>
                 <Pressable onPress={() => handleDelete(reminder)}>
-                  <ThemedText type="small" style={styles.deleteText}>
+                  <ThemedText type="small" themeColor="danger">
                     Delete
                   </ThemedText>
                 </Pressable>
@@ -920,7 +920,6 @@ const styles = StyleSheet.create({
   checkbox: { width: 16, height: 16, borderWidth: 1, borderRadius: 4 },
   renameInput: { borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   doneText: { textDecorationLine: 'line-through' },
-  deleteText: { color: Colors.dark.danger },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
   input: {
