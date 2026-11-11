@@ -232,7 +232,7 @@ export default function TasksScreen() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals);
+    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
   }, [user]);
 
   async function handleAdd() {

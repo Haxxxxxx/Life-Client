@@ -39,7 +39,7 @@ import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, wi
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { SkeletonList } from '@/components/ui';
+import { ErrorBanner, SkeletonList } from '@/components/ui';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -710,25 +710,34 @@ export default function DashboardScreen() {
   const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   useEffect(() => {
     if (!user) return;
+    // Every listener reports failure to the same place. None of these
+    // subscriptions passed an error callback, so a denied read or a dropped
+    // connection rendered as an empty page and stayed that way — claiming
+    // your data was empty when it had simply failed to arrive. ErrorBanner returns
+    // null for empty children, so this is invisible unless something is
+    // actually broken.
+    const onError = (error: Error) => setLoadError(error.message);
+
     const unsubs = [
       data.subscribeTasks(user.uid, (next) => {
         setTasks(next);
         setLoadedFor(user.uid);
-      }),
-      data.subscribeGoals(user.uid, setGoals),
-      data.subscribeChallenges(user.uid, setChallenges),
-      data.subscribeSportActivities(user.uid, setActivities),
-      data.subscribeCalendarEvents(user.uid, setEvents, undefined, 3),
-      data.subscribeDevActivity(user.uid, 'github', setGithub),
-      data.subscribeDevActivity(user.uid, 'gitlab', setGitlab),
-      data.subscribeReminders(user.uid, setReminders),
-      data.subscribeSpotifySummary(user.uid, setSpotify),
-      data.subscribeDailyLessons(user.uid, setLessons),
-      data.subscribeCodeDrills(user.uid, setDrills),
-      data.subscribeVocabWords(user.uid, setVocabWords),
-      data.subscribeReadingList(user.uid, setReadingItems),
+      }, onError),
+      data.subscribeGoals(user.uid, setGoals, onError),
+      data.subscribeChallenges(user.uid, setChallenges, onError),
+      data.subscribeSportActivities(user.uid, setActivities, onError),
+      data.subscribeCalendarEvents(user.uid, setEvents, onError, 3),
+      data.subscribeDevActivity(user.uid, 'github', setGithub, onError),
+      data.subscribeDevActivity(user.uid, 'gitlab', setGitlab, onError),
+      data.subscribeReminders(user.uid, setReminders, onError),
+      data.subscribeSpotifySummary(user.uid, setSpotify, onError),
+      data.subscribeDailyLessons(user.uid, setLessons, onError),
+      data.subscribeCodeDrills(user.uid, setDrills, onError),
+      data.subscribeVocabWords(user.uid, setVocabWords, onError),
+      data.subscribeReadingList(user.uid, setReadingItems, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -750,6 +759,7 @@ export default function DashboardScreen() {
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
+          <ErrorBanner>{loadError}</ErrorBanner>
           <View style={styles.header}>
             <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
               Overview

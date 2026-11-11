@@ -34,7 +34,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WeekActivityChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
+import { Alert, Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
 import { RecurrencePicker } from "@/components/recurrence-picker";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -607,6 +607,7 @@ export default function DashboardPage() {
    * user switch a stale `true` would show the previous account's rows as
    * settled.
    */
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loadedFor, setLoadedFor] = useState<Record<string, string>>({});
   const markLoaded = (key: string, uid: string) =>
     setLoadedFor((prev) => (prev[key] === uid ? prev : { ...prev, [key]: uid }));
@@ -615,29 +616,49 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     const uid = user.uid;
+    // Every listener reports failure to the same place. All thirteen
+    // subscriptions here passed no error callback, so a denied read or a
+    // dropped connection rendered as "No tasks yet." and stayed that way —
+    // the page claimed your data was empty when it had simply failed to
+    // arrive. Alert returns null for empty children, so this is invisible
+    // unless something is actually broken.
+    const onError = (error: Error) => setLoadError(error.message);
+
     const unsubs = [
-      data.subscribeTasks(uid, (next) => {
-        setTasks(next);
-        markLoaded("tasks", uid);
-      }),
-      data.subscribeGoals(uid, (next) => {
-        setGoals(next);
-        markLoaded("goals", uid);
-      }),
-      data.subscribeChallenges(uid, (next) => {
-        setChallenges(next);
-        markLoaded("challenges", uid);
-      }),
-      data.subscribeSportActivities(user.uid, setActivities),
-      data.subscribeCalendarEvents(user.uid, setEvents, undefined, 3),
-      data.subscribeDevActivity(user.uid, "github", setGithub),
-      data.subscribeDevActivity(user.uid, "gitlab", setGitlab),
-      data.subscribeReminders(user.uid, setReminders),
-      data.subscribeSpotifySummary(user.uid, setSpotify),
-      data.subscribeDailyLessons(user.uid, setLessons),
-      data.subscribeCodeDrills(user.uid, setDrills),
-      data.subscribeVocabWords(user.uid, setVocabWords),
-      data.subscribeReadingList(user.uid, setReadingItems),
+      data.subscribeTasks(
+        uid,
+        (next) => {
+          setTasks(next);
+          markLoaded("tasks", uid);
+        },
+        onError,
+      ),
+      data.subscribeGoals(
+        uid,
+        (next) => {
+          setGoals(next);
+          markLoaded("goals", uid);
+        },
+        onError,
+      ),
+      data.subscribeChallenges(
+        uid,
+        (next) => {
+          setChallenges(next);
+          markLoaded("challenges", uid);
+        },
+        onError,
+      ),
+      data.subscribeSportActivities(uid, setActivities, onError),
+      data.subscribeCalendarEvents(uid, setEvents, onError, 3),
+      data.subscribeDevActivity(uid, "github", setGithub, onError),
+      data.subscribeDevActivity(uid, "gitlab", setGitlab, onError),
+      data.subscribeReminders(uid, setReminders, onError),
+      data.subscribeSpotifySummary(uid, setSpotify, onError),
+      data.subscribeDailyLessons(uid, setLessons, onError),
+      data.subscribeCodeDrills(uid, setDrills, onError),
+      data.subscribeVocabWords(uid, setVocabWords, onError),
+      data.subscribeReadingList(uid, setReadingItems, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -657,6 +678,7 @@ export default function DashboardPage() {
 
   return (
     <div className={pageShellClassName("wide")}>
+      <Alert>{loadError}</Alert>
       <PageHeader
         eyebrow="Overview"
         title={`Welcome back${user.displayName ? `, ${user.displayName.split(" ")[0]}` : ""}`}

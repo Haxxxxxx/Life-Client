@@ -239,21 +239,30 @@ export default function ProfileScreen() {
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
   const [viceLogs, setViceLogs] = useState<ViceLog[]>([]);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   useEffect(() => {
     if (!user) return;
+    // Every listener reports failure to the same place. None of these
+    // subscriptions passed an error callback, so a denied read or a dropped
+    // connection rendered as an empty page and stayed that way — claiming
+    // your data was empty when it had simply failed to arrive. ErrorBanner returns
+    // null for empty children, so this is invisible unless something is
+    // actually broken.
+    const onError = (error: Error) => setLoadError(error.message);
+
     const unsubs = [
-      data.subscribeTasks(user.uid, setTasks),
-      data.subscribeSportActivities(user.uid, setActivities),
-      data.subscribeDevActivity(user.uid, 'github', setGithub),
-      data.subscribeDevActivity(user.uid, 'gitlab', setGitlab),
-      data.subscribeManualProgress(user.uid, 'focus', setFocusProgress),
-      data.subscribeManualProgress(user.uid, 'social', setSocialProgress),
-      data.subscribeSpotifySummary(user.uid, setSpotify),
-      data.subscribeDailyLessons(user.uid, setLessons),
-      data.subscribeCodeDrills(user.uid, setDrills),
-      data.subscribeVocabWords(user.uid, setVocabWords),
-      data.subscribeReadingList(user.uid, setReadingItems),
-      data.subscribeViceLogs(user.uid, setViceLogs),
+      data.subscribeTasks(user.uid, setTasks, onError),
+      data.subscribeSportActivities(user.uid, setActivities, onError),
+      data.subscribeDevActivity(user.uid, 'github', setGithub, onError),
+      data.subscribeDevActivity(user.uid, 'gitlab', setGitlab, onError),
+      data.subscribeManualProgress(user.uid, 'focus', setFocusProgress, onError),
+      data.subscribeManualProgress(user.uid, 'social', setSocialProgress, onError),
+      data.subscribeSpotifySummary(user.uid, setSpotify, onError),
+      data.subscribeDailyLessons(user.uid, setLessons, onError),
+      data.subscribeCodeDrills(user.uid, setDrills, onError),
+      data.subscribeVocabWords(user.uid, setVocabWords, onError),
+      data.subscribeReadingList(user.uid, setReadingItems, onError),
+      data.subscribeViceLogs(user.uid, setViceLogs, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -301,6 +310,7 @@ export default function ProfileScreen() {
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
+          <ErrorBanner>{loadError}</ErrorBanner>
           <ErrorBanner>{error}</ErrorBanner>
           <View style={styles.header}>
             <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>

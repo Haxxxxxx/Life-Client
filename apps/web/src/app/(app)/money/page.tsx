@@ -175,7 +175,7 @@ export default function MoneyPage() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeBudgets(user.uid, setBudgets);
+    return data.subscribeBudgets(user.uid, setBudgets, (err) => setError(err.message));
   }, [user]);
 
   async function handleAddTransaction(input: NewTransaction) {

@@ -59,7 +59,7 @@ export default function TasksPage() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals);
+    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
   }, [user]);
 
   async function handleAddTask(e: React.FormEvent) {

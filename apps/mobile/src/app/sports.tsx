@@ -817,7 +817,8 @@ export default function SportsScreen() {
     return data.subscribeSportActivities(user.uid, (next) => {
         setActivities(next);
         setLoadedFor(user.uid);
-      });
+      },
+      (err) => setError(err.message));
   }, [user]);
 
   async function handleLog(input: LogInput) {

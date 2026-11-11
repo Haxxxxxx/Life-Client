@@ -632,7 +632,7 @@ export default function SportsPage() {
         setActivities(a);
         setLoaded(true);
       },
-      undefined,
+      (err) => setError(err.message),
       ACTIVITY_LIMIT,
     );
   }, [user]);
