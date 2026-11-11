@@ -13,6 +13,9 @@ function task(id: string, archived?: boolean): Task {
     title: id,
     status: "done",
     priority: "medium",
+    // Required on Task. Its absence made the `as Task` cast unsound, which
+    // nothing noticed because packages/shared was never type-checked.
+    difficulty: "medium",
     category: "code",
     source: "manual",
     tags: [],

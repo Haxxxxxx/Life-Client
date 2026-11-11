@@ -12,6 +12,7 @@ import {
   formatDuration,
   formatMetricValue,
   metricUnitLabel,
+  startOfWeek,
   toDateStr,
   updateChallenge,
   type Challenge,
@@ -225,11 +226,6 @@ const TREND_WEEKS = 12;
 const MAX_CHALLENGE_DAYS = 3660;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function startOfWeek(date: Date): Date {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d;
-}
 
 function weeklySessions(activities: SportActivity[], weeks: number): { start: Date; endurance: number; strength: number }[] {
   const firstStart = startOfWeek(new Date());

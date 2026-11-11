@@ -1,6 +1,20 @@
 "use client";
 
 import {
+  computeChallengeProgress,
+  computeGoalProgress,
+  computeInsightXp,
+  daysUntil,
+  deleteReminderEverywhere,
+  describeRecurrence,
+  levelFromXp,
+  nextOccurrenceDate,
+  reminderUrgency,
+  syncReminderToCalendar,
+  toDatetimeLocalValue,
+  todayLessonId,
+  visibleGoals,
+  visibleTasks,
   type CalendarEvent,
   type Challenge,
   type CodeDrill,
@@ -15,19 +29,6 @@ import {
   type SpotifySummary,
   type Task,
   type VocabWord,
-  computeChallengeProgress,
-  computeGoalProgress,
-  computeInsightXp,
-  daysUntil,
-  deleteReminderEverywhere,
-  describeRecurrence,
-  levelFromXp,
-  nextOccurrenceDate,
-  reminderUrgency,
-  syncReminderToCalendar,
-  todayLessonId,
-  visibleGoals,
-  visibleTasks,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import Link from "next/link";
@@ -356,10 +357,6 @@ function urgencyLabel(urgency: ReminderUrgency, days: number): string {
   return `In ${days}d`;
 }
 
-function toDatetimeLocalValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function EditReminderForm({
   reminder,
