@@ -8,7 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SkeletonRows } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -182,7 +182,7 @@ export default function AgendaPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className={pageShellClassName()}>
       <PageHeader
         eyebrow="Agenda"
         title="Calendar"

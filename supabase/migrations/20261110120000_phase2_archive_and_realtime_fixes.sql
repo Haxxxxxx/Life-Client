@@ -1,14 +1,52 @@
 -- Phase 2 — the schema half of the Supabase gap list (issue #35).
 --
--- DRAFT: reviewed but NOT applied. Apply with `supabase db push` (or
--- `supabase migration up`) only after reading the backfill note on §1, which
--- is the one step that is not safely re-runnable by accident.
+-- APPLIED 2026-11-11 to LifeClient (asdcvunofndmetrhcazs, production), via
+-- `supabase db push`, together with phases 0 and 1 — the migration history
+-- table was empty before that push, so none of the earlier phases had ever
+-- been applied either. See the backfill note on §1, which is the one step that
+-- is not safely re-runnable by accident.
 --
--- Everything here is idempotent: `if not exists`, `add column if not exists`,
--- and guarded DO blocks, so a partial run can be repeated.
+-- Everything here is idempotent with respect to its own effects: `if not
+-- exists`, `add column if not exists`, and guarded DO blocks, so a partial run
+-- can be repeated.
+--
+-- It is NOT, however, safe against the prior phases being unapplied — every
+-- statement below assumes its table already exists, and would otherwise fail
+-- partway with a bare `relation ... does not exist` naming whichever table the
+-- loop happened to reach first. The preflight check turns that into one
+-- actionable message before anything is altered. It deliberately raises rather
+-- than skipping: a migration that silently does nothing and reports success is
+-- the same failure mode as a secret check that passes when the secret is
+-- unset.
 --
 -- Three problems, all found by diffing the Supabase layer against the Firestore
 -- one module by module. None of them can be fixed in TypeScript.
+
+-- ---------------------------------------------------------------------------
+-- 0. Preflight — refuse to run against a database missing the earlier phases
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  required text[] := array[
+    'tasks','push_tokens','goals','challenges','reminders','transactions',
+    'budgets','vice_logs','reading_list','vocab_words','code_drills'
+  ];
+  missing text[];
+  t text;
+begin
+  foreach t in array required loop
+    if to_regclass(format('public.%I', t)) is null then
+      missing := array_append(missing, t);
+    end if;
+  end loop;
+
+  if array_length(missing, 1) > 0 then
+    raise exception
+      'Phase 2 cannot apply: missing table(s) %. Apply the phase 0 and phase 1 migrations (20260908*.sql) first, then re-run this one.',
+      array_to_string(missing, ', ');
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- 1. tasks is missing `archived` and `completed_at`
@@ -102,6 +140,20 @@ end $$;
 
 -- Composite PK means user_id is in the old record, so DELETE events work here
 -- without replica identity full.
+
+-- ---------------------------------------------------------------------------
+-- 4. push_tokens carries the device's timezone
+-- ---------------------------------------------------------------------------
+-- The daily digest asks "what is due today". Server-side that question has no
+-- answer without the user's zone: the cron's own clock is UTC, so for everyone
+-- outside Greenwich it was reading the wrong calendar day for part of every
+-- day. The zone is recorded per device, refreshed on each registration, so it
+-- follows the user when they travel; `seen_at` is what makes "most recently
+-- used device" answerable, since created_at is deliberately preserved across
+-- re-registrations.
+
+alter table public.push_tokens add column if not exists time_zone text;
+alter table public.push_tokens add column if not exists seen_at timestamptz;
 
 -- ---------------------------------------------------------------------------
 -- Still open after this migration (code, not schema — tracked on #35)

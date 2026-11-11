@@ -23,6 +23,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, Donut, Legend, withAlpha } from '@/components/charts';
+import { ErrorBanner } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
@@ -417,11 +418,7 @@ export default function MoneyScreen() {
 
           {transactions.length > 0 && <SpendingCharts transactions={transactions} month={thisMonth} />}
 
-          {error && (
-            <ThemedText themeColor="text" style={styles.error}>
-              {error}
-            </ThemedText>
-          )}
+          <ErrorBanner>{error}</ErrorBanner>
 
           <View style={styles.sectionHeaderRow}>
             <ThemedText type="subtitle" style={styles.sectionHeaderTitle}>
@@ -575,7 +572,6 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: Spacing.two },
   statTile: { flex: 1, borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center', gap: 2 },
   statLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
-  error: {},
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
   sectionHeaderTitle: { flexShrink: 1 },
   logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },

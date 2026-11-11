@@ -16,7 +16,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { WeeklySessionsChart } from "@/components/charts";
-import { Button, Card, ErrorText, PageHeader, SectionHeader } from "@/components/ui";
+import { Button, Card, ErrorText, PageHeader, SectionHeader, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 // Passed explicitly (matches the shared default) so the sessions chart knows
@@ -677,7 +677,7 @@ export default function SportsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className={pageShellClassName()}>
       <PageHeader
         eyebrow="Performance"
         title="Sports"

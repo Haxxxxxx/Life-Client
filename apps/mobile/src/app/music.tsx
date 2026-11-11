@@ -10,6 +10,7 @@ import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, View } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { ErrorBanner } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -103,11 +104,7 @@ function NowPlayingSection() {
   return (
     <View style={styles.section}>
       <SectionHeader eyebrow="Live" title="Now Playing" />
-      {error && (
-        <ThemedText themeColor="text" style={styles.error}>
-          {error}
-        </ThemedText>
-      )}
+      <ErrorBanner>{error}</ErrorBanner>
       {nowPlaying?.isPlaying && track ? (
         <ThemedView type="backgroundElement" style={[styles.nowPlayingCard, { borderColor: theme.border }]}>
           {track.albumArtUrl && (
@@ -172,11 +169,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
           <ThemedText type="small">{syncing ? 'Syncing…' : 'Sync now'}</ThemedText>
         </Pressable>
       </View>
-      {error && (
-        <ThemedText themeColor="text" style={styles.error}>
-          {error}
-        </ThemedText>
-      )}
+      <ErrorBanner>{error}</ErrorBanner>
       {summary && summary.recentTracks.length > 0 ? (
         <ScrollView style={styles.trackListScroll} nestedScrollEnabled contentContainerStyle={styles.list}>
           {summary.recentTracks.map((track) => (
@@ -284,7 +277,6 @@ const styles = StyleSheet.create({
   sectionHeader: { gap: 2 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   syncButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
-  error: { marginTop: Spacing.one },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   nowPlayingCard: {
     flexDirection: 'row',

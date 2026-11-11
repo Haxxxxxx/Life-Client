@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { TasksCompletedChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, ErrorText, Input, PageHeader, SkeletonRows } from "@/components/ui";
+import { Button, ErrorText, Input, PageHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
   CATEGORY_LABEL,
@@ -119,7 +119,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className={pageShellClassName()}>
       <PageHeader
         eyebrow="Today"
         title="Tasks"

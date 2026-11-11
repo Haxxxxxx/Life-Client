@@ -10,6 +10,7 @@ import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { ErrorBanner } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -254,11 +255,7 @@ export default function AgendaScreen() {
           )}
         </View>
 
-        {error && (
-          <ThemedText themeColor="text" style={styles.error}>
-            {error}
-          </ThemedText>
-        )}
+        <ErrorBanner>{error}</ErrorBanner>
 
         <FlatList
           data={groups}
@@ -343,7 +340,6 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, gap: Spacing.one },
   logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  error: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.three },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   group: { gap: Spacing.two },
