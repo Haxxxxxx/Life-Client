@@ -26,8 +26,7 @@ import type {
 import { adminDb } from "./admin";
 import { forEachUser, type FanOutResult } from "./fanOut";
 import { briefProviderError, setIntegrationStatus } from "./integrationStatus";
-import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
-import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
+import { allConnectedUids, ensureFreshToken, getTokens } from "./tokens";
 
 /** Author logins that mean "this PR is an automated dependency bump", so the Tasks
  * list can colour it apart from real code review work. Matched against the bare
@@ -274,23 +273,6 @@ interface GitlabMergeRequest {
   target_branch?: string;
 }
 
-async function ensureFreshGitlabToken(uid: string, tokens: StoredTokens): Promise<StoredTokens> {
-  const isExpired = tokens.expiresAt !== undefined && tokens.expiresAt < Date.now() + 60_000;
-  if (!isExpired || !tokens.refreshToken) return tokens;
-
-  const refreshed = await refreshAccessToken("gitlab", {
-    clientId: clientIdFor("gitlab"),
-    clientSecret: clientSecretFor("gitlab"),
-    refreshToken: tokens.refreshToken,
-  });
-  const next: StoredTokens = {
-    accessToken: refreshed.access_token as string,
-    refreshToken: (refreshed.refresh_token as string | undefined) ?? tokens.refreshToken,
-    expiresAt: Date.now() + (refreshed.expires_in as number) * 1000,
-  };
-  await storeTokens(uid, "gitlab", next);
-  return next;
-}
 
 function mapGitlabChecks(status: string | undefined): PrCheckStatus {
   switch (status) {
@@ -630,7 +612,7 @@ async function syncFor(uid: string, provider: Extract<IntegrationProvider, "gith
 
   try {
     const freshAccessToken =
-      provider === "github" ? tokens.accessToken : (await ensureFreshGitlabToken(uid, tokens)).accessToken;
+      provider === "github" ? tokens.accessToken : (await ensureFreshToken(uid, "gitlab", tokens)).accessToken;
 
     const [pullRequests, totalMergedCount] =
       provider === "github"

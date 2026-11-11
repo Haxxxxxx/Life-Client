@@ -10,9 +10,9 @@ import { adminDb } from "./admin";
 import { forEachUser, type FanOutResult } from "./fanOut";
 // The event shape was declared a second time here, minus `description`. One
 // definition, in the module that owns the Google client.
-import { ensureFreshGoogleToken, type GoogleCalendarEvent } from "./googleCalendarClient";
+import { type GoogleCalendarEvent } from "./googleCalendarClient";
 import { briefProviderError, setIntegrationStatus } from "./integrationStatus";
-import { allConnectedUids, getTokens } from "./tokens";
+import { allConnectedUids, ensureFreshToken, getTokens } from "./tokens";
 
 export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
   const tokens = await getTokens(uid, "google_calendar");
@@ -25,9 +25,9 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
     // valid. And it never stored the result: when Google returns a rotated
     // refresh_token the new one was dropped on the floor, so the saved
     // credential would eventually stop working and that user's calendar sync
-    // would fail for good. ensureFreshGoogleToken, in this same directory,
-    // already did both correctly.
-    const { accessToken } = await ensureFreshGoogleToken(uid, tokens);
+    // would fail for good. ensureFreshToken in ./tokens does both correctly,
+    // for every provider.
+    const { accessToken } = await ensureFreshToken(uid, "google_calendar", tokens);
 
     const timeMin = new Date().toISOString();
     const timeMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();

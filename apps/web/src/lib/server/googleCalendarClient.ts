@@ -8,32 +8,14 @@ import "server-only";
 
 import { briefProviderError } from "./integrationStatus";
 
-import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
-import { getTokens, storeTokens, type StoredTokens } from "./tokens";
+import { ensureFreshToken, getTokens } from "./tokens";
 
-export async function ensureFreshGoogleToken(uid: string, tokens: StoredTokens): Promise<StoredTokens> {
-  const isExpired = tokens.expiresAt !== undefined && tokens.expiresAt < Date.now() + 60_000;
-  if (!isExpired || !tokens.refreshToken) return tokens;
-
-  const refreshed = await refreshAccessToken("google_calendar", {
-    clientId: clientIdFor("google_calendar"),
-    clientSecret: clientSecretFor("google_calendar"),
-    refreshToken: tokens.refreshToken,
-  });
-  const next: StoredTokens = {
-    accessToken: refreshed.access_token as string,
-    refreshToken: (refreshed.refresh_token as string | undefined) ?? tokens.refreshToken,
-    expiresAt: Date.now() + (refreshed.expires_in as number) * 1000,
-  };
-  await storeTokens(uid, "google_calendar", next);
-  return next;
-}
 
 /** Null if the user hasn't connected Google Calendar. */
 export async function getGoogleCalendarAccessToken(uid: string): Promise<string | null> {
   const tokens = await getTokens(uid, "google_calendar");
   if (!tokens?.refreshToken) return null;
-  const { accessToken } = await ensureFreshGoogleToken(uid, tokens);
+  const { accessToken } = await ensureFreshToken(uid, "google_calendar", tokens);
   return accessToken;
 }
 

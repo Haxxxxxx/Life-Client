@@ -9,8 +9,7 @@ import "server-only";
 import { adminDb } from "./admin";
 import { forEachUser, type FanOutResult } from "./fanOut";
 import { briefProviderError, getSyncCursor, setIntegrationStatus } from "./integrationStatus";
-import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
-import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
+import { allConnectedUids, ensureFreshToken, getTokens } from "./tokens";
 
 interface StravaActivity {
   id: number;
@@ -23,24 +22,6 @@ interface StravaActivity {
   average_heartrate?: number;
 }
 
-async function ensureFreshToken(uid: string, tokens: StoredTokens): Promise<StoredTokens> {
-  const isExpired = tokens.expiresAt !== undefined && tokens.expiresAt < Date.now() + 60_000;
-  if (!isExpired || !tokens.refreshToken) return tokens;
-
-  const refreshed = await refreshAccessToken("strava", {
-    clientId: clientIdFor("strava"),
-    clientSecret: clientSecretFor("strava"),
-    refreshToken: tokens.refreshToken,
-  });
-
-  const next: StoredTokens = {
-    accessToken: refreshed.access_token as string,
-    refreshToken: (refreshed.refresh_token as string | undefined) ?? tokens.refreshToken,
-    expiresAt: (refreshed.expires_at as number) * 1000,
-  };
-  await storeTokens(uid, "strava", next);
-  return next;
-}
 
 // Strava allows up to 200 per page; 100 is the usual courtesy ceiling and
 // halves the chance of a slow response against their 15-minute rate window.
@@ -104,7 +85,7 @@ export async function syncStravaForUser(uid: string): Promise<void> {
   if (!tokens) return;
 
   try {
-    const fresh = await ensureFreshToken(uid, tokens);
+    const fresh = await ensureFreshToken(uid, "strava", tokens);
 
     const storedCursor = await getSyncCursor(uid, "strava");
     const cursorSec = storedCursor === undefined ? undefined : Number(storedCursor);

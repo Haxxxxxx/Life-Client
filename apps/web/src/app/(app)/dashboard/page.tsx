@@ -592,8 +592,25 @@ export default function DashboardPage() {
    * later. Being told you have nothing and corrected is the single loudest
    * "unfinished" signal in the app.
    */
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const loaded = Boolean(user) && loadedFor === user?.uid;
+  /*
+   * One flag per collection, not one for the page.
+   *
+   * This was a single `loadedFor` set only by the tasks snapshot, yet it
+   * gated the Tasks, Goals and Challenges sections alike. Firestore delivers
+   * each subscription's first snapshot independently, so as soon as tasks
+   * answered, Goals and Challenges rendered "No goals yet." and "No
+   * challenges yet." while their own data was still in flight — precisely the
+   * told-you-have-nothing-then-corrected flash the comment above exists to
+   * prevent, for two of the three sections it covers.
+   *
+   * Still keyed on uid rather than a boolean, for the reason given above: on a
+   * user switch a stale `true` would show the previous account's rows as
+   * settled.
+   */
+  const [loadedFor, setLoadedFor] = useState<Record<string, string>>({});
+  const markLoaded = (key: string, uid: string) =>
+    setLoadedFor((prev) => (prev[key] === uid ? prev : { ...prev, [key]: uid }));
+  const isLoaded = (key: string) => Boolean(user) && loadedFor[key] === user?.uid;
 
   useEffect(() => {
     if (!user) return;
@@ -601,10 +618,16 @@ export default function DashboardPage() {
     const unsubs = [
       data.subscribeTasks(uid, (next) => {
         setTasks(next);
-        setLoadedFor(uid);
+        markLoaded("tasks", uid);
       }),
-      data.subscribeGoals(user.uid, setGoals),
-      data.subscribeChallenges(user.uid, setChallenges),
+      data.subscribeGoals(uid, (next) => {
+        setGoals(next);
+        markLoaded("goals", uid);
+      }),
+      data.subscribeChallenges(uid, (next) => {
+        setChallenges(next);
+        markLoaded("challenges", uid);
+      }),
       data.subscribeSportActivities(user.uid, setActivities),
       data.subscribeCalendarEvents(user.uid, setEvents, undefined, 3),
       data.subscribeDevActivity(user.uid, "github", setGithub),
@@ -708,9 +731,14 @@ export default function DashboardPage() {
 
       <WeekActivityChart tasks={tasks} activities={activities} />
 
-      <TasksSection tasks={shownTasks} uid={user.uid} loaded={loaded} />
-      <GoalsSection goals={shownGoals} tasks={tasks} uid={user.uid} loaded={loaded} />
-      <ChallengesSection challenges={challenges} activities={activities} uid={user.uid} loaded={loaded} />
+      <TasksSection tasks={shownTasks} uid={user.uid} loaded={isLoaded("tasks")} />
+      <GoalsSection goals={shownGoals} tasks={tasks} uid={user.uid} loaded={isLoaded("goals")} />
+      <ChallengesSection
+        challenges={challenges}
+        activities={activities}
+        uid={user.uid}
+        loaded={isLoaded("challenges")}
+      />
       <RemindersSection reminders={reminders} uid={user.uid} />
     </div>
   );
