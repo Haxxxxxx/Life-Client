@@ -6,6 +6,8 @@
 // have thrown until first use.
 import "server-only";
 
+import { briefProviderError } from "./integrationStatus";
+
 import type { PushToken } from "@life-client/shared";
 import webpush from "web-push";
 import { adminDb } from "./admin";
@@ -61,7 +63,7 @@ export async function sendPushToUser(uid: string, payload: PushPayload): Promise
             // like a successful send. A DeviceNotRegistered ticket means the
             // app was uninstalled; that token is dead and should go.
             if (!res.ok) {
-              throw new Error(`Expo push failed: ${res.status} ${await res.text()}`);
+              throw new Error(`Expo push failed: ${briefProviderError(res.status, await res.text())}`);
             }
             const body = (await res.json()) as { data?: { status?: string; details?: { error?: string } }[] };
             await Promise.all(

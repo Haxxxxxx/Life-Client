@@ -335,12 +335,12 @@ export default function GoalsPage() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeTasks(user.uid, setTasks);
+    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeViceLogs(user.uid, setViceLogs);
+    return data.subscribeViceLogs(user.uid, setViceLogs, (err) => setError(err.message));
   }, [user]);
 
   async function handleCreate(input: NewGoal) {

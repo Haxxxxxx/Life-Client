@@ -10,6 +10,9 @@ export function subscribeSpotifySummary(
 ): () => void {
   const b = getDataBackend();
   return b.provider === "firebase"
-    ? fb.subscribeSpotifySummary(b.firestore, uid, onChange)
+    ? // Forwards onError like the Supabase branch. Both doc-level
+      // subscriptions in this package used to drop it, so a failed listener
+      // was indistinguishable from an empty result.
+      fb.subscribeSpotifySummary(b.firestore, uid, onChange, onError)
     : sb.subscribeSpotifySummarySb(b.client, uid, onChange, onError);
 }

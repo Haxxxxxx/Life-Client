@@ -92,9 +92,30 @@ type RoastTiers = [
   string,
 ];
 
-/** 0: level 1, 1: level 2, ... 9: level 10+. Ten tiers, one per line in a RoastTiers tuple. */
-function roastTierIndex(level: number): number {
-  return Math.min(Math.max(level, 1), 10) - 1;
+/** The ten valid positions in a RoastTiers tuple, so indexing one is checkable. */
+type RoastTierIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+/**
+ * 0: level 1, 1: level 2, ... 9: level 10+. Ten tiers, one per line in a
+ * RoastTiers tuple.
+ *
+ * The clamp alone was not enough to make the tuple access safe. `level` is
+ * typed `number`, and two kinds of number slip straight through a min/max
+ * pair: a fractional one indexes the tuple at, say, 2.7 and a non-finite one
+ * at NaN. Both yield `undefined` from an array whose element type says
+ * `string`, which the Profile page would then render as the literal text
+ * "undefined".
+ *
+ * Neither is reachable from today's two call sites — `levelFromXp` returns a
+ * counter that starts at 1 and only ever increments, and it already guards
+ * non-finite XP. But `characteristicRoast` and `taskCategoryRoast` are
+ * exported and take a bare `number`, so nothing stops the next caller.
+ * Flooring first makes the function total for every input its signature
+ * admits.
+ */
+function roastTierIndex(level: number): RoastTierIndex {
+  const whole = Number.isFinite(level) ? Math.floor(level) : 1;
+  return (Math.min(Math.max(whole, 1), 10) - 1) as RoastTierIndex;
 }
 
 /** Cheeky, level-tiered flavor text for each core stat — replaces the plain static description on the Profile page. */
@@ -392,10 +413,19 @@ export function subscribeManualProgress(
   uid: string,
   characteristicId: CharacteristicId,
   onChange: (progress: ManualProgress | null) => void,
+    // onError matches the other 16 subscriptions in this package. Without it,
+  // onSnapshot swallows the failure: a permission denial or a dropped
+  // connection leaves the caller holding whatever it last rendered, with no
+  // error and no second callback — indistinguishable from "nothing here yet".
+  onError?: (error: Error) => void,
 ): () => void {
-  return onSnapshot(manualProgressDoc(db, uid, characteristicId), (snapshot) => {
-    onChange(snapshot.exists() ? (snapshot.data() as ManualProgress) : null);
-  });
+  return onSnapshot(
+    manualProgressDoc(db, uid, characteristicId),
+    (snapshot) => {
+      onChange(snapshot.exists() ? (snapshot.data() as ManualProgress) : null);
+    },
+    (error) => onError?.(error),
+  );
 }
 
 export interface ManualEventInput {

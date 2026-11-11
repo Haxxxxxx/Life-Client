@@ -6,32 +6,16 @@
 // have thrown until first use.
 import "server-only";
 
-import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
-import { getTokens, storeTokens, type StoredTokens } from "./tokens";
+import { briefProviderError } from "./integrationStatus";
 
-export async function ensureFreshGoogleToken(uid: string, tokens: StoredTokens): Promise<StoredTokens> {
-  const isExpired = tokens.expiresAt !== undefined && tokens.expiresAt < Date.now() + 60_000;
-  if (!isExpired || !tokens.refreshToken) return tokens;
+import { ensureFreshToken, getTokens } from "./tokens";
 
-  const refreshed = await refreshAccessToken("google_calendar", {
-    clientId: clientIdFor("google_calendar"),
-    clientSecret: clientSecretFor("google_calendar"),
-    refreshToken: tokens.refreshToken,
-  });
-  const next: StoredTokens = {
-    accessToken: refreshed.access_token as string,
-    refreshToken: (refreshed.refresh_token as string | undefined) ?? tokens.refreshToken,
-    expiresAt: Date.now() + (refreshed.expires_in as number) * 1000,
-  };
-  await storeTokens(uid, "google_calendar", next);
-  return next;
-}
 
 /** Null if the user hasn't connected Google Calendar. */
 export async function getGoogleCalendarAccessToken(uid: string): Promise<string | null> {
   const tokens = await getTokens(uid, "google_calendar");
   if (!tokens?.refreshToken) return null;
-  const { accessToken } = await ensureFreshGoogleToken(uid, tokens);
+  const { accessToken } = await ensureFreshToken(uid, "google_calendar", tokens);
   return accessToken;
 }
 
@@ -85,7 +69,9 @@ export async function createGoogleCalendarEvent(
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(eventBody(input)),
   });
-  if (!res.ok) throw new Error(`Google Calendar event create failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) {
+    throw new Error(`Google Calendar event create failed: ${briefProviderError(res.status, await res.text())}`);
+  }
   return (await res.json()) as GoogleCalendarEvent;
 }
 
@@ -107,7 +93,7 @@ export async function updateGoogleCalendarEvent(
   // route 500'd on every subsequent edit. deleteGoogleCalendarEvent below
   // already treated the two the same, which is what gives the omission away.
   if (res.status === 404 || res.status === 410) return createGoogleCalendarEvent(accessToken, input);
-  throw new Error(`Google Calendar event update failed: ${res.status} ${await res.text()}`);
+  throw new Error(`Google Calendar event update failed: ${briefProviderError(res.status, await res.text())}`);
 }
 
 export async function deleteGoogleCalendarEvent(accessToken: string, eventId: string): Promise<void> {

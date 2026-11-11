@@ -20,6 +20,7 @@ interface SearchResult {
 export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { user } = useAuth();
   const router = useRouter();
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -57,10 +58,13 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
 
   useEffect(() => {
     if (!open || !user) return;
+    const onError = (error: Error) => setLoadError(error.message);
     const unsubs = [
-      data.subscribeTasks(user.uid, setTasks),
-      data.subscribeGoals(user.uid, setGoals),
-      data.subscribeReminders(user.uid, setReminders),
+      // A failed read here used to mean the palette simply found nothing,
+      // which is indistinguishable from "no matches" and far more misleading.
+      data.subscribeTasks(user.uid, setTasks, onError),
+      data.subscribeGoals(user.uid, setGoals, onError),
+      data.subscribeReminders(user.uid, setReminders, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [open, user]);
@@ -124,7 +128,14 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
               </button>
             </li>
           ))}
-          {q && results.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted">No matches.</li>}
+          {loadError && (
+            <li className="px-4 py-6 text-center text-sm text-danger" role="alert">
+              Could not load your data — {loadError}
+            </li>
+          )}
+          {!loadError && q && results.length === 0 && (
+            <li className="px-4 py-6 text-center text-sm text-muted">No matches.</li>
+          )}
           {!q && <li className="px-4 py-6 text-center text-sm text-muted">Start typing to search.</li>}
         </ul>
       </div>

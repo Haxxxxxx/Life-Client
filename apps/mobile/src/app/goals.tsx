@@ -364,12 +364,12 @@ export default function GoalsScreen() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeTasks(user.uid, setTasks);
+    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeViceLogs(user.uid, setViceLogs);
+    return data.subscribeViceLogs(user.uid, setViceLogs, (err) => setError(err.message));
   }, [user]);
 
   async function handleCreate(input: NewGoal) {
@@ -654,9 +654,10 @@ const styles = StyleSheet.create({
   error: { marginBottom: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
-  // Matches the other eight screens (radius two / padding three) and clears
-  // the 44pt touch minimum. These three used a smaller, sharper variant,
-  // which made their forms read as a different app.
+  // Radius two / padding three, and clears the 44pt touch minimum. All
+  // eleven screens now agree on both; the minimum used to be set only here,
+  // on goals, profile and sports, while this comment read as though it were
+  // the app-wide standard.
   input: {
     borderWidth: 1,
     borderRadius: Spacing.two,

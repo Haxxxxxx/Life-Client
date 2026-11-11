@@ -12,7 +12,11 @@ export function subscribeManualProgress(
 ): () => void {
   const b = getDataBackend();
   return b.provider === "firebase"
-    ? fb.subscribeManualProgress(b.firestore, uid, characteristicId, onChange)
+    ? // The Firebase branch used to drop onError here while the Supabase
+      // branch forwarded it, so the same facade call reported failures on one
+      // backend and silently ignored them on the other — the exact drift this
+      // facade exists to prevent.
+      fb.subscribeManualProgress(b.firestore, uid, characteristicId, onChange, onError)
     : sb.subscribeManualProgressSb(b.client, uid, characteristicId, onChange, onError);
 }
 

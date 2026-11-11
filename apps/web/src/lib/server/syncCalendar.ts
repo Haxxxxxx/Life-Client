@@ -8,30 +8,26 @@ import "server-only";
 
 import { adminDb } from "./admin";
 import { forEachUser, type FanOutResult } from "./fanOut";
-import { setIntegrationStatus } from "./integrationStatus";
-import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
-import { allConnectedUids, getTokens } from "./tokens";
-
-interface GoogleCalendarEvent {
-  id: string;
-  summary?: string;
-  start?: { dateTime?: string; date?: string };
-  end?: { dateTime?: string; date?: string };
-  location?: string;
-  htmlLink?: string;
-}
+// The event shape was declared a second time here, minus `description`. One
+// definition, in the module that owns the Google client.
+import { type GoogleCalendarEvent } from "./googleCalendarClient";
+import { briefProviderError, setIntegrationStatus } from "./integrationStatus";
+import { allConnectedUids, ensureFreshToken, getTokens } from "./tokens";
 
 export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
   const tokens = await getTokens(uid, "google_calendar");
   if (!tokens?.refreshToken) return;
 
   try {
-    const refreshed = await refreshAccessToken("google_calendar", {
-      clientId: clientIdFor("google_calendar"),
-      clientSecret: clientSecretFor("google_calendar"),
-      refreshToken: tokens.refreshToken,
-    });
-    const accessToken = refreshed.access_token as string;
+    // This used to call refreshAccessToken directly on every run, which was
+    // wrong twice over. It never looked at expiresAt, so each sweep spent one
+    // token request per user whether or not the existing token was still
+    // valid. And it never stored the result: when Google returns a rotated
+    // refresh_token the new one was dropped on the floor, so the saved
+    // credential would eventually stop working and that user's calendar sync
+    // would fail for good. ensureFreshToken in ./tokens does both correctly,
+    // for every provider.
+    const { accessToken } = await ensureFreshToken(uid, "google_calendar", tokens);
 
     const timeMin = new Date().toISOString();
     const timeMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -51,7 +47,9 @@ export async function syncGoogleCalendarForUser(uid: string): Promise<void> {
       if (pageToken) url.searchParams.set("pageToken", pageToken);
       const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (!response.ok) {
-        throw new Error(`Google Calendar fetch failed: ${response.status} ${await response.text()}`);
+        throw new Error(
+          `Google Calendar fetch failed: ${briefProviderError(response.status, await response.text())}`,
+        );
       }
       const page = (await response.json()) as { items?: GoogleCalendarEvent[]; nextPageToken?: string };
       items.push(...(page.items ?? []));

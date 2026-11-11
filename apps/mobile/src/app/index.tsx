@@ -1,5 +1,4 @@
 import {
-  WEEKDAY_LABELS,
   type CalendarEvent,
   type Challenge,
   type CodeDrill,
@@ -8,7 +7,6 @@ import {
   type Goal,
   type ReadingListItem,
   type Recurrence,
-  type RecurrenceFreq,
   type Reminder,
   type ReminderUrgency,
   type SportActivity,
@@ -38,9 +36,10 @@ import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, withAlpha } from '@/components/charts';
+import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { SkeletonList } from '@/components/ui';
+import { ErrorBanner, SkeletonList } from '@/components/ui';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -382,85 +381,6 @@ function urgencyLabel(urgency: ReminderUrgency, days: number): string {
   return `${days}d`;
 }
 
-function RecurrencePicker({
-  value,
-  onChange,
-}: {
-  value: Recurrence | undefined;
-  onChange: (next: Recurrence | undefined) => void;
-}) {
-  const theme = useTheme();
-  const freq = value?.freq;
-  const interval = value?.interval ?? 1;
-  const daysOfWeek = value?.daysOfWeek ?? [];
-
-  function setFreq(next: RecurrenceFreq | undefined) {
-    if (!next) {
-      onChange(undefined);
-      return;
-    }
-    onChange({ freq: next, interval, daysOfWeek: next === 'weekly' ? daysOfWeek : undefined });
-  }
-
-  function toggleDay(day: number) {
-    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
-    onChange({ freq: 'weekly', interval, daysOfWeek: next });
-  }
-
-  return (
-    <View style={{ gap: Spacing.one }}>
-      <View style={styles.chipRow}>
-        {(['none', 'daily', 'weekly', 'monthly'] as const).map((f) => {
-          const active = (f === 'none' && !freq) || f === freq;
-          return (
-            <Pressable
-              key={f}
-              onPress={() => setFreq(f === 'none' ? undefined : f)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
-                {f === 'none' ? 'No repeat' : f}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
-      {freq && (
-        <View style={styles.recurrenceIntervalRow}>
-          <ThemedText type="small" themeColor="textSecondary">
-            every
-          </ThemedText>
-          <TextInput
-            value={String(interval)}
-            onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
-            keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
-          />
-          <ThemedText type="small" themeColor="textSecondary">
-            {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
-          </ThemedText>
-        </View>
-      )}
-      {freq === 'weekly' && (
-        <View style={styles.chipRow}>
-          {WEEKDAY_LABELS.map((label, i) => {
-            const active = daysOfWeek.includes(i);
-            return (
-              <Pressable
-                key={i}
-                onPress={() => toggleDay(i)}
-                style={[styles.weekdayChip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-                <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
-}
-
 function EditReminderForm({
   reminder,
   onSave,
@@ -790,25 +710,34 @@ export default function DashboardScreen() {
   const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   useEffect(() => {
     if (!user) return;
+    // Every listener reports failure to the same place. None of these
+    // subscriptions passed an error callback, so a denied read or a dropped
+    // connection rendered as an empty page and stayed that way — claiming
+    // your data was empty when it had simply failed to arrive. ErrorBanner returns
+    // null for empty children, so this is invisible unless something is
+    // actually broken.
+    const onError = (error: Error) => setLoadError(error.message);
+
     const unsubs = [
       data.subscribeTasks(user.uid, (next) => {
         setTasks(next);
         setLoadedFor(user.uid);
-      }),
-      data.subscribeGoals(user.uid, setGoals),
-      data.subscribeChallenges(user.uid, setChallenges),
-      data.subscribeSportActivities(user.uid, setActivities),
-      data.subscribeCalendarEvents(user.uid, setEvents, undefined, 3),
-      data.subscribeDevActivity(user.uid, 'github', setGithub),
-      data.subscribeDevActivity(user.uid, 'gitlab', setGitlab),
-      data.subscribeReminders(user.uid, setReminders),
-      data.subscribeSpotifySummary(user.uid, setSpotify),
-      data.subscribeDailyLessons(user.uid, setLessons),
-      data.subscribeCodeDrills(user.uid, setDrills),
-      data.subscribeVocabWords(user.uid, setVocabWords),
-      data.subscribeReadingList(user.uid, setReadingItems),
+      }, onError),
+      data.subscribeGoals(user.uid, setGoals, onError),
+      data.subscribeChallenges(user.uid, setChallenges, onError),
+      data.subscribeSportActivities(user.uid, setActivities, onError),
+      data.subscribeCalendarEvents(user.uid, setEvents, onError, 3),
+      data.subscribeDevActivity(user.uid, 'github', setGithub, onError),
+      data.subscribeDevActivity(user.uid, 'gitlab', setGitlab, onError),
+      data.subscribeReminders(user.uid, setReminders, onError),
+      data.subscribeSpotifySummary(user.uid, setSpotify, onError),
+      data.subscribeDailyLessons(user.uid, setLessons, onError),
+      data.subscribeCodeDrills(user.uid, setDrills, onError),
+      data.subscribeVocabWords(user.uid, setVocabWords, onError),
+      data.subscribeReadingList(user.uid, setReadingItems, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -830,6 +759,7 @@ export default function DashboardScreen() {
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
+          <ErrorBanner>{loadError}</ErrorBanner>
           <View style={styles.header}>
             <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
               Overview
@@ -993,7 +923,18 @@ const styles = StyleSheet.create({
   deleteText: { color: Colors.dark.danger },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
-  input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    // 8pt of vertical padding plus two 1pt borders and a ~20pt line box comes
+    // to roughly 38pt — under Apple's 44pt and Android's 48dp touch minimum.
+    // goals, profile and sports already set this; their comment claimed it
+    // matched "the other eight screens", which was true of the radius and
+    // padding but not of the touch target.
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three, alignItems: 'center' },
@@ -1013,7 +954,4 @@ const styles = StyleSheet.create({
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
-  recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
-  intervalInput: { width: 44, borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
-  weekdayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
 });

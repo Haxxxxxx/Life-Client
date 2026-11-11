@@ -24,6 +24,7 @@ import { data } from "@life-client/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -417,9 +418,12 @@ function PastDrillRow({
   );
 }
 
-function CodeDrillsSection() {
-  const { user } = useAuth();
-  const [drills, setDrills] = useState<CodeDrill[]>([]);
+function CodeDrillsSection({ drills }: { drills: CodeDrill[] }) {
+  // Rows come from the page, which already subscribes to this collection to
+  // compute Insight XP and feed the charts. Subscribing again here opened a
+  // second Firestore listener over the same documents — double the reads,
+  // and two copies of the same state that could briefly disagree, so the
+  // XP header and this list could be showing different data at once.
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState<CodeDrillDifficulty>("intermediate");
   const [generating, setGenerating] = useState(false);
@@ -429,11 +433,6 @@ function CodeDrillsSection() {
   // for the other one too.
   const [deletingIds, setDeletingIds] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    return data.subscribeCodeDrills(user.uid, setDrills);
-  }, [user]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -611,16 +610,14 @@ function DictionaryEntry({ w }: { w: VocabWord }) {
   );
 }
 
-function VocabularySection() {
-  const { user } = useAuth();
-  const [words, setWords] = useState<VocabWord[]>([]);
+function VocabularySection({ words }: { words: VocabWord[] }) {
+  // Rows come from the page, which already subscribes to this collection to
+  // compute Insight XP and feed the charts. Subscribing again here opened a
+  // second Firestore listener over the same documents — double the reads,
+  // and two copies of the same state that could briefly disagree, so the
+  // XP header and this list could be showing different data at once.
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    return data.subscribeVocabWords(user.uid, setWords);
-  }, [user]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -676,9 +673,13 @@ function VocabularySection() {
   );
 }
 
-function ReadingListSection() {
+function ReadingListSection({ items }: { items: ReadingListItem[] }) {
+  // Rows come from the page, which already subscribes to this collection to
+  // compute Insight XP and feed the charts. Subscribing again here opened a
+  // second Firestore listener over the same documents — double the reads,
+  // and two copies of the same state that could briefly disagree, so the
+  // XP header and this list could be showing different data at once.
   const { user } = useAuth();
-  const [items, setItems] = useState<ReadingListItem[]>([]);
   const [url, setUrl] = useState("");
   const [adding, setAdding] = useState(false);
   // See the drill list: a single in-flight slot let a second Summarize
@@ -686,11 +687,6 @@ function ReadingListSection() {
   // duplicate paid LLM calls and duplicate writes.
   const [summarizingIds, setSummarizingIds] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    return data.subscribeReadingList(user.uid, setItems);
-  }, [user]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -805,6 +801,7 @@ export default function KnowledgeHomePage() {
   const [drills, setDrills] = useState<CodeDrill[]>([]);
   const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -812,11 +809,15 @@ export default function KnowledgeHomePage() {
 
   useEffect(() => {
     if (!user) return;
+    // Every listener reports to the same banner. None of these passed an
+    // error callback, so a failed read rendered as an empty Knowledge page
+    // with no indication anything had gone wrong.
+    const onError = (error: Error) => setLoadError(error.message);
     const unsubs = [
-      data.subscribeDailyLessons(user.uid, setLessons),
-      data.subscribeCodeDrills(user.uid, setDrills),
-      data.subscribeVocabWords(user.uid, setVocabWords),
-      data.subscribeReadingList(user.uid, setReadingItems),
+      data.subscribeDailyLessons(user.uid, setLessons, onError),
+      data.subscribeCodeDrills(user.uid, setDrills, onError),
+      data.subscribeVocabWords(user.uid, setVocabWords, onError),
+      data.subscribeReadingList(user.uid, setReadingItems, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -863,11 +864,12 @@ export default function KnowledgeHomePage() {
           <ProgressBar progress={insightLevel.progress} />
         </Card>
       </div>
+      <Alert>{loadError}</Alert>
       <ProgressCharts lessons={lessons} drills={drills} words={vocabWords} readingItems={readingItems} />
       <DailyLessonSection />
-      <CodeDrillsSection />
-      <VocabularySection />
-      <ReadingListSection />
+      <CodeDrillsSection drills={drills} />
+      <VocabularySection words={vocabWords} />
+      <ReadingListSection items={readingItems} />
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { goalStatusCounts, monthlyMoneyTrend } from "./charts";
+import { countPerDay, goalStatusCounts, lastNDays, monthlyMoneyTrend } from "./charts";
 import type { Goal, Transaction } from "./types";
 
 function goal(status: Goal["status"]): Goal {
@@ -105,5 +105,51 @@ describe("monthlyMoneyTrend", () => {
 
   it("handles a zero-month window without throwing", () => {
     expect(monthlyMoneyTrend([], 0, now).rows).toEqual([]);
+  });
+});
+
+describe("lastNDays", () => {
+  it("returns the window oldest-first, ending today", () => {
+    const now = new Date(2026, 10, 11); // 11 Nov 2026, local
+    expect(lastNDays(3, now)).toEqual(["2026-11-09", "2026-11-10", "2026-11-11"]);
+  });
+
+  it("crosses a month boundary", () => {
+    expect(lastNDays(3, new Date(2026, 11, 1))).toEqual(["2026-11-29", "2026-11-30", "2026-12-01"]);
+  });
+
+  it("crosses a year boundary", () => {
+    expect(lastNDays(2, new Date(2027, 0, 1))).toEqual(["2026-12-31", "2027-01-01"]);
+  });
+
+  it("handles a leap day", () => {
+    expect(lastNDays(2, new Date(2028, 2, 1))).toEqual(["2028-02-29", "2028-03-01"]);
+  });
+
+  it("returns an empty window for a count of zero", () => {
+    expect(lastNDays(0, new Date(2026, 10, 11))).toEqual([]);
+  });
+});
+
+describe("countPerDay", () => {
+  const days = lastNDays(3, new Date(2026, 10, 11));
+
+  it("buckets timestamps by local day, index-aligned with days", () => {
+    const at = (d: number, h: number) => new Date(2026, 10, d, h).toISOString();
+    expect(countPerDay([at(9, 10), at(11, 9), at(11, 23)], days)).toEqual([1, 0, 2]);
+  });
+
+  it("ignores timestamps outside the window rather than clamping them", () => {
+    // Clamping would overstate the first and last buckets.
+    const outside = new Date(2026, 9, 1, 12).toISOString();
+    expect(countPerDay([outside], days)).toEqual([0, 0, 0]);
+  });
+
+  it("skips unparseable timestamps instead of counting them as epoch", () => {
+    expect(countPerDay(["not a date"], days)).toEqual([0, 0, 0]);
+  });
+
+  it("returns all zeros for no timestamps", () => {
+    expect(countPerDay([], days)).toEqual([0, 0, 0]);
   });
 });

@@ -1,4 +1,5 @@
 import { monthKey } from "./finance";
+import { toDateStr } from "./streaks";
 import type { Goal, Transaction } from "./types";
 
 /**
@@ -116,4 +117,38 @@ export function monthlyMoneyTrend(
     net: rows.reduce((sum, r) => sum + r.income - r.spend, 0),
     hasTrend: rows.some((r) => r.income > 0 || r.spend > 0),
   };
+}
+
+/**
+ * The last `count` local calendar days, oldest first, as YYYY-MM-DD.
+ *
+ * Built by constructing each date from local year/month/day parts rather than
+ * by subtracting 24-hour spans, so a DST boundary inside the window cannot
+ * skip or repeat a day.
+ *
+ * `now` is injectable because this was previously two copies — apps/web's took
+ * no parameter and so could not be tested at all, while apps/mobile's could.
+ */
+export function lastNDays(count: number, now: Date = new Date()): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (count - 1 - i));
+    return toDateStr(d);
+  });
+}
+
+/**
+ * Counts ISO timestamps per local day, index-aligned with `days` from
+ * `lastNDays`. Timestamps outside the window are ignored rather than clamped
+ * into the first or last bucket, which would overstate those two days.
+ */
+export function countPerDay(timestamps: string[], days: string[]): number[] {
+  const index = new Map(days.map((d, i) => [d, i]));
+  const counts = days.map(() => 0);
+  for (const ts of timestamps) {
+    const parsed = new Date(ts);
+    if (Number.isNaN(parsed.getTime())) continue;
+    const i = index.get(toDateStr(parsed));
+    if (i !== undefined) counts[i]! += 1;
+  }
+  return counts;
 }

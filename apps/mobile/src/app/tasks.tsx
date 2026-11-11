@@ -2,11 +2,9 @@ import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
   TASK_PRIORITIES,
-  WEEKDAY_LABELS,
   describeRecurrence,
   type Goal,
   type Recurrence,
-  type RecurrenceFreq,
   type Task,
   type TaskPatch,
   type TaskCategory,
@@ -23,6 +21,7 @@ import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/components/charts';
+import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SkeletonList } from '@/components/ui';
@@ -74,88 +73,6 @@ function CompletionChart({ tasks }: { tasks: Task[] }) {
 function nextStatus(status: TaskStatus): TaskStatus {
   const idx = STATUS_ORDER.indexOf(status);
   return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]!;
-}
-
-function RecurrencePicker({
-  value,
-  onChange,
-}: {
-  value: Recurrence | undefined;
-  onChange: (next: Recurrence | undefined) => void;
-}) {
-  const theme = useTheme();
-  const freq = value?.freq;
-  const interval = value?.interval ?? 1;
-  const daysOfWeek = value?.daysOfWeek ?? [];
-
-  function setFreq(next: RecurrenceFreq | undefined) {
-    if (!next) {
-      onChange(undefined);
-      return;
-    }
-    onChange({ freq: next, interval, daysOfWeek: next === 'weekly' ? daysOfWeek : undefined });
-  }
-
-  function toggleDay(day: number) {
-    const next = daysOfWeek.includes(day) ? daysOfWeek.filter((d) => d !== day) : [...daysOfWeek, day];
-    onChange({ freq: 'weekly', interval, daysOfWeek: next });
-  }
-
-  return (
-    <View style={{ gap: Spacing.one }}>
-      <View style={styles.chipRowWrap}>
-        {(['none', 'daily', 'weekly', 'monthly'] as const).map((f) => {
-          const active = (f === 'none' && !freq) || f === freq;
-          return (
-            <Pressable
-              key={f}
-              onPress={() => setFreq(f === 'none' ? undefined : f)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
-                {f === 'none' ? 'No repeat' : f}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
-      {freq && (
-        <View style={styles.recurrenceIntervalRow}>
-          <ThemedText type="small" themeColor="textSecondary">
-            every
-          </ThemedText>
-          <TextInput
-            value={String(interval)}
-            onChangeText={(text) => onChange({ freq, interval: Number(text) || 1, daysOfWeek: value?.daysOfWeek })}
-            keyboardType="number-pad"
-            style={[styles.intervalInput, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
-          />
-          <ThemedText type="small" themeColor="textSecondary">
-            {freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : 'month(s)'}
-          </ThemedText>
-        </View>
-      )}
-      {freq === 'weekly' && (
-        <View style={styles.chipRowWrap}>
-          {WEEKDAY_LABELS.map((label, i) => {
-            const active = daysOfWeek.includes(i);
-            return (
-              <Pressable
-                key={i}
-                onPress={() => toggleDay(i)}
-                style={[
-                  styles.weekdayChip,
-                  { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' },
-                ]}>
-                <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
 }
 
 function EditTaskForm({
@@ -315,7 +232,7 @@ export default function TasksScreen() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals);
+    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
   }, [user]);
 
   async function handleAdd() {
@@ -581,7 +498,18 @@ const styles = StyleSheet.create({
   header: { marginTop: Spacing.four, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
-  input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    // 8pt of vertical padding plus two 1pt borders and a ~20pt line box comes
+    // to roughly 38pt — under Apple's 44pt and Android's 48dp touch minimum.
+    // goals, profile and sports already set this; their comment claimed it
+    // matched "the other eight screens", which was true of the radius and
+    // padding but not of the touch target.
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
@@ -604,7 +532,4 @@ const styles = StyleSheet.create({
   pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteText: { color: Colors.dark.danger },
-  recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
-  intervalInput: { width: 44, borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
-  weekdayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },
 });

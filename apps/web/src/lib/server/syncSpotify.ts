@@ -10,8 +10,7 @@ import type { SpotifyTopArtist, SpotifyTrack } from "@life-client/shared";
 import { adminDb } from "./admin";
 import { forEachUser, type FanOutResult } from "./fanOut";
 import { briefProviderError, getSyncCursor, setIntegrationStatus } from "./integrationStatus";
-import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
-import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
+import { allConnectedUids, ensureFreshToken, getTokens } from "./tokens";
 
 interface SpotifyApiTrack {
   id: string;
@@ -27,29 +26,12 @@ interface SpotifyRecentlyPlayedItem {
   played_at: string;
 }
 
-async function ensureFreshSpotifyToken(uid: string, tokens: StoredTokens): Promise<StoredTokens> {
-  const isExpired = tokens.expiresAt !== undefined && tokens.expiresAt < Date.now() + 60_000;
-  if (!isExpired || !tokens.refreshToken) return tokens;
-
-  const refreshed = await refreshAccessToken("spotify", {
-    clientId: clientIdFor("spotify"),
-    clientSecret: clientSecretFor("spotify"),
-    refreshToken: tokens.refreshToken,
-  });
-  const next: StoredTokens = {
-    accessToken: refreshed.access_token as string,
-    refreshToken: (refreshed.refresh_token as string | undefined) ?? tokens.refreshToken,
-    expiresAt: Date.now() + (refreshed.expires_in as number) * 1000,
-  };
-  await storeTokens(uid, "spotify", next);
-  return next;
-}
 
 /** Returns a fresh Spotify access token for the user, or null if not connected — used by the live now-playing endpoint. */
 export async function getFreshSpotifyAccessToken(uid: string): Promise<string | null> {
   const tokens = await getTokens(uid, "spotify");
   if (!tokens?.refreshToken) return null;
-  const fresh = await ensureFreshSpotifyToken(uid, tokens);
+  const fresh = await ensureFreshToken(uid, "spotify", tokens);
   return fresh.accessToken;
 }
 
@@ -169,7 +151,7 @@ export async function syncSpotifyForUser(uid: string): Promise<void> {
   if (!tokens?.refreshToken) return;
 
   try {
-    const { accessToken } = await ensureFreshSpotifyToken(uid, tokens);
+    const { accessToken } = await ensureFreshToken(uid, "spotify", tokens);
     const summaryRef = adminDb.collection("users").doc(uid).collection("spotify").doc("summary");
 
     const storedCursor = await getSyncCursor(uid, "spotify");

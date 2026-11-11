@@ -55,7 +55,16 @@ async function fetchSpotifyDisplayName(accessToken: string): Promise<string | un
 
 function requireAccessToken(provider: IntegrationProvider, raw: Record<string, unknown>): string {
   if (typeof raw.access_token !== "string" || !raw.access_token) {
-    throw new Error(`${provider} token exchange response had no access_token: ${JSON.stringify(raw)}`);
+    // Key names only, never values. This used to interpolate
+    // JSON.stringify(raw) — the whole token-endpoint response — and the
+    // caller in api/oauth/callback writes a failure straight into the
+    // integration's `lastError`, which Firestore persists and the
+    // Integrations page renders verbatim. All that is established here is
+    // that `access_token` is missing; `refresh_token` or `id_token` can still
+    // be sitting in that object. The field names are what makes the failure
+    // diagnosable, and they are not secret.
+    const keys = Object.keys(raw).sort().join(", ") || "<empty response>";
+    throw new Error(`${provider} token exchange response had no access_token (fields: ${keys})`);
   }
   return raw.access_token;
 }

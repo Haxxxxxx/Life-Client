@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ErrorBanner } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -25,6 +26,7 @@ interface SearchResult {
 export default function SearchScreen() {
   const { user } = useAuth();
   const theme = useTheme();
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -32,10 +34,13 @@ export default function SearchScreen() {
 
   useEffect(() => {
     if (!user) return;
+    const onError = (error: Error) => setLoadError(error.message);
     const unsubs = [
-      data.subscribeTasks(user.uid, setTasks),
-      data.subscribeGoals(user.uid, setGoals),
-      data.subscribeReminders(user.uid, setReminders),
+      // A failed read here used to mean search simply found nothing, which is
+      // indistinguishable from "no matches" and far more misleading.
+      data.subscribeTasks(user.uid, setTasks, onError),
+      data.subscribeGoals(user.uid, setGoals, onError),
+      data.subscribeReminders(user.uid, setReminders, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -82,9 +87,13 @@ export default function SearchScreen() {
           keyExtractor={(item) => `${item.kind}-${item.id}`}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <ThemedText themeColor="textSecondary" style={styles.emptyText}>
-              {q ? 'No matches.' : 'Start typing to search.'}
-            </ThemedText>
+            loadError ? (
+              <ErrorBanner>{`Could not load your data — ${loadError}`}</ErrorBanner>
+            ) : (
+              <ThemedText themeColor="textSecondary" style={styles.emptyText}>
+                {q ? 'No matches.' : 'Start typing to search.'}
+              </ThemedText>
+            )
           }
           renderItem={({ item }) => (
             <Pressable onPress={() => router.push(item.href)} style={[styles.row, { borderColor: theme.border }]}>
@@ -109,7 +118,19 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   header: { marginTop: Spacing.four, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  input: { marginTop: Spacing.three, borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  input: {
+    marginTop: Spacing.three,
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    // 8pt of vertical padding plus two 1pt borders and a ~20pt line box comes
+    // to roughly 38pt — under Apple's 44pt and Android's 48dp touch minimum.
+    // goals, profile and sports already set this; their comment claimed it
+    // matched "the other eight screens", which was true of the radius and
+    // padding but not of the touch target.
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   listContent: { paddingVertical: Spacing.three, gap: Spacing.two },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.five },
   row: {
