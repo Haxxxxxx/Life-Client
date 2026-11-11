@@ -8,7 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Button, Card, ErrorText, PageHeader, SectionHeader, SkeletonRows } from "@/components/ui";
+import { Button, Card, ErrorText, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -216,7 +216,7 @@ export default function MusicPage() {
   }, [user]);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-10">
+    <div className={pageShellClassName()}>
       <PageHeader eyebrow="Listen" title="Music" description="Your Spotify listening — live, recent, and in aggregate." />
       <NowPlayingSection />
       {loaded ? (

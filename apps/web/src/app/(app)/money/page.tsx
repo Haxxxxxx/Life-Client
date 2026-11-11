@@ -22,7 +22,7 @@ import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { MoneyCharts } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, Card, ErrorText, Input, PageHeader, SkeletonRows, StatTile } from "@/components/ui";
+import { Button, Card, ErrorText, Input, PageHeader, SkeletonRows, StatTile, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.id, c.label])) as Record<
@@ -290,9 +290,9 @@ export default function MoneyPage() {
   );
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className={pageShellClassName()}>
       <PageHeader
-        eyebrow="Money"
+        eyebrow="Spending"
         title="Money"
         description="Log expenses/income, track budgets by category, and watch subscriptions."
       />

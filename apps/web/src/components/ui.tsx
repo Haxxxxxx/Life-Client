@@ -526,3 +526,20 @@ export const textLinkClassName = cx(
   "rounded-md px-2 py-1 font-mono text-micro font-bold tracking-wide uppercase transition",
   "text-muted hover:bg-surface-2 hover:text-foreground",
 );
+
+/**
+ * The outer column every page sits in.
+ *
+ * These nine containers had drifted apart by hand — seven were
+ * `max-w-2xl gap-6`, music had `gap-10` for no reason anyone could point at,
+ * and the dashboard sat at `max-w-4xl gap-8`. The last one is deliberate and
+ * stays: it is an overview grid of cards rather than a single reading column,
+ * so it wants the extra width. Naming the two cases is what stops the next
+ * page picking a third.
+ */
+export function pageShellClassName(width: "content" | "wide" = "content") {
+  return cx(
+    "mx-auto flex flex-col",
+    width === "wide" ? "max-w-4xl gap-8" : "max-w-2xl gap-6",
+  );
+}

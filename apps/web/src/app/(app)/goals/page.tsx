@@ -14,7 +14,7 @@ import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function daysUntil(dateStr: string): number {
@@ -429,7 +429,7 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className={pageShellClassName()}>
       <PageHeader
         eyebrow="Long-term"
         title="Goals"

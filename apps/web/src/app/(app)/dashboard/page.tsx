@@ -36,7 +36,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WeekActivityChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows } from "@/components/ui";
+import { Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { webApiClient } from "@/lib/webApiClient";
@@ -705,7 +705,7 @@ export default function DashboardPage() {
   const pendingReadingCount = readingItems.filter((i) => i.status !== "read").length;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-8">
+    <div className={pageShellClassName("wide")}>
       <PageHeader
         eyebrow="Overview"
         title={`Welcome back${user.displayName ? `, ${user.displayName.split(" ")[0]}` : ""}`}
