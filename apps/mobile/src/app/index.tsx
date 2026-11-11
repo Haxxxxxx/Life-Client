@@ -40,7 +40,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { SkeletonList } from '@/components/ui';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -124,7 +125,7 @@ function RenameField({ value, onSave, style }: { value: string; onSave: (next: s
   );
 }
 
-function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
+function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; loaded: boolean }) {
   const theme = useTheme();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -233,7 +234,8 @@ function TasksSection({ tasks, uid }: { tasks: Task[]; uid: string }) {
             </Pressable>
           </View>
         ))}
-        {tasks.length === 0 && (
+        {!loaded && <SkeletonList rows={3} />}
+        {loaded && tasks.length === 0 && (
           <ThemedText themeColor="textSecondary" style={styles.emptyText}>
             No tasks.
           </ThemedText>
@@ -365,8 +367,10 @@ const QUICK_OFFSETS = [
   { label: '1mo', days: 30 },
 ];
 
-const URGENCY_BORDER: Record<ReminderUrgency, string> = {
-  overdue: '#dc2626',
+// Theme keys, not a mix of key names and one raw hex — the old shape forced
+// the call site into a two-step ternary to tell them apart.
+const URGENCY_BORDER: Record<ReminderUrgency, 'danger' | 'primary' | 'border'> = {
+  overdue: 'danger',
   'due-today': 'primary',
   'due-soon': 'primary',
   upcoming: 'border',
@@ -664,8 +668,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
         {reminders.map((reminder) => {
           const urgency = reminderUrgency(reminder.deadline);
           const days = daysUntil(reminder.deadline);
-          const borderKey = URGENCY_BORDER[urgency];
-          const borderColor = borderKey === 'primary' ? theme.primary : borderKey === 'border' ? theme.border : borderKey;
+          const borderColor = theme[URGENCY_BORDER[urgency]];
           if (editingId === reminder.id) {
             return (
               <ThemedView key={reminder.id} type="backgroundElement" style={[styles.reminderCard, { borderColor }]}>
@@ -767,6 +770,12 @@ function WeekActivity({ tasks, activities }: { tasks: Task[]; activities: SportA
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  // Keyed on uid, not a boolean reset inside the effect: setState in an effect
+  // body cascades a render (the react-compiler lint rule rejects it), and
+  // deriving it stops a user switch briefly showing the previous account's
+  // rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -784,7 +793,10 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (!user) return;
     const unsubs = [
-      data.subscribeTasks(user.uid, setTasks),
+      data.subscribeTasks(user.uid, (next) => {
+        setTasks(next);
+        setLoadedFor(user.uid);
+      }),
       data.subscribeGoals(user.uid, setGoals),
       data.subscribeChallenges(user.uid, setChallenges),
       data.subscribeSportActivities(user.uid, setActivities),
@@ -913,7 +925,7 @@ export default function DashboardScreen() {
           <WeekActivity tasks={tasks} activities={activities} />
 
           <View style={styles.sections}>
-            <TasksSection tasks={shownTasks} uid={user.uid} />
+            <TasksSection tasks={shownTasks} uid={user.uid} loaded={loaded} />
             <GoalsSection goals={shownGoals} tasks={tasks} uid={user.uid} />
             <ChallengesSection challenges={challenges} activities={activities} uid={user.uid} />
             <RemindersSection reminders={reminders} uid={user.uid} />
@@ -952,7 +964,10 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderRadius: Spacing.three,
-    padding: Spacing.four,
+    // Spacing.three, matching agenda/sports/integrations/profile. This was the
+    // only screen at four, so its cards read as a different size to every
+    // other card in the app.
+    padding: Spacing.three,
     gap: Spacing.one,
   },
   cardEyebrow: { letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: Spacing.one },
@@ -975,7 +990,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 16, height: 16, borderWidth: 1, borderRadius: 4 },
   renameInput: { borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   doneText: { textDecorationLine: 'line-through' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
   input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },

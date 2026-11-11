@@ -3,6 +3,7 @@
 import {
   TASK_CATEGORIES,
   TASK_DIFFICULTIES,
+  archivedTasks,
   describeRecurrence,
   visibleTasks,
   type Goal,
@@ -14,7 +15,8 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { TasksCompletedChart } from "@/components/charts";
-import { Button, ErrorText, Input, PageHeader } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
+import { Button, ErrorText, Input, PageHeader, SkeletonRows } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
   CATEGORY_LABEL,
@@ -36,9 +38,23 @@ export default function TasksPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Keyed on uid rather than a boolean reset inside the effect: setState in an
+  // effect body cascades a render, and deriving it stops a user switch from
+  // briefly showing the previous account's rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
   useEffect(() => {
     if (!user) return;
-    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeTasks(
+      uid,
+      (next) => {
+        setTasks(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -83,6 +99,24 @@ export default function TasksPage() {
     };
     return visibleTasks(tasks).sort((a, b) => rank(a) - rank(b));
   }, [tasks]);
+
+  const archived = useMemo(() => archivedTasks(tasks), [tasks]);
+
+  /**
+   * Un-archiving keeps the task's status. `archived` is a separate flag from
+   * status (unlike goals, where archived *is* the status), so restoring one
+   * puts a done task back in the list still done — which is what the user
+   * expects from something the cleanup filed away.
+   */
+  async function handleRestoreTask(taskId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.updateTask(user.uid, taskId, { archived: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not restore this task");
+    }
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -187,18 +221,17 @@ export default function TasksPage() {
                 >
                   Mark {STATUS_LABEL[nextStatus(task.status)]}
                 </Button>
-                <button
-                  type="button"
-                  onClick={() => data.deleteTask(user!.uid, task.id)}
-                  className="rounded-xl px-3 py-1.5 font-mono text-xs font-bold text-danger uppercase hover:bg-danger/10"
-                >
-                  Delete
-                </button>
+                <ConfirmButton onConfirm={() => data.deleteTask(user!.uid, task.id)} />
               </div>
             </li>
           );
         })}
-        {sortedTasks.length === 0 && (
+        {!loaded && (
+          <li>
+            <SkeletonRows rows={4} />
+          </li>
+        )}
+        {loaded && sortedTasks.length === 0 && (
           <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
             {tasks.length === 0
               ? "No tasks yet — add your first one above."
@@ -206,6 +239,36 @@ export default function TasksPage() {
           </li>
         )}
       </ul>
+
+      {archived.length > 0 && (
+        <details className="flex flex-col gap-3">
+          <summary className="cursor-pointer font-mono text-xs font-bold tracking-[0.2em] text-muted uppercase">
+            Archived ({archived.length})
+          </summary>
+          <p className="mt-3 text-xs text-muted">
+            Tasks the daily cleanup filed away after being done for 30 days. Nothing here is deleted — restore one
+            to put it back in the list above.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {archived.map((task) => (
+              <li
+                key={task.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3"
+              >
+                <Link href={`/tasks/${task.id}`} className="min-w-0 flex-1 truncate text-sm hover:underline">
+                  {task.title}
+                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => handleRestoreTask(task.id)}>
+                    Restore
+                  </Button>
+                  <ConfirmButton onConfirm={() => user && data.deleteTask(user.uid, task.id)} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

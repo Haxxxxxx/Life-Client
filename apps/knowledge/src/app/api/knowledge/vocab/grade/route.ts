@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { boundedText, consumeAiQuota, guardErrorResponse, LIMITS } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const gradeSchema = z.object({
@@ -18,9 +19,15 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as { wordId?: string; sentence?: string };
   const wordId = typeof body.wordId === "string" ? body.wordId : undefined;
-  const sentence = typeof body.sentence === "string" ? body.sentence.trim() : "";
-  if (!wordId || !sentence) {
-    return NextResponse.json({ error: "Missing wordId or sentence" }, { status: 400 });
+  let sentence: string;
+  try {
+    sentence = boundedText(body.sentence, "sentence", LIMITS.sentence, { required: true })!;
+    if (!wordId) return NextResponse.json({ error: "Missing wordId" }, { status: 400 });
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
   }
 
   const ref = adminDb.collection("users").doc(uid).collection("vocabWords").doc(wordId);
@@ -32,6 +39,10 @@ export async function POST(req: NextRequest) {
     const { output } = await generateText({
       model: KNOWLEDGE_MODEL,
       output: Output.object({ schema: gradeSchema }),
+      // Deterministic grading: at the default temperature, resubmitting the
+      // same answer returned a different score each time, so a learner could
+      // re-roll for a better one.
+      temperature: 0,
       prompt:
         `The word "${vocabWord.word}" means: "${vocabWord.definition}".\n\n` +
         `A learner wrote this sentence to practice using it:\n"${sentence}"\n\n` +
@@ -39,10 +50,13 @@ export async function POST(req: NextRequest) {
         "understanding of its meaning. Give brief, encouraging feedback.",
     });
 
-    await ref.set(
-      { practiceSentence: sentence, practiceCorrect: output.correct, practiceFeedback: output.feedback },
-      { merge: true },
-    );
+    // See drill/grade: a merging set would resurrect a word deleted during the
+    // model call as a doc with no createdAt, invisible to every ordered query.
+    await ref.update({
+      practiceSentence: sentence,
+      practiceCorrect: output.correct,
+      practiceFeedback: output.feedback,
+    });
     return NextResponse.json({ correct: output.correct, feedback: output.feedback });
   } catch (error) {
     console.error("knowledge/vocab/grade failed", error);

@@ -65,6 +65,17 @@ export function visibleGoals(goals: Goal[]): Goal[] {
   return goals.filter((g) => g.status !== "archived");
 }
 
+/**
+ * The complement of `visibleGoals`, for the archive view.
+ *
+ * These two must stay exact complements. The daily cron archives completed
+ * goals unattended, so anything `visibleGoals` hides and this does not surface
+ * is invisible to the user forever, with no way to get it back.
+ */
+export function archivedGoals(goals: Goal[]): Goal[] {
+  return goals.filter((g) => g.status === "archived");
+}
+
 export function computeGoalProgress(goal: Goal, tasks: Task[]): GoalProgress {
   const linked = tasks.filter((t) => t.goalId === goal.id);
   const completed = linked.filter((t) => t.status === "done");

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { consumeAiQuota, guardErrorResponse } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const lessonSchema = z.object({
@@ -125,16 +126,42 @@ async function pickArticle(
   }
 }
 
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+function resolveLessonId(localDate: string | undefined): string {
+  const serverToday = todayLessonId();
+  if (!localDate || !DATE_KEY.test(localDate)) return serverToday;
+  const offsetDays = Math.round(
+    (Date.parse(`${localDate}T00:00:00Z`) - Date.parse(`${serverToday}T00:00:00Z`)) / 86_400_000,
+  );
+  return Number.isFinite(offsetDays) && Math.abs(offsetDays) <= 1 ? localDate : serverToday;
+}
+
 export async function POST(req: NextRequest) {
   const uid = await requireUid(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const lessonId = todayLessonId();
+  // The client's own local date, because "today" is only meaningful in the
+  // user's timezone — the server's is UTC on Vercel. Validated against the
+  // server clock so a client cannot write arbitrarily far into the past or
+  // future: +/-1 day covers every real offset (UTC-12..UTC+14).
+  const body = (await req.json().catch(() => ({}))) as { localDate?: string };
+  const lessonId = resolveLessonId(body.localDate);
   const ref = adminDb.collection("users").doc(uid).collection("dailyLessons").doc(lessonId);
 
   const existing = await ref.get();
-  if (existing.exists) {
+  if (existing.exists && existing.data()?.articlePending !== true) {
     return NextResponse.json({ id: existing.id, ...existing.data() });
+  }
+
+  // Quota is consumed only when a lesson actually has to be generated — the
+  // cached-lesson path above is free, so opening the app does not cost budget.
+  try {
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
   }
 
   try {
@@ -191,22 +218,45 @@ export async function POST(req: NextRequest) {
         article?.reason ?? "Couldn't reach any science/tech feeds just now — try generating again in a bit.",
       articleSource: article?.source,
       articleUrl: article?.url,
+      // Marks a lesson whose article lookup failed. The early-return above
+      // skips these, so the "try generating again" the UI promises actually
+      // works — previously that text was cached under the day's id forever and
+      // still counted toward lesson XP and the streak.
+      articlePending: article ? false : true,
     };
     const createdAt = new Date().toISOString();
-    await ref.set({ ...lesson, createdAt });
 
+    // `create` rather than `set`: two concurrent requests used to each write a
+    // full lesson and each append a reading-list item, so the client holding
+    // response A displayed a lesson Firestore no longer had. Losing the race
+    // now means returning the lesson that won it.
+    const batch = adminDb.batch();
+    // `set` when replacing our own pending placeholder, `create` otherwise.
+    if (existing.exists) batch.set(ref, { ...lesson, createdAt });
+    else batch.create(ref, { ...lesson, createdAt });
     if (article) {
-      await adminDb
-        .collection("users")
-        .doc(uid)
-        .collection("readingList")
-        .add({
-          url: article.url,
-          title: article.topic,
-          status: "pending",
-          createdAt,
-          updatedAt: createdAt,
-        });
+      // Batched with the lesson so the reading-list item cannot be lost while
+      // the lesson is kept — previously a failure here returned 502 even
+      // though the lesson had already been written, and the retry
+      // short-circuited on `existing.exists`, losing the article for that day.
+      batch.create(adminDb.collection("users").doc(uid).collection("readingList").doc(), {
+        url: article.url,
+        title: article.topic,
+        status: "pending",
+        createdAt,
+        updatedAt: createdAt,
+      });
+    }
+
+    try {
+      await batch.commit();
+    } catch (error) {
+      // ALREADY_EXISTS (code 6) means a concurrent request got there first.
+      if ((error as { code?: number }).code === 6) {
+        const winner = await ref.get();
+        if (winner.exists) return NextResponse.json({ id: winner.id, ...winner.data() });
+      }
+      throw error;
     }
 
     return NextResponse.json({ id: lessonId, ...lesson, createdAt });

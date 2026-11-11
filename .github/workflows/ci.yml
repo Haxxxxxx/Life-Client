@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same PR cancels the previous run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24 LTS: matches the Vercel runtime the apps deploy to.
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+
+  build:
+    name: Build and typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Both apps build with no env vars present: firebase.ts guards a missing
+      # web config and server/admin.ts initialises adminDb through a lazy proxy,
+      # so nothing reads a secret at build time. Verified — do not add secrets
+      # here just to make a build pass. If one starts failing without them,
+      # something now reads config at module scope, and that is the real bug.
+      - run: npm run build:web
+      - run: npm run build:knowledge
+
+      # Must run after the builds: Next generates the route/layout types into
+      # .next during a build, so a standalone `tsc --noEmit` fails on
+      # `Cannot find name 'LayoutProps'`. Verified both ways.
+      - run: npm run typecheck
+
+# Not covered yet — tracked in #37:
+#   * apps/mobile lint is red on main: eslint-config-expo's import resolver
+#     does not follow the hoisted react-native-gifted-charts (Node resolves it
+#     fine, so it is a resolver false positive, not a broken import).
+#   * apps/mobile typecheck is red: .expo/types/router.d.ts is stale and
+#     predates several screens, so typedRoutes rejects valid hrefs.
+# Add `npm run lint:mobile` and a mobile typecheck here once those are fixed.

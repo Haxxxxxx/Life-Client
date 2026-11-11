@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/server/admin";
 import { KNOWLEDGE_MODEL } from "@/lib/server/aiModel";
+import { boundedText, consumeAiQuota, guardErrorResponse, LIMITS } from "@/lib/server/aiGuards";
 import { requireUid } from "@/lib/server/requireAuth";
 
 const gradeSchema = z.object({
@@ -35,9 +36,15 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as { drillId?: string; answer?: string };
   const drillId = typeof body.drillId === "string" ? body.drillId : undefined;
-  const answer = typeof body.answer === "string" ? body.answer.trim() : "";
-  if (!drillId || !answer) {
-    return NextResponse.json({ error: "Missing drillId or answer" }, { status: 400 });
+  let answer: string;
+  try {
+    answer = boundedText(body.answer, "answer", LIMITS.answer, { required: true })!;
+    if (!drillId) return NextResponse.json({ error: "Missing drillId" }, { status: 400 });
+    await consumeAiQuota(uid);
+  } catch (error) {
+    const guard = guardErrorResponse(error);
+    if (guard) return NextResponse.json({ error: guard.error }, { status: guard.status });
+    throw error;
   }
 
   const ref = adminDb.collection("users").doc(uid).collection("codeDrills").doc(drillId);
@@ -49,6 +56,10 @@ export async function POST(req: NextRequest) {
     const { output } = await generateText({
       model: KNOWLEDGE_MODEL,
       output: Output.object({ schema: gradeSchema }),
+      // Deterministic grading: at the default temperature, resubmitting the
+      // same answer returned a different score each time, so a learner could
+      // re-roll for a better one.
+      temperature: 0,
       prompt:
         `A learner was given this coding drill:\n"${drill.prompt}"\n\n` +
         `The model solution/explanation is:\n"${drill.explanation}"\n\n` +
@@ -66,10 +77,21 @@ export async function POST(req: NextRequest) {
       : null;
     const hint = correct ? null : (output.hint ?? null);
 
-    await ref.set(
-      { userAnswer: answer, graded: true, score: output.score, correct, feedback: output.feedback, hint, videoUrl },
-      { merge: true },
-    );
+    // `update`, not `set({merge:true})`. The ref.get() above happens before a
+    // 5-30s model call, and the Delete button stays live throughout. A merging
+    // set would recreate a drill the user deleted mid-grade, containing only
+    // grade fields — with no createdAt, so every orderBy("createdAt") query
+    // excluded it: an invisible, unreachable document. update() fails with
+    // NOT_FOUND instead, which is the correct outcome.
+    await ref.update({
+      userAnswer: answer,
+      graded: true,
+      score: output.score,
+      correct,
+      feedback: output.feedback,
+      hint,
+      videoUrl,
+    });
     return NextResponse.json({
       score: output.score,
       correct,

@@ -7,12 +7,14 @@ import {
   type NewGoal,
   type Task,
   type ViceLog,
+  archivedGoals as selectArchivedGoals,
   computeGoalProgress,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, StatTile } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function daysUntil(dateStr: string): number {
@@ -49,7 +51,7 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
 
       {!title.trim() && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[10px] text-muted uppercase">Try</span>
+          <span className="font-mono text-micro text-muted uppercase">Try</span>
           {GOAL_EXAMPLES.map((example) => (
             <button
               key={example}
@@ -188,7 +190,7 @@ function GoalCard({
         {!editing && (
           <div className="flex shrink-0 flex-col items-end gap-1">
             <span
-              className={`rounded-full border border-border-strong px-2.5 py-1 font-mono text-[10px] font-bold uppercase ${
+              className={`rounded-full border border-border-strong px-2.5 py-1 font-mono text-micro font-bold uppercase ${
                 goal.status === "completed" ? "bg-primary text-primary-foreground" : "bg-primary/15"
               }`}
             >
@@ -240,7 +242,7 @@ function GoalCard({
               <button
                 type="button"
                 onClick={() => onUnlinkTask(task.id)}
-                className="shrink-0 font-mono text-[10px] font-bold text-muted uppercase hover:underline"
+                className="shrink-0 font-mono text-micro font-bold text-muted uppercase hover:underline"
               >
                 Unlink
               </button>
@@ -252,7 +254,7 @@ function GoalCard({
       )}
 
       <div className="flex flex-col gap-1.5 border-t border-border pt-2">
-        <span className="font-mono text-[10px] text-muted uppercase">Link tasks to this goal</span>
+        <span className="font-mono text-micro text-muted uppercase">Link tasks to this goal</span>
         <div className="flex flex-wrap gap-2">
           {unlinkedTasks.length > 0 && (
             <div className="flex gap-1">
@@ -314,9 +316,21 @@ export default function GoalsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // See tasks/page.tsx — keyed on uid, not reset inside the effect.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
+
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeGoals(
+      uid,
+      (next) => {
+        setGoals(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -340,6 +354,25 @@ export default function GoalsPage() {
     }
   }
 
+  /**
+   * Restores to "active", not "completed".
+   *
+   * A goal can be archived from either state (the card's Archive action is on
+   * every card, and the cron archives completed ones), and nothing records
+   * which. Restoring to "completed" would invent an achievement for a goal
+   * that may never have been finished, inflating the completion stats and XP.
+   * Coming back as active is honest and is one click away from completed.
+   */
+  async function handleRestoreGoal(goalId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.setGoalStatus(user.uid, goalId, "active" as GoalStatus);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not restore this goal");
+    }
+  }
+
   async function handleLogVice(vicePresetId: string) {
     if (!user) return;
     setError(null);
@@ -352,16 +385,17 @@ export default function GoalsPage() {
 
   const activeViceLogs = viceLogs.filter((v) => !v.compensated);
 
-  const { activeGoals, completedGoals, overallPercent } = useMemo(() => {
+  const { activeGoals, completedGoals, archived, overallPercent } = useMemo(() => {
     const activeGoals = goals.filter((g) => g.status === "active");
     const completedGoals = goals.filter((g) => g.status === "completed");
+    const archived = selectArchivedGoals(goals);
     const overallPercent =
       activeGoals.length > 0
         ? Math.round(
             (activeGoals.reduce((sum, g) => sum + computeGoalProgress(g, tasks).percent, 0) / activeGoals.length) * 100,
           )
         : 0;
-    return { activeGoals, completedGoals, overallPercent };
+    return { activeGoals, completedGoals, archived, overallPercent };
   }, [goals, tasks]);
 
   function renderGoalCard(goal: Goal) {
@@ -420,9 +454,13 @@ export default function GoalsPage() {
       {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
       <ErrorText>{error}</ErrorText>
 
-      {activeGoals.length > 0 && <div className="flex flex-col gap-3">{activeGoals.map(renderGoalCard)}</div>}
+      {loaded && activeGoals.length > 0 && (
+        <div className="flex flex-col gap-3">{activeGoals.map(renderGoalCard)}</div>
+      )}
 
-      {activeGoals.length === 0 && !formOpen && (
+      {!loaded && <SkeletonRows rows={3} />}
+
+      {loaded && activeGoals.length === 0 && !formOpen && (
         <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
           No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
         </div>
@@ -434,6 +472,34 @@ export default function GoalsPage() {
             Completed ({completedGoals.length})
           </summary>
           <div className="mt-3 flex flex-col gap-3">{completedGoals.map(renderGoalCard)}</div>
+        </details>
+      )}
+
+      {archived.length > 0 && (
+        <details className="flex flex-col gap-3">
+          <summary className="cursor-pointer font-mono text-xs font-bold tracking-[0.2em] text-muted uppercase">
+            Archived ({archived.length})
+          </summary>
+          <p className="mt-3 text-xs text-muted">
+            Goals you archived, plus any completed goal the daily cleanup filed away after 30 days. Nothing here
+            is deleted — restore one to put it back in your active list.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {archived.map((goal) => (
+              <li
+                key={goal.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm">{goal.title}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => handleRestoreGoal(goal.id)}>
+                    Restore
+                  </Button>
+                  <ConfirmButton onConfirm={() => user && data.deleteGoal(user.uid, goal.id)} />
+                </div>
+              </li>
+            ))}
+          </ul>
         </details>
       )}
 

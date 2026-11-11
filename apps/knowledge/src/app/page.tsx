@@ -88,7 +88,7 @@ function DailyLessonSection() {
           <Card>
             <p className="font-mono text-xs font-bold text-primary uppercase">Read About</p>
             {lesson.articleSource && (
-              <p className="mt-1 font-mono text-[10px] font-bold text-muted uppercase">{lesson.articleSource}</p>
+              <p className="mt-1 font-mono text-micro font-bold text-muted uppercase">{lesson.articleSource}</p>
             )}
             <p className="mt-1 font-bold">{lesson.articleTopic}</p>
             <p className="mt-1 text-sm text-muted">{lesson.articleReason}</p>
@@ -402,13 +402,13 @@ function PastDrillRow({
             {typeof drill.score === "number" ? `${drill.score}/10` : drill.correct ? "Correct" : "Missed"}
           </Badge>
         ) : (
-          <span className="font-mono text-[10px] font-bold text-muted uppercase">Skipped</span>
+          <span className="font-mono text-micro font-bold text-muted uppercase">Skipped</span>
         )}
         <button
           type="button"
           onClick={onDelete}
           disabled={deleting}
-          className="font-mono text-[10px] font-bold text-danger uppercase hover:underline disabled:opacity-50"
+          className="font-mono text-micro font-bold text-danger uppercase hover:underline disabled:opacity-50"
         >
           {deleting ? "…" : "Delete"}
         </button>
@@ -423,7 +423,11 @@ function CodeDrillsSection() {
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState<CodeDrillDifficulty>("intermediate");
   const [generating, setGenerating] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  // A Set, not a single id. With one slot, starting a second delete replaced
+  // the first id — re-enabling the first row's button while its request was
+  // still in flight — and whichever request settled first cleared the guard
+  // for the other one too.
+  const [deletingIds, setDeletingIds] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -445,14 +449,19 @@ function CodeDrillsSection() {
   }
 
   async function handleDelete(id: string) {
-    setDeletingId(id);
+    if (deletingIds.has(id)) return;
+    setDeletingIds((prev) => new Set(prev).add(id));
     setError(null);
     try {
       await deleteCodeDrill(knowledgeApiClient, id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete this drill");
     } finally {
-      setDeletingId(null);
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   }
 
@@ -493,7 +502,7 @@ function CodeDrillsSection() {
             onSkip={handleGenerate}
             skipping={generating}
             onDelete={() => handleDelete(drills[0]!.id)}
-            deleting={deletingId === drills[0].id}
+            deleting={deletingIds.has(drills[0].id)}
           />
         ) : (
           <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
@@ -506,7 +515,7 @@ function CodeDrillsSection() {
           <p className="font-mono text-xs font-bold text-muted uppercase">Past drills</p>
           <ul className="flex flex-col gap-2">
             {drills.slice(1, 9).map((d) => (
-              <PastDrillRow key={d.id} drill={d} onDelete={() => handleDelete(d.id)} deleting={deletingId === d.id} />
+              <PastDrillRow key={d.id} drill={d} onDelete={() => handleDelete(d.id)} deleting={deletingIds.has(d.id)} />
             ))}
           </ul>
         </div>
@@ -554,7 +563,7 @@ function VocabCard({ w }: { w: VocabWord }) {
               key={m}
               type="button"
               onClick={() => user && data.setVocabMastery(user.uid, w.id, m)}
-              className={`rounded-full border border-border-strong px-2 py-1 font-mono text-[10px] font-bold uppercase ${
+              className={`rounded-full border border-border-strong px-2 py-1 font-mono text-micro font-bold uppercase ${
                 w.mastery === m ? "bg-primary/15" : ""
               }`}
             >
@@ -594,7 +603,7 @@ function DictionaryEntry({ w }: { w: VocabWord }) {
     <li className="rounded-xl border border-border p-3">
       <div className="flex items-baseline justify-between gap-2">
         <p className="font-bold">{w.word}</p>
-        <span className="shrink-0 font-mono text-[10px] font-bold text-success uppercase">Learned</span>
+        <span className="shrink-0 font-mono text-micro font-bold text-success uppercase">Learned</span>
       </div>
       <p className="mt-1 text-sm text-muted">{w.definition}</p>
       {w.practiceSentence && <p className="mt-1 text-sm italic text-muted">&ldquo;{w.practiceSentence}&rdquo;</p>}
@@ -672,7 +681,10 @@ function ReadingListSection() {
   const [items, setItems] = useState<ReadingListItem[]>([]);
   const [url, setUrl] = useState("");
   const [adding, setAdding] = useState(false);
-  const [summarizingId, setSummarizingId] = useState<string | null>(null);
+  // See the drill list: a single in-flight slot let a second Summarize
+  // re-enable the first item's button mid-request, and duplicate clicks meant
+  // duplicate paid LLM calls and duplicate writes.
+  const [summarizingIds, setSummarizingIds] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -696,14 +708,19 @@ function ReadingListSection() {
   }
 
   async function handleSummarize(itemId: string) {
-    setSummarizingId(itemId);
+    if (summarizingIds.has(itemId)) return;
+    setSummarizingIds((prev) => new Set(prev).add(itemId));
     setError(null);
     try {
       await requestReadingSummary(knowledgeApiClient, itemId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not summarize this article");
     } finally {
-      setSummarizingId(null);
+      setSummarizingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
     }
   }
 
@@ -740,15 +757,15 @@ function ReadingListSection() {
                 {item.status === "error" && <p className="mt-2 text-sm text-danger">{item.error}</p>}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className="font-mono text-[10px] font-bold text-muted uppercase">{item.status}</span>
+                <span className="font-mono text-micro font-bold text-muted uppercase">{item.status}</span>
                 {(item.status === "pending" || item.status === "error") && (
                   <button
                     type="button"
                     onClick={() => handleSummarize(item.id)}
-                    disabled={summarizingId === item.id}
+                    disabled={summarizingIds.has(item.id)}
                     className="rounded-xl border border-border-strong px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10 disabled:opacity-50"
                   >
-                    {summarizingId === item.id ? "Summarizing…" : "Summarize"}
+                    {summarizingIds.has(item.id) ? "Summarizing…" : "Summarize"}
                   </button>
                 )}
                 {item.status === "summarized" && (
@@ -796,7 +813,7 @@ export default function KnowledgeHomePage() {
   useEffect(() => {
     if (!user) return;
     const unsubs = [
-      data.subscribeDailyLessons(user.uid, setLessons, undefined, 400),
+      data.subscribeDailyLessons(user.uid, setLessons),
       data.subscribeCodeDrills(user.uid, setDrills),
       data.subscribeVocabWords(user.uid, setVocabWords),
       data.subscribeReadingList(user.uid, setReadingItems),

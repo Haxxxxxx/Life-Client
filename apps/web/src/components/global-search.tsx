@@ -5,7 +5,7 @@ import {
   type Reminder,
   type Task,
 } from "@life-client/shared";
-import { data } from "@life-client/shared";
+import { data, visibleGoals, visibleTasks } from "@life-client/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -68,16 +68,25 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
   if (!open) return null;
 
   const q = query.trim().toLowerCase();
+  // Firestore documents are unvalidated, so a row with a missing title used to
+  // throw on `.toLowerCase()` and take the whole search overlay down with it.
+  const matches = (title: string | undefined, needle: string) =>
+    typeof title === "string" && title.toLowerCase().includes(needle);
   const results: SearchResult[] = q
     ? [
-        ...tasks
-          .filter((t) => t.title.toLowerCase().includes(q))
-          .map((t): SearchResult => ({ id: t.id, kind: "Task", title: t.title, href: "/tasks" })),
-        ...goals
-          .filter((g) => g.title.toLowerCase().includes(q))
+        // Tasks link to the item, not the list. `/tasks/[id]` exists, and
+        // sending someone who searched for one specific task to a list of all
+        // of them makes the search little better than a filter.
+        ...visibleTasks(tasks)
+          .filter((t) => matches(t.title, q))
+          .map((t): SearchResult => ({ id: t.id, kind: "Task", title: t.title, href: `/tasks/${t.id}` })),
+        // Goals and reminders have no detail route, so these stay on the list
+        // page they live on.
+        ...visibleGoals(goals)
+          .filter((g) => matches(g.title, q))
           .map((g): SearchResult => ({ id: g.id, kind: "Goal", title: g.title, href: "/goals" })),
         ...reminders
-          .filter((r) => r.title.toLowerCase().includes(q))
+          .filter((r) => matches(r.title, q))
           .map((r): SearchResult => ({ id: r.id, kind: "Reminder", title: r.title, href: "/dashboard" })),
       ].slice(0, 30)
     : [];
@@ -108,7 +117,7 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
                 onClick={() => goTo(r.href)}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-surface-2"
               >
-                <span className="shrink-0 rounded-full border border-border-strong bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-bold text-primary uppercase">
+                <span className="shrink-0 rounded-full border border-border-strong bg-primary/10 px-2 py-0.5 font-mono text-micro font-bold text-primary uppercase">
                   {r.kind}
                 </span>
                 <span className="min-w-0 truncate text-foreground">{r.title}</span>

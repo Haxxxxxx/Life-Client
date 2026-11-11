@@ -8,11 +8,13 @@ import {
   type Recurrence,
   type RecurrenceFreq,
   type Task,
+  type TaskPatch,
   type TaskCategory,
   type TaskDifficulty,
   type TaskPriority,
   type TaskStatus,
   taskCompletedIso,
+  archivedTasks,
   visibleTasks,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
@@ -23,9 +25,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { SkeletonList } from '@/components/ui';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'done'];
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -162,7 +166,7 @@ function EditTaskForm({
 }: {
   task: Task;
   goals: Goal[];
-  onSave: (patch: Partial<Task>) => void;
+  onSave: (patch: TaskPatch) => void;
   onCancel: () => void;
 }) {
   const theme = useTheme();
@@ -257,9 +261,10 @@ function EditTaskForm({
               category,
               difficulty,
               priority,
-              dueDate: dueDate || undefined,
-              goalId: goalId || undefined,
-              recurrence,
+              // See the web edit form: null clears, undefined is dropped.
+              dueDate: dueDate || null,
+              goalId: goalId || null,
+              recurrence: recurrence ?? null,
             })
           }>
           <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
@@ -285,11 +290,27 @@ export default function TasksScreen() {
   const [category, setCategory] = useState<TaskCategory>('work');
   const [difficulty, setDifficulty] = useState<TaskDifficulty>('medium');
   const [error, setError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  // Which uid the loaded data belongs to, rather than a bare boolean reset
+  // inside the effect. Two reasons: setState in an effect body triggers a
+  // cascading render (the react-compiler lint rule rejects it), and deriving
+  // it means a user switch cannot briefly show the previous account's rows as
+  // though they were loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeTasks(user.uid, setTasks, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeTasks(
+      uid,
+      (next) => {
+        setTasks(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -317,6 +338,23 @@ export default function TasksScreen() {
   }
 
   const shownTasks = useMemo(() => visibleTasks(tasks), [tasks]);
+  const archived = useMemo(() => archivedTasks(tasks), [tasks]);
+
+  /**
+   * Un-archiving keeps the task's status. `archived` is a flag separate from
+   * status (unlike goals, where archived *is* the status), so a restored task
+   * comes back still done — which is what you want from something the daily
+   * cleanup filed away rather than something you un-finished.
+   */
+  async function handleRestoreTask(taskId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.updateTask(user.uid, taskId, { archived: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not restore this task');
+    }
+  }
 
   return (
     <ThemedView style={styles.screen}>
@@ -395,14 +433,60 @@ export default function TasksScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={tasks.some((t) => t.status === 'done') ? <CompletionChart tasks={tasks} /> : null}
+          ListFooterComponent={
+            archived.length > 0 ? (
+              <View style={{ gap: Spacing.two, marginTop: Spacing.four }}>
+                <Pressable
+                  onPress={() => setShowArchived((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showArchived }}
+                  accessibilityLabel={`Archived tasks, ${archived.length}`}>
+                  <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+                    {showArchived ? '▾' : '▸'} Archived ({archived.length})
+                  </ThemedText>
+                </Pressable>
+                {showArchived && (
+                  <View style={{ gap: Spacing.two }}>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      Tasks the daily cleanup filed away after being done for 30 days. Nothing here is deleted —
+                      restore one to put it back in the list above.
+                    </ThemedText>
+                    {archived.map((task) => (
+                      <ThemedView
+                        key={task.id}
+                        type="backgroundElement"
+                        style={[styles.archivedRow, { borderColor: theme.border }]}>
+                        <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
+                          {task.title}
+                        </ThemedText>
+                        <Pressable
+                          onPress={() => handleRestoreTask(task.id)}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Restore task ${task.title}`}
+                          style={[styles.restoreButton, { borderColor: theme.border }]}>
+                          <ThemedText type="small">Restore</ThemedText>
+                        </Pressable>
+                      </ThemedView>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
-            <ThemedView type="backgroundElement" style={styles.emptyState}>
-              <ThemedText themeColor="textSecondary">
-                {tasks.length === 0
-                  ? 'No tasks yet — add your first one above.'
-                  : 'All caught up — everything here has been done long enough to auto-archive.'}
-              </ThemedText>
-            </ThemedView>
+            !loaded ? (
+              <SkeletonList rows={4} />
+            ) : (
+              <ThemedView type="backgroundElement" style={styles.emptyState}>
+                <ThemedText themeColor="textSecondary">
+                  {tasks.length === 0
+                    ? 'No tasks yet — add your first one above.'
+                    : 'All caught up — everything here has been done long enough to auto-archive.'}
+                </ThemedText>
+              </ThemedView>
+            )
           }
           renderItem={({ item }) =>
             editingId === item.id ? (
@@ -447,7 +531,18 @@ export default function TasksScreen() {
                     style={[styles.pillButton, { borderColor: theme.border }]}>
                     <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
                   </Pressable>
-                  <Pressable onPress={() => data.deleteTask(user!.uid, item.id)} style={styles.deleteButton}>
+                  <Pressable
+                    onPress={() =>
+                      confirmDestructive({
+                        title: 'Delete this task?',
+                        message: item.title,
+                        onConfirm: () => data.deleteTask(user!.uid, item.id),
+                      })
+                    }
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete task ${item.title}`}
+                    style={styles.deleteButton}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>
@@ -463,6 +558,24 @@ export default function TasksScreen() {
 }
 
 const styles = StyleSheet.create({
+  archivedRow: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  archivedTitle: { flex: 1 },
+  restoreButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
   screen: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   header: { marginTop: Spacing.four, gap: Spacing.one },
@@ -490,7 +603,7 @@ const styles = StyleSheet.create({
   taskActions: { gap: Spacing.one, alignItems: 'flex-end' },
   pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   recurrenceIntervalRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   intervalInput: { width: 44, borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   weekdayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.one + Spacing.half, paddingVertical: Spacing.half },

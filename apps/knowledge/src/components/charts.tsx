@@ -285,7 +285,18 @@ function ReadingStatusChart({ items }: { items: ReadingListItem[] }) {
               );
             }}
           />
-          <Bar dataKey="count" name="Items" fill="var(--primary)" radius={[0, 4, 4, 0]} minPointSize={2}>
+          {/*
+            minPointSize is conditional, not a flat 2. A flat value draws a 2px
+            sliver for rows whose count is 0, so the chart showed a bar next to
+            a label reading "0 items" — it has to be honest about empty.
+          */}
+          <Bar
+            dataKey="count"
+            name="Items"
+            fill="var(--primary)"
+            radius={[0, 4, 4, 0]}
+            minPointSize={(value: number | undefined | null) => ((value ?? 0) > 0 ? 2 : 0)}
+          >
             <LabelList dataKey="count" position="right" fill="var(--foreground)" fontSize={11} />
           </Bar>
         </BarChart>

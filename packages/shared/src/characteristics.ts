@@ -38,13 +38,30 @@ const XP_PER_PRACTICED_WORD = 12;
 const XP_PER_READ_ARTICLE = 6;
 
 function completedTaskXp(task: Task): number {
-  return TASK_DIFFICULTY_XP[task.difficulty ?? "medium"];
+  // `?? "medium"` only covers a missing difficulty, not an unexpected one.
+  // Firestore docs are unvalidated, so any other string made this `undefined`
+  // and turned the whole XP sum into NaN. Default on the lookup *result*.
+  return TASK_DIFFICULTY_XP[task.difficulty ?? "medium"] ?? TASK_DIFFICULTY_XP.medium;
 }
 
-/** Linear level curve: level N -> N+1 costs 100*N xp. */
+/**
+ * Linear level curve: level N -> N+1 costs 100*N xp.
+ *
+ * Non-finite input is clamped to 0 before the loop. `Infinity` used to hang
+ * the caller outright — `Infinity >= xpForNextLevel` is always true and
+ * `Infinity - n` is still `Infinity`, so the while loop never terminated — and
+ * `NaN` propagated out as `progress: NaN`. Neither is reachable from the
+ * current forms, but both are reachable from stored data: Firestore has no
+ * CHECK constraints, so a single bad field could freeze whichever screen
+ * rendered it.
+ *
+ * `totalXp` is echoed back clamped rather than raw, so a negative value can't
+ * be reported alongside a level of 1.
+ */
 export function levelFromXp(totalXp: number): CharacteristicLevel {
+  const safeXp = Number.isFinite(totalXp) ? Math.max(0, totalXp) : 0;
   let level = 1;
-  let remaining = Math.max(0, totalXp);
+  let remaining = safeXp;
   let xpForNextLevel = 100 * level;
 
   while (remaining >= xpForNextLevel) {
@@ -55,7 +72,7 @@ export function levelFromXp(totalXp: number): CharacteristicLevel {
 
   return {
     level,
-    totalXp,
+    totalXp: safeXp,
     xpIntoLevel: remaining,
     xpForNextLevel,
     progress: remaining / xpForNextLevel,

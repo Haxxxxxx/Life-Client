@@ -4,7 +4,9 @@ import {
   type NewGoal,
   type Task,
   type ViceLog,
+  archivedGoals as selectArchivedGoals,
   computeGoalProgress,
+  goalStatusCounts,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
@@ -14,9 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { SkeletonList } from '@/components/ui';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 function daysUntil(dateStr: string): number {
   const msPerDay = 24 * 60 * 60 * 1000;
@@ -27,16 +31,15 @@ const GOAL_EXAMPLES = ['Ship WeSplit v2', 'Read 12 books this year', 'Run a half
 
 function GoalStatusChart({ goals }: { goals: Goal[] }) {
   const theme = useTheme();
-  const count = (status: Goal['status']) => goals.filter((g) => g.status === status).length;
-  const active = count('active');
-  const completed = count('completed');
-  const archived = count('archived');
-  // Archived goals were dropped, not finished, so they stay out of the hit rate.
-  const decided = active + completed;
-  const hitRate = decided > 0 ? Math.round((completed / decided) * 100) : 0;
+  // Shared with web, which used to divide by every goal including archived —
+  // the same data read "2 of 10" there and 50% here. Archived goals were
+  // dropped rather than missed, so they stay out of the denominator.
+  const counts = goalStatusCounts(goals);
+  const { active, completed, archived } = counts;
+  const hitRate = Math.round(counts.hitRate * 100);
 
   return (
-    <ChartCard title="Goal split" summary={`${goals.length} total`}>
+    <ChartCard title="Goal split" summary={`${counts.total} total`}>
       <Donut
         centerValue={`${hitRate}%`}
         centerCaption="done"
@@ -337,10 +340,26 @@ export default function GoalsScreen() {
   const [viceLogs, setViceLogs] = useState<ViceLog[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  // Which uid the loaded data belongs to, rather than a bare boolean reset
+  // inside the effect. Two reasons: setState in an effect body triggers a
+  // cascading render (the react-compiler lint rule rejects it), and deriving
+  // it means a user switch cannot briefly show the previous account's rows as
+  // though they were loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals, (err) => setError(err.message));
+    const uid = user.uid;
+    return data.subscribeGoals(
+      uid,
+      (next) => {
+        setGoals(next);
+        setLoadedFor(uid);
+      },
+      (err) => setError(err.message),
+    );
   }, [user]);
 
   useEffect(() => {
@@ -376,8 +395,24 @@ export default function GoalsScreen() {
 
   const activeViceLogs = viceLogs.filter((v) => !v.compensated);
 
+  /**
+   * Restores to "active", not "completed" — a goal can be archived from either
+   * state and nothing records which, so restoring as completed would invent an
+   * achievement and inflate the stats. Matches the web behaviour.
+   */
+  async function handleRestoreGoal(goalId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await data.setGoalStatus(user.uid, goalId, 'active');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not restore this goal');
+    }
+  }
+
   const activeGoals = goals.filter((g) => g.status === 'active');
   const completedGoals = goals.filter((g) => g.status === 'completed');
+  const archived = selectArchivedGoals(goals);
   const overallPercent =
     activeGoals.length > 0
       ? Math.round(
@@ -395,7 +430,14 @@ export default function GoalsScreen() {
         onEdit={(patch) => user && data.updateGoal(user.uid, goal.id, patch)}
         onComplete={() => user && data.setGoalStatus(user.uid, goal.id, 'completed')}
         onArchive={() => user && data.setGoalStatus(user.uid, goal.id, 'archived')}
-        onDelete={() => user && data.deleteGoal(user.uid, goal.id)}
+        onDelete={() =>
+          user &&
+          confirmDestructive({
+            title: 'Delete this goal?',
+            message: goal.title,
+            onConfirm: () => data.deleteGoal(user.uid, goal.id),
+          })
+        }
         onLinkTask={(taskId) => user && data.updateTask(user.uid, taskId, { goalId: goal.id })}
         onUnlinkTask={(taskId) => user && data.updateTask(user.uid, taskId, { goalId: undefined })}
         onNewTask={(title) =>
@@ -469,9 +511,13 @@ export default function GoalsScreen() {
               {error}
             </ThemedText>
           )}
-          {activeGoals.length > 0 && <View style={{ gap: Spacing.three }}>{activeGoals.map(renderGoalCard)}</View>}
+          {!loaded && <SkeletonList rows={3} />}
 
-          {activeGoals.length === 0 && !formOpen && (
+          {loaded && activeGoals.length > 0 && (
+            <View style={{ gap: Spacing.three }}>{activeGoals.map(renderGoalCard)}</View>
+          )}
+
+          {loaded && activeGoals.length === 0 && !formOpen && (
             <ThemedView type="backgroundElement" style={styles.emptyState}>
               <ThemedText themeColor="textSecondary">
                 No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
@@ -487,6 +533,46 @@ export default function GoalsScreen() {
                 </ThemedText>
               </Pressable>
               {showCompleted && <View style={{ gap: Spacing.three }}>{completedGoals.map(renderGoalCard)}</View>}
+            </View>
+          )}
+
+          {archived.length > 0 && (
+            <View style={{ gap: Spacing.two }}>
+              <Pressable
+                onPress={() => setShowArchived((v) => !v)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showArchived }}
+                accessibilityLabel={`Archived goals, ${archived.length}`}>
+                <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+                  {showArchived ? '▾' : '▸'} Archived ({archived.length})
+                </ThemedText>
+              </Pressable>
+              {showArchived && (
+                <View style={{ gap: Spacing.two }}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Goals you archived, plus any completed goal the daily cleanup filed away after 30 days.
+                    Nothing here is deleted — restore one to put it back in your active list.
+                  </ThemedText>
+                  {archived.map((goal) => (
+                    <ThemedView
+                      key={goal.id}
+                      type="backgroundElement"
+                      style={[styles.archivedRow, { borderColor: theme.border }]}>
+                      <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
+                        {goal.title}
+                      </ThemedText>
+                      <Pressable
+                        onPress={() => handleRestoreGoal(goal.id)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Restore goal ${goal.title}`}
+                        style={[styles.restoreButton, { borderColor: theme.border }]}>
+                        <ThemedText type="small">Restore</ThemedText>
+                      </Pressable>
+                    </ThemedView>
+                  ))}
+                </View>
+              )}
             </View>
           )}
 
@@ -540,6 +626,24 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
+  archivedRow: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  archivedTitle: { flex: 1 },
+  restoreButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
+  },
   screen: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
@@ -550,14 +654,23 @@ const styles = StyleSheet.create({
   error: { marginBottom: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
-  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  // Matches the other eight screens (radius two / padding three) and clears
+  // the 44pt touch minimum. These three used a smaller, sharper variant,
+  // which made their forms read as a different app.
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   goalCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   goalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   goalActions: { flexDirection: 'row', gap: Spacing.two },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   progressTrack: { flex: 1, height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },

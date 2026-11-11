@@ -66,15 +66,39 @@ export type ReminderUrgency = "overdue" | "due-today" | "due-soon" | "upcoming";
 
 const DUE_SOON_DAYS = 2;
 
-/** Days remaining until the deadline, rounded up (negative once overdue). */
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
+ * Whole calendar days between today and the deadline's day, in local time:
+ * 0 for today, 1 for tomorrow, -1 for yesterday.
+ *
+ * This used to be `Math.ceil((deadline - now) / msPerDay)`, which answers a
+ * different question — elapsed 24-hour periods, not calendar days — and got
+ * every bucket wrong. At 09:00, a deadline of 17:00 *the same day* returned 1
+ * ("due in 1d"), while something 30 minutes overdue returned `Math.ceil(-0.02)`
+ * = `-0`, and `-0 === 0` is true, so it reported as due today. The result was
+ * that "due-today" only ever meant "overdue within the last 24h" and nothing
+ * genuinely due today could reach it.
+ *
+ * Differencing local midnights also avoids the DST bug in the old version:
+ * Math.round absorbs the 23- and 25-hour days a fixed msPerDay divisor cannot.
+ */
 export function daysUntil(deadline: string, now: Date = new Date()): number {
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.ceil((new Date(deadline).getTime() - now.getTime()) / msPerDay);
+  const target = new Date(deadline);
+  if (Number.isNaN(target.getTime())) return 0;
+  const diffMs = startOfLocalDay(target).getTime() - startOfLocalDay(now).getTime();
+  return Math.round(diffMs / (24 * 60 * 60 * 1000));
 }
 
 export function reminderUrgency(deadline: string, now: Date = new Date()): ReminderUrgency {
+  const target = new Date(deadline);
+  if (Number.isNaN(target.getTime())) return "upcoming";
+  // Overdue is about the instant, not the day: 08:00 today is already past at
+  // 09:00 today, even though both fall on the same calendar day.
+  if (target.getTime() < now.getTime()) return "overdue";
   const days = daysUntil(deadline, now);
-  if (days < 0) return "overdue";
   if (days === 0) return "due-today";
   if (days <= DUE_SOON_DAYS) return "due-soon";
   return "upcoming";

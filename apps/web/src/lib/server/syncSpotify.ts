@@ -1,5 +1,14 @@
+// Importing this module from a Client Component is a build error, not a runtime
+// surprise. Everything in lib/server/ touches firebase-admin via a service
+// account and (soon) a Supabase service-role key; previously the boundary was
+// held by convention alone, so one bad import would have bundled credentials
+// into the browser. admin.ts initialises lazily, so the mistake would not even
+// have thrown until first use.
+import "server-only";
+
 import type { SpotifyTopArtist, SpotifyTrack } from "@life-client/shared";
 import { adminDb } from "./admin";
+import { forEachUser, type FanOutResult } from "./fanOut";
 import { setIntegrationStatus } from "./integrationStatus";
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
@@ -130,7 +139,7 @@ export async function syncSpotifyForUser(uid: string): Promise<void> {
   }
 }
 
-export async function syncAllSpotify(): Promise<void> {
+export async function syncAllSpotify(): Promise<FanOutResult> {
   const uids = await allConnectedUids("spotify");
-  await Promise.all(uids.map((uid) => syncSpotifyForUser(uid)));
+  return forEachUser("spotify", uids, syncSpotifyForUser);
 }

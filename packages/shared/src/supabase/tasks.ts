@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nextOccurrenceDate } from "../recurrence";
+import { setViceLogCompensatedSb } from "./vices";
 import type {
   NewTask,
+  TaskPatch,
   PrEvent,
   Recurrence,
   Task,
@@ -35,6 +37,11 @@ interface TaskRow {
   vice_log_id: string | null;
   pr_meta: TaskPrMeta | null;
   pr_events: PrEvent[] | null;
+  // Added by 20261110120000_phase2_archive_and_realtime_fixes.sql. Optional on
+  // the type so this code still reads correctly against a database where that
+  // migration has not been applied yet.
+  archived?: boolean | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,33 +65,59 @@ function rowToTask(r: TaskRow): Task {
     viceLogId: r.vice_log_id ?? undefined,
     prMeta: r.pr_meta ?? undefined,
     prEvents: r.pr_events ?? undefined,
+    // `?? undefined` rather than a default: a column that is absent (migration
+    // not yet applied) and one that is NULL must both read as "not archived"
+    // and "no completion date", which is how visibleTasks/archivedTasks and
+    // taskCompletedIso already treat them.
+    archived: r.archived ?? undefined,
+    completedAt: r.completed_at ?? undefined,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
 }
 
 /** Domain patch → column patch. Only defined keys are written. */
-function taskToRow(t: Partial<NewTask>): Record<string, unknown> {
+/**
+ * Maps a patch onto its columns, writing ONLY the keys the patch actually has.
+ *
+ * This previously read `put("due_date", t.dueDate ?? null)`, where the `??` is
+ * evaluated before `put`'s `!== undefined` guard — so an *absent* key became an
+ * explicit `null` and was written. That made it a full-row overwrite rather
+ * than a patch builder: `updateTask(uid, id, { status: "done" })` nulled
+ * description, due_date, source_ref, source_url, goal_id, recurrence,
+ * vice_log_id, pr_meta and pr_events. Ticking a task off destroyed its
+ * deadline, goal link, recurrence rule and entire PR history.
+ *
+ * `put("tags", t.tags)` was the one field written without `?? null`, which is
+ * what gives the copy-paste away.
+ *
+ * Presence is now tested with `in`, which also keeps the TaskPatch contract
+ * intact: an explicit `null` means "clear" and must be written, while an
+ * absent key must be left alone. `?? null` could not express that difference.
+ */
+function taskToRow(t: TaskPatch): Record<string, unknown> {
   const row: Record<string, unknown> = {};
-  const put = (key: string, value: unknown) => {
-    if (value !== undefined) row[key] = value;
+  const put = (key: string, field: keyof TaskPatch, value: unknown) => {
+    if (field in t) row[key] = value ?? null;
   };
-  put("title", t.title);
-  put("description", t.description ?? null);
-  put("status", t.status);
-  put("priority", t.priority);
-  put("difficulty", t.difficulty);
-  put("category", t.category);
-  put("due_date", t.dueDate ?? null);
-  put("source", t.source);
-  put("source_ref", t.sourceRef ?? null);
-  put("source_url", t.sourceUrl ?? null);
-  put("tags", t.tags);
-  put("goal_id", t.goalId ?? null);
-  put("recurrence", t.recurrence ?? null);
-  put("vice_log_id", t.viceLogId ?? null);
-  put("pr_meta", t.prMeta ?? null);
-  put("pr_events", t.prEvents ?? null);
+  put("title", "title", t.title);
+  put("description", "description", t.description);
+  put("status", "status", t.status);
+  put("priority", "priority", t.priority);
+  put("difficulty", "difficulty", t.difficulty);
+  put("category", "category", t.category);
+  put("due_date", "dueDate", t.dueDate);
+  put("source", "source", t.source);
+  put("source_ref", "sourceRef", t.sourceRef);
+  put("source_url", "sourceUrl", t.sourceUrl);
+  put("tags", "tags", t.tags);
+  put("goal_id", "goalId", t.goalId);
+  put("recurrence", "recurrence", t.recurrence);
+  put("vice_log_id", "viceLogId", t.viceLogId);
+  put("pr_meta", "prMeta", t.prMeta);
+  put("pr_events", "prEvents", t.prEvents);
+  put("archived", "archived", t.archived);
+  put("completed_at", "completedAt", t.completedAt);
   return row;
 }
 
@@ -134,11 +167,16 @@ export async function createTaskSb(client: SupabaseClient, userId: string, task:
   return id;
 }
 
+/** Exported for tests only — the presence-vs-absence contract above is the
+ * thing that broke, so it is worth pinning directly rather than through a
+ * mocked Supabase client. */
+export const __taskToRowForTests = taskToRow;
+
 export async function updateTaskSb(
   client: SupabaseClient,
   userId: string,
   taskId: string,
-  patch: Partial<NewTask>,
+  patch: TaskPatch,
 ): Promise<void> {
   const { error } = await client
     .from("tasks")
@@ -154,7 +192,18 @@ export async function setTaskStatusSb(
   taskId: string,
   status: TaskStatus,
 ): Promise<void> {
-  await updateTaskSb(client, userId, taskId, { status });
+  // Mirrors the Firestore setTaskStatus: moving a task off "done" un-archives
+  // it, because the daily cleanup may already have filed it away and nothing
+  // else ever clears the flag — leaving it set would make a reopened task
+  // invisible in every list. completedAt is set and cleared here too.
+  await updateTaskSb(
+    client,
+    userId,
+    taskId,
+    status === "done"
+      ? { status, completedAt: new Date().toISOString() }
+      : { status, archived: false, completedAt: null },
+  );
 }
 
 export async function deleteTaskSb(client: SupabaseClient, userId: string, taskId: string): Promise<void> {
@@ -164,8 +213,8 @@ export async function deleteTaskSb(client: SupabaseClient, userId: string, taskI
 
 /**
  * Mirrors `advanceTaskStatus` from the Firestore module: rolls a recurring task
- * forward on completion. The ViceLog side-effect is deferred until vices are
- * migrated (Phase 1).
+ * forward on completion, refunds any vice-log compensation, and records the
+ * status change.
  */
 export async function advanceTaskStatusSb(
   client: SupabaseClient,
@@ -174,12 +223,30 @@ export async function advanceTaskStatusSb(
   nextStatus: TaskStatus,
 ): Promise<void> {
   if (nextStatus === "done" && task.recurrence && task.dueDate) {
-    const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = task;
+    // archived/completedAt must NOT carry over — the source task is the one
+    // becoming done, while the occurrence created here starts fresh as "todo".
+    // Those two were previously left in `rest`; harmless only while the columns
+    // did not exist, and the Phase 2 migration adds them.
+    const {
+      id: _id,
+      createdAt: _c,
+      updatedAt: _u,
+      archived: _archived,
+      completedAt: _completedAt,
+      ...rest
+    } = task;
     await createTaskSb(client, userId, {
       ...rest,
       dueDate: nextOccurrenceDate(task.dueDate, task.recurrence),
       status: "todo",
     });
+  }
+  // Refund the vice penalty, matching the Firestore path. The comment here used
+  // to say this was "deferred until vices are migrated (Phase 1)" — vices ARE
+  // migrated, so without this a compensating task could be completed on this
+  // backend and the XP penalty would stay applied forever.
+  if (task.viceLogId) {
+    await setViceLogCompensatedSb(client, userId, task.viceLogId, nextStatus === "done");
   }
   await setTaskStatusSb(client, userId, task.id, nextStatus);
 }

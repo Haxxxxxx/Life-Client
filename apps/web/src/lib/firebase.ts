@@ -27,9 +27,10 @@ const shouldInit = isBrowser && isFirebaseConfigured;
 
 export const firebaseApp: FirebaseApp | null = shouldInit ? initFirebaseApp(firebaseConfig) : null;
 export const auth: Auth | null = shouldInit ? getAuth(firebaseApp!) : null;
-// ignoreUndefinedProperties lets patches omit/clear optional fields (e.g.
-// `dueDate: undefined` to clear it) without Firestore throwing on the
-// literal `undefined` — matches the admin SDK setting used server-side.
+// ignoreUndefinedProperties stops Firestore throwing on a literal
+// `undefined` in a write — it DROPS those keys, it does not clear the stored
+// field. To clear one, pass `null`; updateTask turns that into deleteField().
+// Matches the admin SDK setting used server-side.
 export const db: Firestore | null = shouldInit
   ? initializeFirestore(firebaseApp!, { ignoreUndefinedProperties: true })
   : null;

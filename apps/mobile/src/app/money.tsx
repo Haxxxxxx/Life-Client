@@ -5,7 +5,9 @@ import {
   computeMonthlySpend,
   describeRecurrence,
   monthKey,
+  monthlyMoneyTrend,
   nextOccurrenceDate,
+  toDateStr,
   type Budget,
   type NewBudget,
   type NewTransaction,
@@ -23,9 +25,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Donut, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 const CATEGORY_LABEL = Object.fromEntries(TRANSACTION_CATEGORIES.map((c) => [c.id, c.label])) as Record<
   TransactionCategory,
@@ -53,25 +56,9 @@ function spendByCategory(transactions: Transaction[], month: string): { category
   return [...totals].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
 }
 
-function monthlyTrend(transactions: Transaction[], months: number): { key: string; label: string; income: number; spend: number }[] {
-  const now = new Date();
-  const rows = Array.from({ length: months }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
-    return { key: monthKey(d), label: d.toLocaleDateString(undefined, { month: 'short' }), income: 0, spend: 0 };
-  });
-  const byKey = new Map(rows.map((r) => [r.key, r]));
-  for (const t of transactions) {
-    const row = byKey.get(t.date.slice(0, 7));
-    if (!row) continue;
-    if (t.type === 'income') row.income += t.amount;
-    else row.spend += t.amount;
-  }
-  return rows;
-}
-
 function SpendingCharts({ transactions, month }: { transactions: Transaction[]; month: string }) {
   const theme = useTheme();
-  const { slices, monthTotal, trend, net } = useMemo(() => {
+  const { slices, monthTotal, trend, net, hasTrend } = useMemo(() => {
     const byCategory = spendByCategory(transactions, month);
     // The real "other" category always folds into the tail bucket so it can't collide with the rolled-up "Other" slice.
     const ranked = byCategory.filter((c) => c.category !== 'other');
@@ -90,9 +77,11 @@ function SpendingCharts({ transactions, month }: { transactions: Transaction[]; 
         : []),
     ];
     const monthTotal = byCategory.reduce((sum, c) => sum + c.amount, 0);
-    const trend = monthlyTrend(transactions, TREND_MONTHS);
-    const net = trend.reduce((sum, r) => sum + r.income - r.spend, 0);
-    return { slices, monthTotal, trend, net };
+    // Shared with web, which already suppressed an all-zero trend. This screen
+    // rendered it whenever any transaction existed, so a user whose history
+    // was all older than the window got six invisible bars and "Net +$0".
+    const { rows: trend, net, hasTrend } = monthlyMoneyTrend(transactions, TREND_MONTHS);
+    return { slices, monthTotal, trend, net, hasTrend };
   }, [transactions, month, theme.primary]);
   const incomeColor = theme.primary;
   const spendColor = withAlpha(theme.textSecondary, 0.55);
@@ -108,18 +97,28 @@ function SpendingCharts({ transactions, month }: { transactions: Transaction[]; 
           </ThemedText>
         )}
       </ChartCard>
-      <ChartCard title={`Last ${TREND_MONTHS} months`} summary={`Net ${net >= 0 ? '+' : '−'}${formatMoneyShort(Math.abs(net))}`}>
-        <BarTrend
-          layout="grouped"
-          colors={[incomeColor, spendColor]}
-          groups={trend.map((r) => ({ label: r.label, values: [r.income, r.spend] }))}
-        />
-        <Legend
-          items={[
-            { label: 'Income', color: incomeColor },
-            { label: 'Spend', color: spendColor },
-          ]}
-        />
+      <ChartCard
+        title={`Last ${TREND_MONTHS} months`}
+        summary={hasTrend ? `Net ${net >= 0 ? '+' : '−'}${formatMoneyShort(Math.abs(net))}` : 'No activity'}>
+        {!hasTrend ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            Nothing logged in the last {TREND_MONTHS} months.
+          </ThemedText>
+        ) : (
+          <>
+            <BarTrend
+              layout="grouped"
+              colors={[incomeColor, spendColor]}
+              groups={trend.map((r) => ({ label: r.label, values: [r.income, r.spend] }))}
+            />
+            <Legend
+              items={[
+                { label: 'Income', color: incomeColor },
+                { label: 'Spend', color: spendColor },
+              ]}
+            />
+          </>
+        )}
       </ChartCard>
     </View>
   );
@@ -210,7 +209,11 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<TransactionCategory>('food');
   const [note, setNote] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // toDateStr (local), not toISOString (UTC). computeMonthlySpend buckets
+  // with monthKey(), which is local, so a UTC default booked an evening
+  // transaction at UTC-8 into next month — missing from the month the user
+  // was still in, for both spend and budgets.
+  const [date, setDate] = useState(() => toDateStr(new Date()));
   const [recurrence, setRecurrence] = useState<Recurrence | undefined>(undefined);
 
   const parsedAmount = Number(amount);
@@ -395,7 +398,7 @@ export default function MoneyScreen() {
 
           <View style={styles.statsRow}>
             <View style={[styles.statTile, { borderColor: theme.border }]}>
-              <ThemedText type="subtitle" style={{ color: '#dc2626' }}>
+              <ThemedText type="subtitle" style={{ color: theme.danger }}>
                 {formatMoney(monthlyExpense)}
               </ThemedText>
               <ThemedText type="code" themeColor="textSecondary" style={styles.statLabel}>
@@ -462,10 +465,18 @@ export default function MoneyScreen() {
                       {CATEGORY_LABEL[budget.category]}
                     </ThemedText>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
-                      <ThemedText type="code" style={over ? { color: '#dc2626' } : undefined} themeColor={over ? undefined : 'textSecondary'}>
+                      <ThemedText type="code" style={over ? { color: theme.danger } : undefined} themeColor={over ? undefined : 'textSecondary'}>
                         {formatMoney(status.spent)} / {formatMoney(status.limit)}
                       </ThemedText>
-                      <Pressable onPress={() => user && data.deleteBudget(user.uid, budget.id)}>
+                      <Pressable
+                        onPress={() =>
+                          user &&
+                          confirmDestructive({
+                            title: 'Delete this budget?',
+                            onConfirm: () => data.deleteBudget(user.uid, budget.id),
+                          })
+                        }
+                        hitSlop={8}>
                         <ThemedText type="small" style={styles.deleteText}>
                           Delete
                         </ThemedText>
@@ -476,7 +487,7 @@ export default function MoneyScreen() {
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${Math.min(100, Math.round(status.percent * 100))}%`, backgroundColor: over ? '#dc2626' : theme.primary },
+                        { width: `${Math.min(100, Math.round(status.percent * 100))}%`, backgroundColor: over ? theme.danger : theme.primary },
                       ]}
                     />
                   </View>
@@ -523,11 +534,19 @@ export default function MoneyScreen() {
                   </ThemedText>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: Spacing.half }}>
-                  <ThemedText type="smallBold" style={tx.type === 'expense' ? { color: '#dc2626' } : { color: theme.primary }}>
+                  <ThemedText type="smallBold" style={tx.type === 'expense' ? { color: theme.danger } : { color: theme.primary }}>
                     {tx.type === 'expense' ? '-' : '+'}
                     {formatMoney(tx.amount)}
                   </ThemedText>
-                  <Pressable onPress={() => user && data.deleteTransaction(user.uid, tx.id)}>
+                  <Pressable
+                    onPress={() =>
+                      user &&
+                      confirmDestructive({
+                        title: 'Delete this transaction?',
+                        onConfirm: () => data.deleteTransaction(user.uid, tx.id),
+                      })
+                    }
+                    hitSlop={8}>
                     <ThemedText type="small" style={styles.deleteText}>
                       Delete
                     </ThemedText>
@@ -574,7 +593,7 @@ const styles = StyleSheet.create({
   budgetCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   progressTrack: { height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   row: {

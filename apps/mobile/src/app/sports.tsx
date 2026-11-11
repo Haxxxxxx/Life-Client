@@ -1,6 +1,7 @@
 import {
   ENDURANCE_EXERCISE_PRESETS,
   STRENGTH_EXERCISE_PRESETS,
+  canonicalExerciseType,
   type Challenge,
   type ChallengeMetric,
   type SportActivity,
@@ -10,7 +11,14 @@ import {
   createChallenge,
   updateChallenge,
 } from '@life-client/shared';
-import { data } from '@life-client/shared';
+import {
+  data,
+  isValidDateKey,
+  kilometresToMetres,
+  parseDecimalInput,
+  parsePositive,
+  parsePositiveInt,
+} from '@life-client/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,9 +26,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { confirmDestructive } from '@/lib/confirm';
 
 function formatDistance(meters?: number): string {
   if (!meters) return '—';
@@ -173,11 +183,14 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
           onSubmit({
             kind,
             type: customType.trim() || type,
-            distanceKm: Number(distanceKm) || 0,
-            durationMin: Number(durationMin) || 0,
-            reps: Number(reps) || 0,
-            sets: Number(sets) || 0,
-            weightKg: Number(weightKg) || 0,
+            // parseDecimalInput, not Number(): a decimal-pad keyboard types a
+            // COMMA in most of Europe, and `Number("5,5") || 0` logged a 5.5 km
+            // run as a 0 km run — which still earned the flat endurance XP.
+            distanceKm: parseDecimalInput(distanceKm) ?? 0,
+            durationMin: parseDecimalInput(durationMin) ?? 0,
+            reps: parseDecimalInput(reps) ?? 0,
+            sets: parseDecimalInput(sets) ?? 0,
+            weightKg: parseDecimalInput(weightKg) ?? 0,
           })
         }
         style={[styles.logButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
@@ -239,6 +252,9 @@ function todayLocalDate(): string {
 }
 
 const TREND_WEEKS = 12;
+// A sane upper bound: a year-1000 start date made dateRange iterate about
+// 365,000 days on every render of every challenge card.
+const MAX_CHALLENGE_DAYS = 3660;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function startOfWeek(date: Date): Date {
@@ -312,6 +328,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
   const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET_FOR_METRIC.distanceMeters);
   const [durationDays, setDurationDays] = useState('100');
   const [startDate, setStartDate] = useState(todayLocalDate());
+  const [formError, setFormError] = useState<string | null>(null);
 
   const type = customType.trim() || exerciseType;
   const presets = kind === 'endurance' ? ENDURANCE_EXERCISE_PRESETS : STRENGTH_EXERCISE_PRESETS;
@@ -422,15 +439,36 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
           />
         </View>
       </View>
+      {formError ? <ErrorBanner>{formError}</ErrorBanner> : null}
       <Pressable
         onPress={() => {
-          const dailyTargetDisplay = Number(dailyTarget) || 1;
+          // parsePositive rejects negatives, which used to pass straight
+          // through `Number(x) || 1`. A -5 km daily target satisfied
+          // `value >= -5000` every day, so every day read as complete and the
+          // streak grew without any activity at all.
+          const dailyTargetDisplay = parsePositive(dailyTarget);
+          const parsedDurationDays = parsePositiveInt(durationDays, MAX_CHALLENGE_DAYS);
+          if (dailyTargetDisplay === null || parsedDurationDays === null) {
+            setFormError(
+              `Daily target must be above zero, and duration a whole number of days (max ${MAX_CHALLENGE_DAYS}).`,
+            );
+            return;
+          }
+          // The start date is free text. A value like "2026-1-5" or "tomorrow"
+          // is stored happily but fails the lexicographic range comparisons in
+          // computeChallengeProgress, so the challenge silently never progresses.
+          if (!isValidDateKey(startDate)) {
+            setFormError('Start date must be a real date in YYYY-MM-DD form.');
+            return;
+          }
+          setFormError(null);
           onSubmit({
-            title: buildChallengeTitle(Number(durationDays) || 1, metric, dailyTargetDisplay, type),
+            title: buildChallengeTitle(parsedDurationDays, metric, dailyTargetDisplay, type),
             exerciseType: type,
             metric,
-            dailyTarget: metric === 'distanceMeters' ? Math.round(dailyTargetDisplay * 1000) : dailyTargetDisplay,
-            durationDays: Number(durationDays) || 1,
+            dailyTarget:
+              metric === 'distanceMeters' ? kilometresToMetres(dailyTargetDisplay) : dailyTargetDisplay,
+            durationDays: parsedDurationDays,
             startDate,
           });
         }}
@@ -467,7 +505,8 @@ function ChallengeCard({
 
   // Daily target is stored in canonical units (meters for distance); edited/displayed in km for readability.
   const dailyTargetToDisplay = (raw: number) => (challenge.metric === 'distanceMeters' ? raw / 1000 : raw);
-  const dailyTargetToStored = (display: number) => (challenge.metric === 'distanceMeters' ? Math.round(display * 1000) : display);
+  const dailyTargetToStored = (display: number) =>
+    challenge.metric === 'distanceMeters' ? kilometresToMetres(display) : display;
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
@@ -484,8 +523,12 @@ function ChallengeCard({
   function save() {
     onSave({
       title: title.trim() || challenge.title,
-      dailyTarget: Number(dailyTarget) ? dailyTargetToStored(Number(dailyTarget)) : challenge.dailyTarget,
-      durationDays: Number(durationDays) || challenge.durationDays,
+      // Same guards as create. `Number(x) ? … : old` silently kept the
+      // previous value, so an invalid edit looked saved but changed nothing.
+      dailyTarget: parsePositive(dailyTarget) !== null
+        ? dailyTargetToStored(parsePositive(dailyTarget)!)
+        : challenge.dailyTarget,
+      durationDays: parsePositiveInt(durationDays, MAX_CHALLENGE_DAYS) ?? challenge.durationDays,
     });
     setEditing(false);
   }
@@ -647,6 +690,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loggingChallengeId, setLoggingChallengeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -667,21 +711,41 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   // Logs an activity that matches this challenge's own exerciseType/metric —
   // avoids the user having to guess the exact type string themselves.
   async function handleLogToday(challenge: Challenge) {
-    if (!user) return;
+    if (!user || loggingChallengeId) return;
     setError(null);
-    const kind: SportActivityKind = challenge.metric === 'distanceMeters' ? 'endurance' : 'strength';
+    setLoggingChallengeId(challenge.id);
+    // Kind follows the EXERCISE, not the metric. Deriving it from the metric
+    // meant a "30 Days of Running" challenge counted by sessions logged a
+    // *strength* activity typed "Running": the weekly chart counted it as
+    // strength, the list rendered it as "1 x 1 reps x sets", and
+    // computeFitnessXp credited strength XP (1*1*1 + 5 = 6) instead of the
+    // endurance 5.
+    const kind: SportActivityKind = ENDURANCE_EXERCISE_PRESETS.includes(
+      canonicalExerciseType(challenge.exerciseType),
+    )
+      ? 'endurance'
+      : 'strength';
     try {
       await data.createManualSportActivity(user.uid, {
         kind,
         type: challenge.exerciseType,
         name: challenge.exerciseType,
         startDate: new Date().toISOString(),
-        ...(kind === 'endurance'
+        // Only attach the metric the challenge actually measures: a sessions
+        // challenge is satisfied by the activity existing, so inventing a
+        // distance or a rep count would feed made-up numbers into the charts.
+        ...(challenge.metric === 'distanceMeters'
           ? { distanceMeters: challenge.dailyTarget }
-          : { reps: challenge.metric === 'reps' ? challenge.dailyTarget : 1, sets: 1 }),
+          : challenge.metric === 'reps'
+            ? { reps: challenge.dailyTarget, sets: 1 }
+            : {}),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not log today');
+    } finally {
+      // Without this, two quick taps wrote two full-target activities before
+      // the snapshot hid the button — inflating both distance and XP.
+      setLoggingChallengeId(null);
     }
   }
 
@@ -720,7 +784,14 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
               challenge={challenge}
               activities={activities}
               onArchive={() => user && data.archiveChallenge(user.uid, challenge.id)}
-              onDelete={() => user && data.deleteChallenge(user.uid, challenge.id)}
+              onDelete={() =>
+                user &&
+                confirmDestructive({
+                  title: 'Delete this challenge?',
+                  message: challenge.title,
+                  onConfirm: () => data.deleteChallenge(user.uid, challenge.id),
+                })
+              }
               onSave={(patch) => user && data.updateChallenge(user.uid, challenge.id, patch)}
               onLogToday={() => handleLogToday(challenge)}
             />
@@ -742,6 +813,12 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
 
 export default function SportsScreen() {
   const { user } = useAuth();
+  // Keyed on uid, not a boolean reset inside the effect: setState in an effect
+  // body cascades a render (the react-compiler lint rule rejects it), and
+  // deriving it stops a user switch briefly showing the previous account's
+  // rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
   const theme = useTheme();
   const [activities, setActivities] = useState<SportActivity[]>([]);
   const [formOpen, setFormOpen] = useState(false);
@@ -749,7 +826,10 @@ export default function SportsScreen() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeSportActivities(user.uid, setActivities);
+    return data.subscribeSportActivities(user.uid, (next) => {
+        setActivities(next);
+        setLoadedFor(user.uid);
+      });
   }, [user]);
 
   async function handleLog(input: LogInput) {
@@ -762,7 +842,10 @@ export default function SportsScreen() {
         name: input.type,
         startDate: new Date().toISOString(),
         ...(input.kind === 'endurance'
-          ? { distanceMeters: input.distanceKm * 1000, movingTimeSec: input.durationMin * 60 }
+          ? // Rounded: the unrounded product is short of the stored challenge
+            // target for 74 of the two-decimal values, and the comparison is
+            // `>=`, so logging exactly 2.01 km never satisfied a 2.01 km goal.
+            { distanceMeters: kilometresToMetres(input.distanceKm), movingTimeSec: Math.round(input.durationMin * 60) }
           : { reps: input.reps, sets: input.sets, weightKg: input.weightKg || undefined }),
       });
       setFormOpen(false);
@@ -813,11 +896,15 @@ export default function SportsScreen() {
             </>
           }
           ListEmptyComponent={
-            <ThemedView type="backgroundElement" style={styles.emptyState}>
-              <ThemedText themeColor="textSecondary">
-                No activities yet. Connect Strava from the Integrations tab, or log one by hand above.
-              </ThemedText>
-            </ThemedView>
+            !loaded ? (
+              <SkeletonList rows={3} />
+            ) : (
+              <ThemedView type="backgroundElement" style={styles.emptyState}>
+                <ThemedText themeColor="textSecondary">
+                  No activities yet. Connect Strava from the Integrations tab, or log one by hand above.
+                </ThemedText>
+              </ThemedView>
+            )
           }
           renderItem={({ item }) => (
             <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
@@ -900,14 +987,23 @@ const styles = StyleSheet.create({
   info: { flex: 1, gap: 2, minWidth: 0 },
   stats: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   stat: { alignItems: 'flex-end' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginTop: Spacing.three },
   chipRow: { flexDirection: 'row', gap: Spacing.one },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
-  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  // Matches the other eight screens (radius two / padding three) and clears
+  // the 44pt touch minimum. These three used a smaller, sharper variant,
+  // which made their forms read as a different app.
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   logButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   trendSection: { marginBottom: Spacing.four },
   challengesSection: { gap: Spacing.two, marginBottom: Spacing.four },

@@ -25,13 +25,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { knowledgeApiClient } from '@/lib/knowledgeClient';
 
-const CORRECT_COLOR = '#16a34a';
-const INCORRECT_COLOR = '#dc2626';
+const CORRECT_COLOR = Colors.dark.success;
+const INCORRECT_COLOR = Colors.dark.danger;
 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -342,6 +342,12 @@ function PastDrillRow({
 
 function CodeDrillsSection() {
   const { user } = useAuth();
+  // Keyed on uid, not a boolean reset inside the effect: setState in an effect
+  // body cascades a render (the react-compiler lint rule rejects it), and
+  // deriving it stops a user switch briefly showing the previous account's
+  // rows as loaded.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
   const theme = useTheme();
   const [drills, setDrills] = useState<CodeDrill[]>([]);
   const [topic, setTopic] = useState('');
@@ -352,7 +358,10 @@ function CodeDrillsSection() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeCodeDrills(user.uid, setDrills);
+    return data.subscribeCodeDrills(user.uid, (next) => {
+        setDrills(next);
+        setLoadedFor(user.uid);
+      });
   }, [user]);
 
   async function handleGenerate() {
@@ -427,7 +436,9 @@ function CodeDrillsSection() {
           />
         ) : (
           <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
-            <ThemedText themeColor="textSecondary">No drills yet — generate your first one above.</ThemedText>
+            <ThemedText themeColor="textSecondary">
+              {loaded ? 'No drills yet — generate your first one above.' : 'Loading drills…'}
+            </ThemedText>
           </ThemedView>
         )}
       </View>
@@ -761,7 +772,7 @@ export default function KnowledgeScreen() {
   useEffect(() => {
     if (!user) return;
     const unsubs = [
-      data.subscribeDailyLessons(user.uid, setLessons, undefined, 400),
+      data.subscribeDailyLessons(user.uid, setLessons),
       data.subscribeCodeDrills(user.uid, setDrills),
       data.subscribeVocabWords(user.uid, setVocabWords),
       data.subscribeReadingList(user.uid, setReadingItems),
@@ -852,7 +863,10 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   list: { gap: Spacing.two },
   listCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
-  badge: { borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  // Pill, matching goals/index/search. These two were squares using the
+  // off-scale values 4 and 6, so the same concept rendered as two
+  // different components depending on the screen.
+  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   badgeText: { fontSize: 10 },
   pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   resultBox: { borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.three, marginTop: Spacing.two },
@@ -862,6 +876,8 @@ const styles = StyleSheet.create({
   dictionaryEntry: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
   dictionarySection: { marginTop: Spacing.two, borderTopWidth: 1, paddingTop: Spacing.three },
   insightCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
-  progressTrack: { height: 10, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
+  // 8, matching goals/money and the web ProgressBar's h-2. music.tsx keeps 6
+  // deliberately: that one is an inline track scrubber, not a stat bar.
+  progressTrack: { height: 8, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
   progressFill: { height: '100%' },
 });

@@ -9,7 +9,7 @@ export function subscribeSportActivities(
   uid: string,
   onChange: (activities: SportActivity[]) => void,
   onError?: (error: Error) => void,
-  max = 50,
+  max: number | null = null,
 ): () => void {
   const b = getDataBackend();
   return b.provider === "firebase"

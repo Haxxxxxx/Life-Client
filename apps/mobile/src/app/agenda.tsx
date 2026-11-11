@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { webApiClient } from '@/lib/webApiClient';
@@ -24,12 +24,24 @@ function isAllDay(event: CalendarEvent): boolean {
 // events can fail in ways that surface as a 500) and there's no real need to
 // manage them here — just don't show them.
 function isPast(event: CalendarEvent): boolean {
-  if (isAllDay(event)) return new Date(`${event.start}T23:59:59`).getTime() < Date.now();
+  // All-day events are judged on their END, not their start: Google's end date
+  // is exclusive, so a three-day event was treated as past from day two.
+  if (isAllDay(event)) {
+    const end = event.end || event.start;
+    return new Date(`${end}T00:00:00`).getTime() <= Date.now() - 24 * 60 * 60 * 1000;
+  }
   return new Date(event.end).getTime() < Date.now();
 }
 
 function dayKey(event: CalendarEvent): string {
-  return isAllDay(event) ? event.start : event.start.slice(0, 10);
+  if (isAllDay(event)) return event.start;
+  // Local date, not `start.slice(0, 10)`. Events created in the app are stored
+  // as toISOString(), i.e. UTC — so a 9pm event on Nov 9 at UTC-5 is
+  // "2026-11-10T02:00:00Z" and was grouped under Nov 10 / "Tomorrow".
+  const date = new Date(event.start);
+  if (Number.isNaN(date.getTime())) return event.start.slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function dayLabel(key: string): string {
@@ -83,6 +95,13 @@ function EventForm({
   const theme = useTheme();
   const [title, setTitle] = useState(initial?.title ?? '');
   const [location, setLocation] = useState(initial?.location ?? '');
+  // An all-day event has no time to edit, and its dates must survive a title
+  // change. The previous code fell through to the "next hour" defaults for
+  // these, so editing a Dec 25 all-day event to fix a typo moved it to a
+  // one-hour slot TODAY — a silent data loss on an edit the user thought was
+  // cosmetic.
+  const editingAllDay = Boolean(initial && isAllDay(initial));
+
   const [start, setStart] = useState(() => {
     if (initial && !isAllDay(initial)) return toDatetimeLocalValue(new Date(initial.start));
     const in1h = new Date();
@@ -100,7 +119,8 @@ function EventForm({
 
   const startDate = parseDatetimeLocalValue(start);
   const endDate = parseDatetimeLocalValue(end);
-  const canSubmit = title.trim().length > 0 && startDate !== null && endDate !== null;
+  const canSubmit =
+    title.trim().length > 0 && (editingAllDay || (startDate !== null && endDate !== null && endDate > startDate));
 
   return (
     <View style={[styles.form, { borderColor: theme.border }]}>
@@ -139,8 +159,11 @@ function EventForm({
             canSubmit &&
             onSubmit({
               title: title.trim(),
-              start: startDate!.toISOString(),
-              end: endDate!.toISOString(),
+              // For an all-day event, send its stored YYYY-MM-DD values back
+              // untouched: the server maps a date-only string to Google's
+              // `date` field, so the event stays all-day on the day it is on.
+              start: editingAllDay ? initial!.start : startDate!.toISOString(),
+              end: editingAllDay ? initial!.end : endDate!.toISOString(),
               location: location.trim() || undefined,
             })
           }
@@ -338,7 +361,7 @@ const styles = StyleSheet.create({
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
   openButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   openButtonText: { fontWeight: '700', textTransform: 'uppercase' },
-  deleteText: { color: '#dc2626' },
+  deleteText: { color: Colors.dark.danger },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginBottom: Spacing.three },
   input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
   formActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },

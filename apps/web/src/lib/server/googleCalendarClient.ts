@@ -1,3 +1,11 @@
+// Importing this module from a Client Component is a build error, not a runtime
+// surprise. Everything in lib/server/ touches firebase-admin via a service
+// account and (soon) a Supabase service-role key; previously the boundary was
+// held by convention alone, so one bad import would have bundled credentials
+// into the browser. admin.ts initialises lazily, so the mistake would not even
+// have thrown until first use.
+import "server-only";
+
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { getTokens, storeTokens, type StoredTokens } from "./tokens";
 
@@ -31,7 +39,7 @@ export interface GoogleCalendarEventInput {
   summary: string;
   description?: string;
   location?: string;
-  start: string; // ISO datetime
+  start: string; // ISO datetime, or YYYY-MM-DD for an all-day event
   end: string; // ISO datetime
 }
 
@@ -47,13 +55,24 @@ export interface GoogleCalendarEvent {
 
 const EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
+/**
+ * Google distinguishes all-day events (`date`) from timed ones (`dateTime`),
+ * and this always sent `dateTime`. That silently converted an all-day event
+ * into a timed one on any edit — a Dec 25 all-day entry edited to fix a typo
+ * came back as a one-hour slot. Mirroring the stored shape keeps all-day
+ * events all-day.
+ */
+function googleDate(value: string): { dateTime: string } | { date: string } {
+  return value.includes("T") ? { dateTime: value } : { date: value };
+}
+
 function eventBody(input: GoogleCalendarEventInput) {
   return {
     summary: input.summary,
     description: input.description,
     location: input.location,
-    start: { dateTime: input.start },
-    end: { dateTime: input.end },
+    start: googleDate(input.start),
+    end: googleDate(input.end),
   };
 }
 
@@ -76,18 +95,23 @@ export async function updateGoogleCalendarEvent(
   eventId: string,
   input: GoogleCalendarEventInput,
 ): Promise<GoogleCalendarEvent> {
-  const res = await fetch(`${EVENTS_URL}/${eventId}`, {
+  const res = await fetch(`${EVENTS_URL}/${encodeURIComponent(eventId)}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(eventBody(input)),
   });
   if (res.ok) return (await res.json()) as GoogleCalendarEvent;
-  if (res.status === 404) return createGoogleCalendarEvent(accessToken, input);
+  // 410 as well as 404. Google returns "Resource has been deleted" (410) for a
+  // cancelled or deleted event far more often than 404, and only 404 was
+  // handled — so the update threw, the reminder never synced again, and the
+  // route 500'd on every subsequent edit. deleteGoogleCalendarEvent below
+  // already treated the two the same, which is what gives the omission away.
+  if (res.status === 404 || res.status === 410) return createGoogleCalendarEvent(accessToken, input);
   throw new Error(`Google Calendar event update failed: ${res.status} ${await res.text()}`);
 }
 
 export async function deleteGoogleCalendarEvent(accessToken: string, eventId: string): Promise<void> {
-  const res = await fetch(`${EVENTS_URL}/${eventId}`, {
+  const res = await fetch(`${EVENTS_URL}/${encodeURIComponent(eventId)}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${accessToken}` },
   });

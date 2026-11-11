@@ -1,3 +1,19 @@
+// Importing this module from a Client Component is a build error, not a runtime
+// surprise. Everything in lib/server/ touches firebase-admin via a service
+// account and (soon) a Supabase service-role key; previously the boundary was
+// held by convention alone, so one bad import would have bundled credentials
+// into the browser. admin.ts initialises lazily, so the mistake would not even
+// have thrown until first use.
+import "server-only";
+
+import {
+  githubOutcomeFromPayload,
+  gitlabOutcomeFromPayload,
+  isResolvedOutcome,
+  type GithubPrPayload,
+  type GitlabMrPayload,
+  type PrOutcomeOrUnknown,
+} from "@life-client/shared";
 import type {
   DevPullRequest,
   IntegrationProvider,
@@ -8,6 +24,7 @@ import type {
   TaskPrMeta,
 } from "@life-client/shared";
 import { adminDb } from "./admin";
+import { forEachUser, type FanOutResult } from "./fanOut";
 import { setIntegrationStatus } from "./integrationStatus";
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { allConnectedUids, getTokens, storeTokens, type StoredTokens } from "./tokens";
@@ -374,39 +391,41 @@ function taskDocId(provider: "github" | "gitlab", pr: DevPullRequest): string {
   return `${provider}_${pr.repo.replace(/[^a-zA-Z0-9_-]/g, "-")}_${pr.number}`;
 }
 
-/** Final state of a PR that has dropped out of the open set. */
-interface PrOutcome {
-  state: "merged" | "closed";
-  resolvedAt: string | null;
-}
-
 /** `owner/repo#123` -> `["owner/repo", 123]`. */
 function parseSourceRef(ref: string | undefined): { repo: string; number: number } | null {
   const m = /^(.+)#(\d+)$/.exec(ref ?? "");
   return m ? { repo: m[1]!, number: Number(m[2]) } : null;
 }
 
-async function resolveGithubOutcome(token: string, repo: string, number: number): Promise<PrOutcome> {
+/**
+ * Both resolvers return `null` on any non-OK response rather than assuming the
+ * PR is gone. A 403 rate-limit or a 502 tells us nothing about the PR, and the
+ * caller treats `null` as "skip, ask again next run". The actual state mapping
+ * lives in @life-client/shared/prOutcome so it can be unit-tested.
+ */
+async function resolveGithubOutcome(
+  token: string,
+  repo: string,
+  number: number,
+): Promise<PrOutcomeOrUnknown> {
   const res = await fetch(`https://api.github.com/repos/${repo}/pulls/${number}`, {
     headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "User-Agent": "life-client" },
   });
-  if (!res.ok) return { state: "closed", resolvedAt: null };
-  const pr = (await res.json()) as { merged?: boolean; merged_at?: string | null; closed_at?: string | null };
-  return pr.merged
-    ? { state: "merged", resolvedAt: pr.merged_at ?? null }
-    : { state: "closed", resolvedAt: pr.closed_at ?? null };
+  if (!res.ok) return null;
+  return githubOutcomeFromPayload((await res.json()) as GithubPrPayload);
 }
 
-async function resolveGitlabOutcome(token: string, projectPath: string, iid: number): Promise<PrOutcome> {
+async function resolveGitlabOutcome(
+  token: string,
+  projectPath: string,
+  iid: number,
+): Promise<PrOutcomeOrUnknown> {
   const res = await fetch(
     `https://gitlab.com/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${iid}`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
-  if (!res.ok) return { state: "closed", resolvedAt: null };
-  const mr = (await res.json()) as { state?: string; merged_at?: string | null; closed_at?: string | null };
-  return mr.state === "merged"
-    ? { state: "merged", resolvedAt: mr.merged_at ?? null }
-    : { state: "closed", resolvedAt: mr.closed_at ?? null };
+  if (!res.ok) return null;
+  return gitlabOutcomeFromPayload((await res.json()) as GitlabMrPayload);
 }
 
 /** Denormalised PR snapshot stored on the task. All keys are always written (null
@@ -464,7 +483,7 @@ async function syncTasksFromPullRequests(
   uid: string,
   provider: "github" | "gitlab",
   pullRequests: DevPullRequest[],
-  resolveOutcome: (repo: string, number: number) => Promise<PrOutcome>,
+  resolveOutcome: (repo: string, number: number) => Promise<PrOutcomeOrUnknown>,
 ): Promise<void> {
   const tasksRef = adminDb.collection("users").doc(uid).collection("tasks");
   const existingSnap = await tasksRef.where("source", "==", provider).get();
@@ -473,23 +492,30 @@ async function syncTasksFromPullRequests(
   const prevById = new Map(existingSnap.docs.map((d) => [d.id, d.data()]));
   const batch = adminDb.batch();
 
-  // PRs that left the open set — resolve merged vs. closed and record it once.
+  // PRs missing from the page of open PRs we fetched. That is NOT the same as
+  // "no longer open" — the fetch is capped — so each one is confirmed with the
+  // provider before anything is marked done.
   for (const doc of existingSnap.docs) {
     const data = doc.data();
     const prevMeta = data.prMeta as TaskPrMeta | undefined;
     const alreadyResolved = prevMeta?.state === "merged" || prevMeta?.state === "closed";
     if (desiredIds.has(doc.id) || alreadyResolved) continue;
 
-    // No snapshot to fold the outcome into — just close it out.
+    const parsed = parseSourceRef(data.sourceRef as string | undefined);
+    // No sourceRef means there is no way to ask the provider. Previously this
+    // marked the task done regardless; now we leave it alone, because "we
+    // cannot check" is not evidence that the PR closed.
+    const outcome = parsed ? await resolveOutcome(parsed.repo, parsed.number).catch(() => null) : null;
+
+    // Still open upstream (it just fell outside the cap), or we could not find
+    // out. Either way, leave the task as it is and re-check on the next run.
+    if (!isResolvedOutcome(outcome)) continue;
+
+    // No snapshot to fold the outcome into — record the status only.
     if (!prevMeta) {
       if (data.status !== "done") batch.update(doc.ref, { status: "done", updatedAt: nowIso });
       continue;
     }
-
-    const parsed = parseSourceRef(data.sourceRef as string | undefined);
-    const outcome = parsed
-      ? await resolveOutcome(parsed.repo, parsed.number).catch(() => ({ state: "closed", resolvedAt: null }) as PrOutcome)
-      : ({ state: "closed", resolvedAt: null } as PrOutcome);
 
     const nextMeta: TaskPrMeta = {
       ...prevMeta,
@@ -515,14 +541,29 @@ async function syncTasksFromPullRequests(
     const nextMeta = buildPrMeta(pr);
     if (existingIds.has(id)) {
       const prev = prevById.get(id);
+      const prevMeta = prev?.prMeta as TaskPrMeta | undefined;
+      // This PR is open right now, yet the task says it was merged or closed.
+      // That can only be a previous run resolving it wrongly (the old code
+      // closed anything it could not see, including rate-limited lookups), or
+      // a genuinely reopened PR. Either way the task should be open again —
+      // which also repairs the tasks the old behaviour already corrupted, with
+      // no separate migration.
+      const wasWronglyResolved = prevMeta?.state === "merged" || prevMeta?.state === "closed";
       batch.set(
         ref,
         {
           title: pr.title,
           sourceUrl: pr.url,
           prMeta: nextMeta,
-          prEvents: appendEvents(prev?.prEvents, diffPrEvents(prev?.prMeta as TaskPrMeta | undefined, nextMeta, nowIso)),
+          prEvents: appendEvents(prev?.prEvents, diffPrEvents(prevMeta, nextMeta, nowIso)),
           updatedAt: nowIso,
+          // archived: false alongside the status reset — the daily cleanup may
+          // already have filed this task away, and visibleTasks drops archived
+          // items, so reopening the status alone would leave a live PR's task
+          // invisible in every list.
+          ...(wasWronglyResolved && prev?.status === "done"
+            ? { status: "todo", completedAt: null, archived: false }
+            : {}),
         },
         { merge: true },
       );
@@ -602,13 +643,18 @@ export async function syncGitlabForUser(uid: string): Promise<void> {
   await syncFor(uid, "gitlab");
 }
 
-export async function syncAllDevActivity(): Promise<void> {
+export async function syncAllDevActivity(): Promise<FanOutResult> {
   const [githubUids, gitlabUids] = await Promise.all([
     allConnectedUids("github"),
     allConnectedUids("gitlab"),
   ]);
-  await Promise.all([
-    ...githubUids.map((uid) => syncGithubForUser(uid)),
-    ...gitlabUids.map((uid) => syncGitlabForUser(uid)),
+  const [github, gitlab] = await Promise.all([
+    forEachUser("github", githubUids, syncGithubForUser),
+    forEachUser("gitlab", gitlabUids, syncGitlabForUser),
   ]);
+  return {
+    ok: github.ok + gitlab.ok,
+    failed: github.failed + gitlab.failed,
+    errors: [...github.errors, ...gitlab.errors],
+  };
 }

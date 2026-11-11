@@ -54,12 +54,12 @@ export function subscribeDailyLessons(
   uid: string,
   onChange: (lessons: DailyLesson[]) => void,
   onError?: (error: Error) => void,
-  max = 30,
+  max: number | null = null,
 ): () => void {
   const q = query(
     collection(db, "users", uid, "dailyLessons"),
     orderBy("createdAt", "desc"),
-    limit(max),
+    ...(max === null ? [] : [limit(max)]),
   );
   return onSnapshot(
     q,
@@ -73,12 +73,12 @@ export function subscribeCodeDrills(
   uid: string,
   onChange: (drills: CodeDrill[]) => void,
   onError?: (error: Error) => void,
-  max = 50,
+  max: number | null = null,
 ): () => void {
   const q = query(
     collection(db, "users", uid, "codeDrills"),
     orderBy("createdAt", "desc"),
-    limit(max),
+    ...(max === null ? [] : [limit(max)]),
   );
   return onSnapshot(
     q,

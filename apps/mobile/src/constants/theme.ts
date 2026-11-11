@@ -29,6 +29,16 @@ const DARK_COMMAND_CENTER = {
   // `background` itself) — the weak `border` alone is too close to
   // invisible there. Matches web/knowledge's --border-strong.
   borderStrong: '#F4EFE629',
+  // Status colours, matching web's --danger/--success/--warning.
+  //
+  // These were missing, so screens hardcoded `#dc2626` and `#16a34a` in 13
+  // places. Those are the Tailwind defaults rather than this palette: too
+  // dark and too saturated against `backgroundElement`, which is why delete
+  // links read as a different app's colour. Destructive text should still be
+  // legible on a dark surface.
+  danger: '#EF5B5B',
+  success: '#5FBF77',
+  warning: '#F2B84B',
 } as const;
 
 export const Colors = {

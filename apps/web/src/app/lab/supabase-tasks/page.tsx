@@ -135,14 +135,14 @@ export default function SupabaseTasksLab() {
               <button
                 type="button"
                 onClick={() => supabase && userId && advanceTaskStatusSb(supabase, userId, t, NEXT[t.status])}
-                className="rounded border border-border-strong px-2 py-1 font-mono text-[10px] font-bold uppercase hover:bg-primary/10"
+                className="rounded border border-border-strong px-2 py-1 font-mono text-micro font-bold uppercase hover:bg-primary/10"
               >
                 {t.status}
               </button>
               <button
                 type="button"
                 onClick={() => supabase && userId && deleteTaskSb(supabase, userId, t.id)}
-                className="rounded px-2 py-1 font-mono text-[10px] font-bold text-danger uppercase hover:bg-danger/10"
+                className="rounded px-2 py-1 font-mono text-micro font-bold text-danger uppercase hover:bg-danger/10"
               >
                 del
               </button>

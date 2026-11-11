@@ -119,6 +119,20 @@ export interface PrEvent {
 
 export type NewTask = Omit<Task, "id" | "createdAt" | "updatedAt">;
 
+/**
+ * A task update. `null` means "clear this field"; omitting it means "leave it".
+ *
+ * Needed because `undefined` cannot express "clear": Firestore is initialised
+ * with ignoreUndefinedProperties, which drops undefined keys from the write,
+ * and updateDoc only touches the keys it receives — so sending undefined left
+ * the old value in place and made clearing a field a silent no-op.
+ */
+export type TaskPatch = Partial<Omit<NewTask, "dueDate" | "goalId" | "recurrence">> & {
+  dueDate?: string | null;
+  goalId?: string | null;
+  recurrence?: Recurrence | null;
+};
+
 export type GoalStatus = "active" | "completed" | "archived";
 
 export interface Goal {
@@ -165,6 +179,47 @@ export interface SportActivity {
 
 export const ENDURANCE_EXERCISE_PRESETS = ["Running", "Cycling", "Swimming"];
 export const STRENGTH_EXERCISE_PRESETS = ["Squats", "Push-ups", "Pull-ups", "Dips"];
+
+/**
+ * Strava's activity types use different words than our own presets — Strava
+ * says "Run", the challenge form says "Running" — and it has several variants
+ * per sport ("TrailRun", "VirtualRide", "EBikeRide", …).
+ *
+ * Challenges compared `activity.type` to `challenge.exerciseType` directly,
+ * which meant a synced Strava run could never satisfy a "Running" challenge:
+ * every day read as zero and no milestone ever fired. Both sides now go
+ * through `canonicalExerciseType` instead.
+ *
+ * Mapping at comparison time (rather than rewriting on sync) also fixes the
+ * activities already stored, with no migration.
+ */
+const EXERCISE_TYPE_ALIASES: Record<string, string> = {
+  run: "Running",
+  trailrun: "Running",
+  virtualrun: "Running",
+  running: "Running",
+  ride: "Cycling",
+  virtualride: "Cycling",
+  ebikeride: "Cycling",
+  mountainbikeride: "Cycling",
+  gravelride: "Cycling",
+  handcycle: "Cycling",
+  cycling: "Cycling",
+  swim: "Swimming",
+  swimming: "Swimming",
+};
+
+/**
+ * Normalizes an activity/exercise type to the vocabulary used by
+ * ENDURANCE_EXERCISE_PRESETS. Unknown types (including every strength preset,
+ * which already matches by name) are returned unchanged apart from trimming,
+ * so comparing two canonical values is always safe.
+ */
+export function canonicalExerciseType(type: string | null | undefined): string {
+  if (!type) return "";
+  const trimmed = type.trim();
+  return EXERCISE_TYPE_ALIASES[trimmed.toLowerCase()] ?? trimmed;
+}
 
 /**
  * "reps"/"distanceMeters" sum the matching SportActivity metric across all of

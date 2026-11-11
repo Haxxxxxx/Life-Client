@@ -516,7 +516,7 @@ function ChallengeCard({
         {milestones.map((m) => (
           <span
             key={m.thresholdPercent}
-            className={`rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+            className={`rounded-full border px-2 py-0.5 font-mono text-micro font-bold uppercase ${
               m.achieved ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted"
             }`}
           >

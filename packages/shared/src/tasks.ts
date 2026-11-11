@@ -5,19 +5,52 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
 import { nextOccurrenceDate } from "./recurrence";
-import type { NewTask, Task, TaskStatus } from "./types";
+import type { TaskPatch, NewTask, Task, TaskStatus } from "./types";
 import { setViceLogCompensated } from "./vices";
 
 function tasksCollection(db: Firestore, uid: string) {
   return collection(db, "users", uid, "tasks");
+}
+
+/**
+ * Normalises a timestamp field to an ISO string.
+ *
+ * `createdAt` was written two different ways into the same collection:
+ * `serverTimestamp()` (a Firestore Timestamp) by createTask, and an ISO string
+ * by the dev-activity sync. Firestore orders by *type* before value, so the
+ * two never interleaved and `orderBy("createdAt", "desc")` returned two
+ * separate blocks — the task list was simply in the wrong order. The `as Task`
+ * cast hid it, because the declared type says `string`.
+ *
+ * New writes are ISO strings (below), but documents written the old way are
+ * still in the database, so reads normalise rather than assume.
+ */
+function toIsoString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const ts = value as { toDate?: () => Date; seconds?: number };
+    if (typeof ts.toDate === "function") return ts.toDate().toISOString();
+    if (typeof ts.seconds === "number") return new Date(ts.seconds * 1000).toISOString();
+  }
+  return new Date(0).toISOString();
+}
+
+/** Shapes a raw Firestore document into a Task with consistent timestamps. */
+function toTask(id: string, raw: Record<string, unknown>): Task {
+  return {
+    ...(raw as Omit<Task, "id">),
+    id,
+    createdAt: toIsoString(raw.createdAt),
+    updatedAt: toIsoString(raw.updatedAt),
+  };
 }
 
 export function subscribeTasks(
@@ -30,7 +63,7 @@ export function subscribeTasks(
   return onSnapshot(
     q,
     (snapshot) => {
-      const tasks = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Task);
+      const tasks = snapshot.docs.map((d) => toTask(d.id, d.data()));
       onChange(tasks);
     },
     (error) => onError?.(error),
@@ -46,29 +79,55 @@ export function subscribeTask(
 ): () => void {
   return onSnapshot(
     doc(db, "users", uid, "tasks", taskId),
-    (snapshot) => onChange(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Task) : null),
+    (snapshot) => onChange(snapshot.exists() ? toTask(snapshot.id, snapshot.data()) : null),
     (error) => onError?.(error),
   );
 }
 
 export async function createTask(db: Firestore, uid: string, task: NewTask): Promise<string> {
+  // ISO strings, not serverTimestamp(): the dev-activity sync and challenges
+  // already write strings, and mixing the two types in one ordered collection
+  // broke `orderBy("createdAt")` (see toIsoString above). One representation
+  // for every writer; reads normalise whatever is already stored.
+  const now = new Date().toISOString();
   const ref = await addDoc(tasksCollection(db, uid), {
     ...task,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
   });
   return ref.id;
 }
 
+/**
+ * `null` in a patch means "clear this field"; `undefined` means "leave it".
+ *
+ * This used to rely on `ignoreUndefinedProperties`, and the comment in
+ * firebase.ts claimed `dueDate: undefined` would clear it. It does the
+ * opposite: the flag makes Firestore *drop* undefined keys from the write, and
+ * `updateDoc` only touches the keys it is given — so the old value survived.
+ * Choosing "No repeat", clearing a due date or unlinking a goal was a silent
+ * no-op: the form closed as though it had saved, and the old value reappeared
+ * on the next snapshot.
+ *
+ * `null` was already the convention here (setTaskStatus clears completedAt
+ * that way), so it is the one that now actually deletes. Readers are
+ * unaffected: every consumer treats a missing field and a null field the same.
+ */
 export async function updateTask(
   db: Firestore,
   uid: string,
   taskId: string,
-  patch: PartialWithFieldValue<NewTask>,
+  patch: TaskPatch,
 ): Promise<void> {
+  const resolved: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    resolved[key] = value === null ? deleteField() : value;
+  }
   await updateDoc(doc(db, "users", uid, "tasks", taskId), {
-    ...patch,
-    updatedAt: serverTimestamp(),
+    ...resolved,
+    // ISO string, matching createTask and the sync — see toIsoString above.
+    updatedAt: new Date().toISOString(),
   });
 }
 
@@ -87,7 +146,7 @@ export async function setTaskStatus(
     uid,
     taskId,
     status === "done"
-      ? { status, completedAt: serverTimestamp() }
+      ? { status, completedAt: new Date().toISOString() }
       : { status, archived: false, completedAt: null },
   );
 }
@@ -99,6 +158,18 @@ export async function deleteTask(db: Firestore, uid: string, taskId: string): Pr
 /** Drops tasks the daily cleanup cron auto-archived (done 30+ days) from a list view — they're never deleted, just hidden here. */
 export function visibleTasks(tasks: Task[]): Task[] {
   return tasks.filter((t) => !t.archived);
+}
+
+/**
+ * The complement of `visibleTasks`, for the archive view.
+ *
+ * Kept an exact complement on purpose: the cron archives unattended, so a task
+ * hidden by one and not surfaced by the other is unreachable. The predicate is
+ * the truthiness of `archived`, matching visibleTasks, so a task with the
+ * field absent reads as "not archived" on both sides.
+ */
+export function archivedTasks(tasks: Task[]): Task[] {
+  return tasks.filter((t) => Boolean(t.archived));
 }
 
 /**

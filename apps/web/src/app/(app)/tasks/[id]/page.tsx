@@ -11,7 +11,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Badge, Button, Card, Eyebrow } from "@/components/ui";
+import { Badge, Button, Card, Eyebrow, textLinkClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { EditTaskForm } from "../_components";
 import {
@@ -25,14 +25,17 @@ import {
   prMetaOf,
   relativeTime,
   shortDateTime,
+  styleFor,
 } from "../_shared";
 
 function PrPanel({ task }: { task: Task }) {
   const meta = prMetaOf(task);
   if (!meta) return null;
-  const state = PR_STATE_STYLE[meta.state];
-  const check = PR_CHECK_STYLE[meta.checks];
-  const review = meta.reviewDecision ? PR_REVIEW_STYLE[meta.reviewDecision] : null;
+  // styleFor, not a bare index: prMeta holds whatever the provider returned,
+  // and an unexpected state used to throw and white-screen this route.
+  const state = styleFor(PR_STATE_STYLE, meta.state);
+  const check = PR_CHECK_STYLE[meta.checks] ?? null;
+  const review = meta.reviewDecision ? styleFor(PR_REVIEW_STYLE, meta.reviewDecision) : null;
 
   const rows: { label: string; value: ReactNode }[] = [
     {
@@ -106,7 +109,7 @@ function PrPanel({ task }: { task: Task }) {
             href={task.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-xs font-bold uppercase hover:underline"
+            className={textLinkClassName}
           >
             {task.sourceRef ?? "Open"} ↗
           </a>
@@ -116,7 +119,7 @@ function PrPanel({ task }: { task: Task }) {
       <dl className="flex flex-col gap-2">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3">
-            <dt className="w-24 shrink-0 font-mono text-[10px] tracking-wide text-muted uppercase">{r.label}</dt>
+            <dt className="w-24 shrink-0 font-mono text-micro tracking-wide text-muted uppercase">{r.label}</dt>
             <dd>{r.value}</dd>
           </div>
         ))}
@@ -124,7 +127,7 @@ function PrPanel({ task }: { task: Task }) {
 
       {events.length > 0 && (
         <div>
-          <p className="mb-2 font-mono text-[10px] tracking-wide text-muted uppercase">Activity</p>
+          <p className="mb-2 font-mono text-micro tracking-wide text-muted uppercase">Activity</p>
           <ul className="flex flex-col gap-1.5">
             {events.map((e, i) => (
               <li key={i} className="flex items-baseline gap-2 text-xs">
@@ -174,7 +177,7 @@ export default function TaskDetailPage() {
   if (!task) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <Link href="/tasks" className="font-mono text-xs font-bold uppercase text-muted hover:underline">
+        <Link href="/tasks" className={textLinkClassName}>
           ← Tasks
         </Link>
         <p className="text-sm text-muted">This task no longer exists.</p>
@@ -186,7 +189,7 @@ export default function TaskDetailPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <Link href="/tasks" className="font-mono text-xs font-bold uppercase text-muted hover:underline">
+      <Link href="/tasks" className={textLinkClassName}>
         ← Tasks
       </Link>
 

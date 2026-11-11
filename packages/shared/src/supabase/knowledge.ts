@@ -59,7 +59,7 @@ export function subscribeDailyLessonsSb(
   userId: string,
   onChange: (lessons: DailyLesson[]) => void,
   onError?: (error: Error) => void,
-  max = 30,
+  max: number | null = null,
 ): () => void {
   return subscribeCollection<DailyLessonRow, DailyLesson>({
     client,
@@ -70,7 +70,7 @@ export function subscribeDailyLessonsSb(
     map: rowToLesson,
     order: { column: "created_at", ascending: false },
     sort: (a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0),
-    onChange: (rows) => onChange(rows.slice(0, max)),
+    onChange: (rows) => onChange(max === null ? rows : rows.slice(0, max)),
     onError,
   });
 }
@@ -114,7 +114,7 @@ export function subscribeCodeDrillsSb(
   userId: string,
   onChange: (drills: CodeDrill[]) => void,
   onError?: (error: Error) => void,
-  max = 50,
+  max: number | null = null,
 ): () => void {
   return subscribeCollection<CodeDrillRow, CodeDrill>({
     client,
@@ -125,7 +125,7 @@ export function subscribeCodeDrillsSb(
     map: rowToDrill,
     order: { column: "created_at", ascending: false },
     sort: (a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0),
-    onChange: (rows) => onChange(rows.slice(0, max)),
+    onChange: (rows) => onChange(max === null ? rows : rows.slice(0, max)),
     onError,
   });
 }

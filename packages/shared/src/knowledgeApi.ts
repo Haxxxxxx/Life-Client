@@ -1,3 +1,4 @@
+import { todayLessonId } from "./knowledge";
 import type { CodeDrill, CodeDrillDifficulty, DailyLesson, ReadingListItem, VocabWord } from "./types";
 
 export interface KnowledgeApiClient {
@@ -68,8 +69,18 @@ function post<T>(client: KnowledgeApiClient, path: string, body: unknown): Promi
   return apiRequest<T>(client, path, { method: "POST", body: body ?? {} });
 }
 
+/**
+ * The client sends its own local date.
+ *
+ * The route used to call todayLessonId() server-side, where "local" is UTC on
+ * Vercel. At UTC-5, 21:00 local on the 10th is already the 11th in UTC: the
+ * server wrote lesson `2026-11-11` while the client looked up `2026-11-10` and
+ * reported "no lesson today", and the streak walked local date keys over
+ * UTC-keyed ids. The date has to come from whoever defines "today" for the
+ * user, which is the client.
+ */
 export function generateDailyLesson(client: KnowledgeApiClient): Promise<DailyLesson> {
-  return post(client, "/api/knowledge/lesson", {});
+  return post(client, "/api/knowledge/lesson", { localDate: todayLessonId() });
 }
 
 export function generateCodeDrill(

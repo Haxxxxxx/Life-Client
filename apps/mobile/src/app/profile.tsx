@@ -27,17 +27,17 @@ import {
   levelFromXp,
   taskCategoryRoast,
 } from '@life-client/shared';
-import { data } from '@life-client/shared';
+import { data, parsePositiveInt } from '@life-client/shared';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ErrorBanner } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
-import { db } from '@/lib/firebase';
 
 const EVENT_TYPE_LABEL = Object.fromEntries(MANUAL_EVENT_TYPES.map((t) => [t.id, t.label])) as Record<
   ManualEventType,
@@ -136,8 +136,13 @@ function LogEventForm({
         onPress={() =>
           onSubmit({
             eventType,
-            durationMinutes: Number(durationMinutes) || 0,
-            peopleCount: Number(peopleCount) || 1,
+            // parsePositiveInt, not `Number(x) || 0`: that only rescued NaN, so
+            // a negative stored `lastDurationMinutes: -5` and showed it back on
+            // the "Last: ..." line, and a duration of 0 still earned the
+            // minimum 1 XP — an unlimited tap-to-farm. Capped at a day and at a
+            // plausible group size.
+            durationMinutes: parsePositiveInt(durationMinutes, 1440) ?? 30,
+            peopleCount: parsePositiveInt(peopleCount, 50) ?? 1,
             note: note.trim() || undefined,
           })
         }
@@ -219,6 +224,8 @@ function CharacteristicCard({
 export default function ProfileScreen() {
   const { user, signOutUser } = useAuth();
   const theme = useTheme();
+  // Surfaces failures from the manual-XP write, which used to be silent.
+  const [error, setError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activities, setActivities] = useState<SportActivity[]>([]);
   const [github, setGithub] = useState<DevActivitySummary | null>(null);
@@ -294,6 +301,7 @@ export default function ProfileScreen() {
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
+          <ErrorBanner>{error}</ErrorBanner>
           <View style={styles.header}>
             <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
               You
@@ -329,8 +337,17 @@ export default function ProfileScreen() {
                 totalXp={xpByCharacteristic[def.id] ?? 0}
                 manualProgress={manualProgressByCharacteristic[def.id]}
                 onLogEvent={
-                  def.source === 'manual' && user && db
-                    ? (input) => data.logManualEvent(user.uid, def.id, input)
+                  def.source === 'manual' && user
+                    ? (input) =>
+                        // Awaited and caught. This was fire-and-forget, so the
+                        // form closed regardless and a failed write was both
+                        // silent and an unhandled rejection — the user believed
+                        // the event had been logged.
+                        void data
+                          .logManualEvent(user.uid, def.id, input)
+                          .catch((err: unknown) =>
+                            setError(err instanceof Error ? err.message : 'Could not log that event'),
+                          )
                     : undefined
                 }
               />
@@ -381,7 +398,9 @@ const styles = StyleSheet.create({
   cardText: { flex: 1, gap: 2 },
   levelBadge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   levelText: { fontSize: 11 },
-  progressTrack: { height: 10, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
+  // 8, matching goals/money and the web ProgressBar's h-2. music.tsx keeps 6
+  // deliberately: that one is an inline track scrubber, not a stat bar.
+  progressTrack: { height: 8, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
   progressFill: { height: '100%' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
@@ -398,5 +417,14 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
-  input: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
+  // Matches the other eight screens (radius two / padding three) and clears
+  // the 44pt touch minimum. These three used a smaller, sharper variant,
+  // which made their forms read as a different app.
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
 });

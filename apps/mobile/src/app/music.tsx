@@ -47,17 +47,28 @@ function NowPlayingSection() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    // Sequence number, because two polls can be in flight at once: the
+    // AppState "active" handler fires one while the interval may already have
+    // started another. Without this an older, slower response could overwrite
+    // a newer one and the UI would show a track that had already changed.
+    let latest = 0;
 
     async function poll() {
+      const seq = ++latest;
       try {
         const result = await getNowPlaying(webApiClient);
-        if (!cancelled) {
+        if (!cancelled && seq === latest) {
           setNowPlaying(result);
           setFetchedAt(Date.now());
           setError(null);
         }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not reach Spotify');
+        if (!cancelled && seq === latest) {
+          setError(err instanceof Error ? err.message : 'Could not reach Spotify');
+          // Drop the stale track rather than leaving the progress bar ticking
+          // forward from an old fetchedAt for something that may have stopped.
+          setNowPlaying(null);
+        }
       }
     }
 

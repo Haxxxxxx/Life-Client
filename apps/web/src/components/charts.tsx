@@ -2,7 +2,9 @@
 
 import {
   TRANSACTION_CATEGORIES,
+  goalStatusCounts,
   monthKey,
+  monthlyMoneyTrend,
   taskCompletedIso,
   toDateStr,
   type Goal,
@@ -121,7 +123,7 @@ function Donut({
       </PieChart>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <p className="text-base font-bold text-foreground">{centerValue}</p>
-        <p className="font-mono text-[10px] text-muted uppercase">{centerCaption}</p>
+        <p className="font-mono text-micro text-muted uppercase">{centerCaption}</p>
       </div>
     </div>
   );
@@ -190,22 +192,16 @@ interface MonthRow {
 function buildMoneyCharts(transactions: Transaction[]) {
   const thisMonth = monthKey();
   const byCategory = new Map<TransactionCategory, number>();
-  const now = new Date();
-  const trend: MonthRow[] = Array.from({ length: TREND_MONTHS }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (TREND_MONTHS - 1 - i), 1);
-    return { key: monthKey(d), label: d.toLocaleDateString(undefined, { month: "short" }), income: 0, spend: 0 };
-  });
-  const trendByKey = new Map(trend.map((r) => [r.key, r]));
+  // Shared with mobile so the two cannot drift — mobile used to render this
+  // trend whenever any transaction existed, however old, producing six
+  // invisible bars and a "Net +$0" summary.
+  const { rows: trend, net, hasTrend } = monthlyMoneyTrend(transactions, TREND_MONTHS);
 
   for (const t of transactions) {
     const month = t.date.slice(0, 7);
     if (t.type === "expense" && month === thisMonth) {
       byCategory.set(t.category, (byCategory.get(t.category) ?? 0) + t.amount);
     }
-    const row = trendByKey.get(month);
-    if (!row) continue;
-    if (t.type === "income") row.income += t.amount;
-    else row.spend += t.amount;
   }
 
   const ranked = [...byCategory]
@@ -233,8 +229,8 @@ function buildMoneyCharts(transactions: Transaction[]) {
     slices,
     monthTotal: ranked.reduce((sum, c) => sum + c.amount, 0),
     trend,
-    net: trend.reduce((sum, r) => sum + r.income - r.spend, 0),
-    hasTrend: trend.some((r) => r.income > 0 || r.spend > 0),
+    net,
+    hasTrend,
   };
 }
 
@@ -433,15 +429,21 @@ const GOAL_STATUS_SLICES: { status: GoalStatus; label: string; fill: string }[] 
 ];
 
 export function GoalStatusChart({ goals }: { goals: Goal[] }) {
-  const slices = useMemo(() => {
-    const counts = new Map<GoalStatus, number>();
-    for (const g of goals) counts.set(g.status, (counts.get(g.status) ?? 0) + 1);
-    return GOAL_STATUS_SLICES.map((s) => ({ label: s.label, value: counts.get(s.status) ?? 0, fill: s.fill }));
-  }, [goals]);
-  const completed = slices.find((s) => s.label === "Completed")?.value ?? 0;
+  const counts = useMemo(() => goalStatusCounts(goals), [goals]);
+  const slices = useMemo(
+    () => GOAL_STATUS_SLICES.map((s) => ({ label: s.label, value: counts[s.status], fill: s.fill })),
+    [counts],
+  );
 
   return (
-    <ChartCard eyebrow="All goals" headline={`${completed} of ${goals.length} completed`}>
+    // "of decided", not "of every goal". Archived goals were dropped rather
+    // than missed, so counting them as failures punishes tidying up — and web
+    // used to do exactly that while mobile did not, so the same data read
+    // differently depending on which device you picked up.
+    <ChartCard
+      eyebrow="All goals"
+      headline={`${counts.completed} of ${counts.decided} completed`}
+    >
       <div className="flex flex-col items-center gap-4 sm:flex-row">
         <Donut slices={slices} centerValue={String(goals.length)} centerCaption="goals" formatValue={(v) => plural(v, "goal")} />
         <Legend vertical items={slices.map((s) => ({ label: s.label, color: s.fill, value: String(s.value) }))} />
