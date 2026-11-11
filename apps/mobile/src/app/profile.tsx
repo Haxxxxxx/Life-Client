@@ -427,9 +427,10 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
-  // Matches the other eight screens (radius two / padding three) and clears
-  // the 44pt touch minimum. These three used a smaller, sharper variant,
-  // which made their forms read as a different app.
+  // Radius two / padding three, and clears the 44pt touch minimum. All
+  // eleven screens now agree on both; the minimum used to be set only here,
+  // on goals, profile and sports, while this comment read as though it were
+  // the app-wide standard.
   input: {
     borderWidth: 1,
     borderRadius: Spacing.two,

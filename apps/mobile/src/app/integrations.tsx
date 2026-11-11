@@ -37,7 +37,7 @@ export default function IntegrationsScreen() {
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeIntegrations(user.uid, setConnections);
+    return data.subscribeIntegrations(user.uid, setConnections, (err) => setError(err.message));
   }, [user]);
 
   const missingWebAppUrl = !WEB_APP_URL;

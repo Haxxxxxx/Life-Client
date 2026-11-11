@@ -24,6 +24,7 @@ import { data } from "@life-client/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -800,6 +801,7 @@ export default function KnowledgeHomePage() {
   const [drills, setDrills] = useState<CodeDrill[]>([]);
   const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -807,11 +809,15 @@ export default function KnowledgeHomePage() {
 
   useEffect(() => {
     if (!user) return;
+    // Every listener reports to the same banner. None of these passed an
+    // error callback, so a failed read rendered as an empty Knowledge page
+    // with no indication anything had gone wrong.
+    const onError = (error: Error) => setLoadError(error.message);
     const unsubs = [
-      data.subscribeDailyLessons(user.uid, setLessons),
-      data.subscribeCodeDrills(user.uid, setDrills),
-      data.subscribeVocabWords(user.uid, setVocabWords),
-      data.subscribeReadingList(user.uid, setReadingItems),
+      data.subscribeDailyLessons(user.uid, setLessons, onError),
+      data.subscribeCodeDrills(user.uid, setDrills, onError),
+      data.subscribeVocabWords(user.uid, setVocabWords, onError),
+      data.subscribeReadingList(user.uid, setReadingItems, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -858,6 +864,7 @@ export default function KnowledgeHomePage() {
           <ProgressBar progress={insightLevel.progress} />
         </Card>
       </div>
+      <Alert>{loadError}</Alert>
       <ProgressCharts lessons={lessons} drills={drills} words={vocabWords} readingItems={readingItems} />
       <DailyLessonSection />
       <CodeDrillsSection drills={drills} />

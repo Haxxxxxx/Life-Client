@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ErrorBanner } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
@@ -340,29 +341,19 @@ function PastDrillRow({
   );
 }
 
-function CodeDrillsSection() {
-  const { user } = useAuth();
-  // Keyed on uid, not a boolean reset inside the effect: setState in an effect
-  // body cascades a render (the react-compiler lint rule rejects it), and
-  // deriving it stops a user switch briefly showing the previous account's
-  // rows as loaded.
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const loaded = Boolean(user) && loadedFor === user?.uid;
+function CodeDrillsSection({ drills, loaded }: { drills: CodeDrill[]; loaded: boolean }) {
+  // Rows come from the screen, which already subscribes to this collection
+  // to compute Insight XP. Subscribing again here opened a second Firestore
+  // listener over the same documents — double the reads, and two copies of
+  // the same state that could briefly disagree. Same fix as the knowledge
+  // web app.
+
   const theme = useTheme();
-  const [drills, setDrills] = useState<CodeDrill[]>([]);
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<CodeDrillDifficulty>('intermediate');
   const [generating, setGenerating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    return data.subscribeCodeDrills(user.uid, (next) => {
-        setDrills(next);
-        setLoadedFor(user.uid);
-      });
-  }, [user]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -568,17 +559,16 @@ function DictionaryEntry({ w }: { w: VocabWord }) {
   );
 }
 
-function VocabularySection() {
-  const { user } = useAuth();
+function VocabularySection({ words }: { words: VocabWord[] }) {
+  // Rows come from the screen, which already subscribes to this collection
+  // to compute Insight XP. Subscribing again here opened a second Firestore
+  // listener over the same documents — double the reads, and two copies of
+  // the same state that could briefly disagree. Same fix as the knowledge
+  // web app.
+
   const theme = useTheme();
-  const [words, setWords] = useState<VocabWord[]>([]);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    return data.subscribeVocabWords(user.uid, setWords);
-  }, [user]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -639,19 +629,19 @@ function VocabularySection() {
   );
 }
 
-function ReadingListSection() {
+function ReadingListSection({ items }: { items: ReadingListItem[] }) {
+  // Rows come from the screen, which already subscribes to this collection
+  // to compute Insight XP. Subscribing again here opened a second Firestore
+  // listener over the same documents — double the reads, and two copies of
+  // the same state that could briefly disagree. Same fix as the knowledge
+  // web app.
+
   const { user } = useAuth();
   const theme = useTheme();
-  const [items, setItems] = useState<ReadingListItem[]>([]);
   const [url, setUrl] = useState('');
   const [adding, setAdding] = useState(false);
   const [summarizingId, setSummarizingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    return data.subscribeReadingList(user.uid, setItems);
-  }, [user]);
 
   async function handleAdd() {
     if (!user || !url.trim()) return;
@@ -768,14 +758,34 @@ export default function KnowledgeScreen() {
   const [drills, setDrills] = useState<CodeDrill[]>([]);
   const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingListItem[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Keyed on uid, not a boolean reset inside the effect: setState in an effect
+  // body cascades a render (the react-compiler lint rule rejects it), and
+  // deriving it stops a user switch briefly showing the previous account's
+  // rows as loaded. The drills section used to own this, back when it ran its
+  // own subscription.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = Boolean(user) && loadedFor === user?.uid;
 
   useEffect(() => {
     if (!user) return;
+    const uid = user.uid;
+    // Every listener reports to the same banner. None of these passed an error
+    // callback, so a failed read rendered as an empty Knowledge screen with no
+    // indication anything had gone wrong.
+    const onError = (error: Error) => setLoadError(error.message);
     const unsubs = [
-      data.subscribeDailyLessons(user.uid, setLessons),
-      data.subscribeCodeDrills(user.uid, setDrills),
-      data.subscribeVocabWords(user.uid, setVocabWords),
-      data.subscribeReadingList(user.uid, setReadingItems),
+      data.subscribeDailyLessons(uid, setLessons, onError),
+      data.subscribeCodeDrills(
+        uid,
+        (next) => {
+          setDrills(next);
+          setLoadedFor(uid);
+        },
+        onError,
+      ),
+      data.subscribeVocabWords(uid, setVocabWords, onError),
+      data.subscribeReadingList(uid, setReadingItems, onError),
     ];
     return () => unsubs.forEach((u) => u());
   }, [user]);
@@ -788,6 +798,7 @@ export default function KnowledgeScreen() {
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
+          <ErrorBanner>{loadError}</ErrorBanner>
           <View style={styles.header}>
             <View style={styles.rowBetween}>
               <View style={styles.flex1}>
@@ -822,9 +833,9 @@ export default function KnowledgeScreen() {
             </View>
           </View>
           <DailyLessonSection />
-          <CodeDrillsSection />
-          <VocabularySection />
-          <ReadingListSection />
+          <CodeDrillsSection drills={drills} loaded={loaded} />
+          <VocabularySection words={vocabWords} />
+          <ReadingListSection items={readingItems} />
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -855,7 +866,18 @@ const styles = StyleSheet.create({
   primaryButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.four, alignItems: 'center' },
   primaryButtonSmall: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.three },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
-  input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    // 8pt of vertical padding plus two 1pt borders and a ~20pt line box comes
+    // to roughly 38pt — under Apple's 44pt and Android's 48dp touch minimum.
+    // goals, profile and sports already set this; their comment claimed it
+    // matched "the other eight screens", which was true of the radius and
+    // padding but not of the touch target.
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   textArea: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, minHeight: 72, textAlignVertical: 'top' },
   inputRow: { flexDirection: 'row', gap: Spacing.two },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.four, justifyContent: 'center' },

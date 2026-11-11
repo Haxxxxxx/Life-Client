@@ -498,7 +498,18 @@ const styles = StyleSheet.create({
   header: { marginTop: Spacing.four, gap: Spacing.one },
   eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
-  input: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  input: {
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    // 8pt of vertical padding plus two 1pt borders and a ~20pt line box comes
+    // to roughly 38pt — under Apple's 44pt and Android's 48dp touch minimum.
+    // goals, profile and sports already set this; their comment claimed it
+    // matched "the other eight screens", which was true of the radius and
+    // padding but not of the touch target.
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
