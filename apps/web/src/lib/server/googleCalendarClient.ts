@@ -6,6 +6,8 @@
 // have thrown until first use.
 import "server-only";
 
+import { briefProviderError } from "./integrationStatus";
+
 import { clientIdFor, clientSecretFor, refreshAccessToken } from "./providers";
 import { getTokens, storeTokens, type StoredTokens } from "./tokens";
 
@@ -85,7 +87,9 @@ export async function createGoogleCalendarEvent(
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(eventBody(input)),
   });
-  if (!res.ok) throw new Error(`Google Calendar event create failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) {
+    throw new Error(`Google Calendar event create failed: ${briefProviderError(res.status, await res.text())}`);
+  }
   return (await res.json()) as GoogleCalendarEvent;
 }
 
@@ -107,7 +111,7 @@ export async function updateGoogleCalendarEvent(
   // route 500'd on every subsequent edit. deleteGoogleCalendarEvent below
   // already treated the two the same, which is what gives the omission away.
   if (res.status === 404 || res.status === 410) return createGoogleCalendarEvent(accessToken, input);
-  throw new Error(`Google Calendar event update failed: ${res.status} ${await res.text()}`);
+  throw new Error(`Google Calendar event update failed: ${briefProviderError(res.status, await res.text())}`);
 }
 
 export async function deleteGoogleCalendarEvent(accessToken: string, eventId: string): Promise<void> {

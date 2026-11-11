@@ -148,7 +148,9 @@ async function githubGraphql<T>(
     },
     body: JSON.stringify({ query, variables }),
   });
-  if (!response.ok) throw new Error(`GitHub GraphQL failed: ${response.status} ${await response.text()}`);
+  if (!response.ok) {
+    throw new Error(`GitHub GraphQL failed: ${briefProviderError(response.status, await response.text())}`);
+  }
   const json = (await response.json()) as { data?: T; errors?: { message: string }[] };
   if (json.errors?.length) throw new Error(`GitHub GraphQL errors: ${json.errors.map((e) => e.message).join("; ")}`);
   if (!json.data) throw new Error("GitHub GraphQL returned no data");

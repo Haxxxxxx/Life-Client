@@ -7,6 +7,7 @@
 import "server-only";
 
 import type { IntegrationProvider } from "@life-client/shared";
+import { briefProviderError } from "./integrationStatus";
 
 export interface ProviderOAuthConfig {
   authorizeUrl: string;
@@ -131,14 +132,19 @@ export async function exchangeCodeForToken(
   try {
     json = JSON.parse(text) as Record<string, unknown>;
   } catch {
-    throw new Error(`${provider} token exchange returned a non-JSON response: ${response.status} ${text}`);
+    // Bounded: an upstream token endpoint that answers with HTML (a gateway
+    // error page, say) would otherwise push the whole document into the
+    // integration's user-visible lastError.
+    throw new Error(
+      `${provider} token exchange returned a non-JSON response: ${briefProviderError(response.status, text)}`,
+    );
   }
 
   // GitHub in particular returns HTTP 200 with an `error` field in the body
   // (e.g. "bad_verification_code") instead of a non-2xx status.
   if (!response.ok || typeof json.error === "string") {
     const detail = typeof json.error_description === "string" ? json.error_description : text;
-    throw new Error(`${provider} token exchange failed: ${response.status} ${detail}`);
+    throw new Error(`${provider} token exchange failed: ${briefProviderError(response.status, detail)}`);
   }
 
   return json;
@@ -171,7 +177,9 @@ export async function refreshAccessToken(
   });
 
   if (!response.ok) {
-    throw new Error(`${provider} token refresh failed: ${response.status} ${await response.text()}`);
+    throw new Error(
+      `${provider} token refresh failed: ${briefProviderError(response.status, await response.text())}`,
+    );
   }
 
   return (await response.json()) as Record<string, unknown>;
