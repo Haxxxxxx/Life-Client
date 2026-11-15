@@ -1,6 +1,6 @@
 import { isIntegrationProvider, type IntegrationProvider } from "@life-client/shared";
 import { NextRequest, NextResponse } from "next/server";
-import { clientIdFor, PROVIDER_CONFIG } from "@/lib/server/providers";
+import { clientIdFor, clientSecretFor, PROVIDER_CONFIG } from "@/lib/server/providers";
 import { requireUid } from "@/lib/server/requireAuth";
 import { safeReturnToPath } from "@/lib/server/returnTo";
 import { createOAuthState } from "@/lib/server/state";
@@ -31,6 +31,25 @@ export async function POST(req: NextRequest) {
 
   if (!isIntegrationProvider(provider)) {
     return NextResponse.json({ error: "Missing or invalid provider" }, { status: 400 });
+  }
+
+  // Refuse a provider this deployment has no credentials for, before anything
+  // else happens.
+  //
+  // clientIdFor falls back to "" when the env var is absent, so without this
+  // the route cheerfully built an authorize URL with `client_id=` empty and
+  // handed it back. The client then navigated to it, and the user landed on
+  // the provider's own "invalid client" page — a dead end with nothing
+  // indicating the problem was configuration on this side rather than their
+  // account. Strava is in exactly that state on the current deployment.
+  //
+  // Checking before createOAuthState also stops a doomed attempt writing a
+  // state document that nothing will ever redeem.
+  if (!clientIdFor(provider as IntegrationProvider) || !clientSecretFor(provider as IntegrationProvider)) {
+    return NextResponse.json(
+      { error: `${provider} is not configured on this deployment` },
+      { status: 503 },
+    );
   }
 
   const config = PROVIDER_CONFIG[provider as IntegrationProvider];
