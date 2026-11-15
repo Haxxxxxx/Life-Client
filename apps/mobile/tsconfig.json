@@ -2,6 +2,14 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // Indexing an array or record yields `T | undefined`, so the compiler
+    // makes you deal with the miss. This is not hypothetical here:
+    // roastTierIndex clamped a level but did not floor it, so a fractional
+    // level indexed a ten-tuple at e.g. 2.7, got undefined back through a
+    // signature promising `string`, and the Profile page would have rendered
+    // the text "undefined". Costs nothing to turn on — the whole monorepo was
+    // already clean under it.
+    "noUncheckedIndexedAccess": true,
     "paths": {
       "@/*": [
         "./src/*"

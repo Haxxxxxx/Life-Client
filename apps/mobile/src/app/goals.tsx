@@ -654,10 +654,9 @@ const styles = StyleSheet.create({
   error: { marginBottom: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
-  // Radius two / padding three, and clears the 44pt touch minimum. All
-  // eleven screens now agree on both; the minimum used to be set only here,
-  // on goals, profile and sports, while this comment read as though it were
-  // the app-wide standard.
+  // Radius two / padding three, and clears the 44pt touch minimum. Every
+  // screen with a text input sets all three — integrations and music have no
+  // input, so nine of the eleven carry this block.
   input: {
     borderWidth: 1,
     borderRadius: Spacing.two,
