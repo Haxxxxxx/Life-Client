@@ -594,7 +594,7 @@ function ChallengeCard({
           </ThemedText>
         </View>
         {canLogToday && (
-          <Pressable
+          <Pressable hitSlop={10}
             onPress={onLogToday}
             style={[styles.logTodayButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
             <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>

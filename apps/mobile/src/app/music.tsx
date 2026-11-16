@@ -165,7 +165,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="History" title="Recently Played" />
-        <Pressable onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
+        <Pressable hitSlop={10} onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
           <ThemedText type="small">{syncing ? 'Syncing…' : 'Sync now'}</ThemedText>
         </Pressable>
       </View>

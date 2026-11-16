@@ -509,7 +509,16 @@ const styles = StyleSheet.create({
   },
   chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
+  addButton: {
+    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
+    // box), under Apple's minimum and under the input it sits beneath.
+    minHeight: 44,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two,
+    alignItems: 'center',
+  },
   error: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   chartSection: { marginBottom: Spacing.two },

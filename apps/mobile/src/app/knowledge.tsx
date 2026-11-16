@@ -221,7 +221,7 @@ function DrillCard({
             style={[styles.textArea, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <View style={styles.rowBetween}>
-            <Pressable
+            <Pressable hitSlop={10}
               onPress={handleSubmit}
               disabled={submitting || !answer.trim()}
               style={[
@@ -507,7 +507,7 @@ function VocabCard({ w }: { w: VocabWord }) {
           placeholderTextColor={theme.textSecondary}
           style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
-        <Pressable
+        <Pressable hitSlop={10}
           onPress={handleSubmit}
           disabled={submitting || !sentence.trim()}
           style={[
@@ -590,7 +590,7 @@ function VocabularySection({ words }: { words: VocabWord[] }) {
     <View style={styles.section}>
       <View style={styles.rowBetween}>
         <SectionHeader eyebrow="Vocabulary" title="New Words" />
-        <Pressable
+        <Pressable hitSlop={10}
           onPress={handleGenerate}
           disabled={generating}
           style={[styles.primaryButtonSmall, { backgroundColor: theme.primary, borderColor: theme.border }]}>
@@ -860,7 +860,17 @@ const styles = StyleSheet.create({
   cardLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   wikiLink: { marginTop: Spacing.one, textTransform: 'uppercase' },
   emptyState: { borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center', gap: Spacing.three },
-  primaryButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.four, alignItems: 'center' },
+  primaryButton: {
+    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
+    // box), under Apple's minimum and under the input it sits beneath.
+    minHeight: 44,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    alignItems: 'center',
+  },
   primaryButtonSmall: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.three },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
   input: {
