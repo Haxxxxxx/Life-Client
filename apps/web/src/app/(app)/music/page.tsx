@@ -3,8 +3,11 @@
 import {
   type NowPlayingTrack,
   type SpotifySummary,
+  formatTrackTime,
   getNowPlaying,
+  liveTrackProgressMs,
   syncSpotifyNow,
+  trackProgressPercent,
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
@@ -13,13 +16,6 @@ import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
 const NOW_PLAYING_POLL_MS = 15_000;
-
-function formatMs(ms: number): string {
-  const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
 
 function NowPlayingSection() {
   const { user } = useAuth();
@@ -70,9 +66,7 @@ function NowPlayingSection() {
   }, [nowPlaying?.isPlaying]);
 
   const track = nowPlaying?.track;
-  const liveProgressMs = track
-    ? Math.min(track.durationMs, track.progressMs + Math.max(0, now - fetchedAt))
-    : 0;
+  const liveProgressMs = track ? liveTrackProgressMs(track, now, fetchedAt) : 0;
 
   return (
     <section className="flex flex-col gap-3">
@@ -95,11 +89,11 @@ function NowPlayingSection() {
               <div className="h-1.5 flex-1 overflow-hidden rounded-full border border-border bg-background">
                 <div
                   className="h-full bg-primary"
-                  style={{ width: `${Math.min(100, (liveProgressMs / track.durationMs) * 100)}%` }}
+                  style={{ width: `${trackProgressPercent(liveProgressMs, track.durationMs)}%` }}
                 />
               </div>
               <p className="shrink-0 font-mono text-xs text-muted">
-                {formatMs(liveProgressMs)} / {formatMs(track.durationMs)}
+                {formatTrackTime(liveProgressMs)} / {formatTrackTime(track.durationMs)}
               </p>
             </div>
           </div>
