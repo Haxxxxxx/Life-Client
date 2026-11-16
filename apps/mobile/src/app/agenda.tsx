@@ -1,7 +1,10 @@
 import {
   createCalendarEvent,
   deleteCalendarEvent,
+  eventDayKey,
+  eventDayLabel,
   isAllDay,
+  isEventPast,
   timeRangeLabel,
   toDatetimeLocalValue,
   updateCalendarEvent,
@@ -22,42 +25,6 @@ import { useAuth } from '@/lib/auth-context';
 import { webApiClient } from '@/lib/webApiClient';
 
 
-// Deleting a past event through Google's API is unreliable (already-elapsed
-// events can fail in ways that surface as a 500) and there's no real need to
-// manage them here — just don't show them.
-function isPast(event: CalendarEvent): boolean {
-  // All-day events are judged on their END, not their start: Google's end date
-  // is exclusive, so a three-day event was treated as past from day two.
-  if (isAllDay(event)) {
-    const end = event.end || event.start;
-    return new Date(`${end}T00:00:00`).getTime() <= Date.now() - 24 * 60 * 60 * 1000;
-  }
-  return new Date(event.end).getTime() < Date.now();
-}
-
-function dayKey(event: CalendarEvent): string {
-  if (isAllDay(event)) return event.start;
-  // Local date, not `start.slice(0, 10)`. Events created in the app are stored
-  // as toISOString(), i.e. UTC — so a 9pm event on Nov 9 at UTC-5 is
-  // "2026-11-10T02:00:00Z" and was grouped under Nov 10 / "Tomorrow".
-  const date = new Date(event.start);
-  if (Number.isNaN(date.getTime())) return event.start.slice(0, 10);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function dayLabel(key: string): string {
-  const date = new Date(`${key}T00:00:00`);
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-
-  if (key === todayKey) return 'Today';
-  if (key === tomorrowKey) return 'Tomorrow';
-  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-}
 
 
 interface EventGroup {
@@ -213,8 +180,11 @@ export default function AgendaScreen() {
   }
 
   const groups: EventGroup[] = [];
-  for (const event of events.filter((e) => !isPast(e))) {
-    const key = dayKey(event);
+  // Past events are filtered rather than deleted: removing an already-elapsed
+  // event through Google's API is unreliable (it can fail in ways that surface
+  // as a 500), and there's no real need to manage them here.
+  for (const event of events.filter((e) => !isEventPast(e))) {
+    const key = eventDayKey(event);
     const group = groups.at(-1);
     if (group && group.key === key) group.events.push(event);
     else groups.push({ key, events: [event] });
@@ -265,7 +235,7 @@ export default function AgendaScreen() {
           renderItem={({ item: group }) => (
             <View style={styles.group}>
               <ThemedText type="code" themeColor="primary" style={styles.groupLabel}>
-                {dayLabel(group.key)}
+                {eventDayLabel(group.key)}
               </ThemedText>
               {group.events.map((event) =>
                 editingId === event.id ? (

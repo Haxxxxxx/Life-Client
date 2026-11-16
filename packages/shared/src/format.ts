@@ -1,3 +1,4 @@
+import { addDays, toDateStr } from "./streaks";
 import type { CalendarEvent } from "./types";
 
 /**
@@ -72,6 +73,56 @@ export function timeRangeLabel(event: CalendarEvent): string {
 }
 
 /**
+ * The agenda day an event belongs under, as a local `YYYY-MM-DD` key.
+ *
+ * All-day events already carry a plain date. Timed events are stored as
+ * `toISOString()`, i.e. UTC, so taking the first ten characters of that string
+ * groups them by the *UTC* day: at UTC+1 a 00:30 event reads as the previous
+ * day, and at UTC-5 a 9pm event reads as the next one. Web did exactly that,
+ * so such events sat under the wrong heading - "Today"/"Tomorrow" included,
+ * since the heading is derived from this key.
+ */
+export function eventDayKey(event: CalendarEvent): string {
+  if (isAllDay(event)) return event.start;
+  const date = new Date(event.start);
+  if (Number.isNaN(date.getTime())) return event.start.slice(0, 10);
+  return toDateStr(date);
+}
+
+/** "Today", "Tomorrow", or e.g. `Monday, Nov 16` for a `YYYY-MM-DD` key. */
+export function eventDayLabel(key: string, now: Date = new Date()): string {
+  const today = toDateStr(now);
+  if (key === today) return "Today";
+  if (key === addDays(today, 1)) return "Tomorrow";
+  return new Date(`${key}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * True once an event has finished, and so should drop out of the agenda.
+ *
+ * Google's all-day `end` is a date, and it is *exclusive*: an event covering
+ * 10-13 Nov ends "2026-11-14". The event is therefore over once that date
+ * arrives. Judging an all-day event by its start instead - as web did, with
+ * `start` + `T23:59:59` - hid multi-day events from their second day onward
+ * while they were still running, because this predicate filters the list.
+ *
+ * `end` is trusted as exclusive only when it really is after `start`; anything
+ * else falls back to the day after `start`, so an event stored with an
+ * inclusive end is never hidden on the day it is happening.
+ */
+export function isEventPast(event: CalendarEvent, now: Date = new Date()): boolean {
+  if (isAllDay(event)) {
+    const endExclusive = event.end && event.end > event.start ? event.end : addDays(event.start, 1);
+    return new Date(`${endExclusive}T00:00:00`).getTime() <= now.getTime();
+  }
+  return new Date(event.end).getTime() < now.getTime();
+}
+
+/**
  * A Date as `YYYY-MM-DDTHH:mm` in local time — the format an
  * `<input type="datetime-local">` expects, and what mobile's date field
  * mirrors.
@@ -82,5 +133,5 @@ export function timeRangeLabel(event: CalendarEvent): string {
  */
 export function toDatetimeLocalValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${toDateStr(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
