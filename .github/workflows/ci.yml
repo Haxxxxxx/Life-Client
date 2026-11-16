@@ -48,10 +48,17 @@ jobs:
       # `Cannot find name 'LayoutProps'`. Verified both ways.
       - run: npm run typecheck
 
-# Not covered yet — tracked in #37:
-#   * apps/mobile lint is red on main: eslint-config-expo's import resolver
-#     does not follow the hoisted react-native-gifted-charts (Node resolves it
-#     fine, so it is a resolver false positive, not a broken import).
-#   * apps/mobile typecheck is red: .expo/types/router.d.ts is stale and
-#     predates several screens, so typedRoutes rejects valid hrefs.
-# Add `npm run lint:mobile` and a mobile typecheck here once those are fixed.
+# apps/mobile and packages/shared are both covered now, and neither needs a
+# step of its own here: `npm run verify` runs lint across all three apps, and
+# `npm run typecheck` runs tsc over packages/shared first and then each app.
+#
+# This block used to say mobile was excluded because its lint and typecheck
+# were red on main (#37). Both pass. The typecheck failure was not the stale
+# .expo/types/router.d.ts this note blamed — it was TS2882 on the `@/global.css`
+# side-effect import, because Expo's `*.css` declaration only reaches TypeScript
+# through the gitignored, generated expo-env.d.ts. apps/mobile/global.d.ts
+# references expo/types directly so it survives a fresh clone.
+#
+# Not covered: there is no mobile build here. The Expo app ships via EAS
+# (apps/mobile/eas.json), so a green run on this workflow says nothing about
+# whether the app on a device is current.

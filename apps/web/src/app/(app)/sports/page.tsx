@@ -1,13 +1,18 @@
 "use client";
 
 import {
+  DEFAULT_TARGET_FOR_METRIC,
   ENDURANCE_EXERCISE_PRESETS,
+  METRICS_FOR_KIND,
   STRENGTH_EXERCISE_PRESETS,
+  buildChallengeTitle,
   computeChallengeMilestones,
   computeChallengeProgress,
   createChallenge,
   formatDistance,
   formatDuration,
+  formatMetricValue,
+  metricUnitLabel,
   toDateStr,
   updateChallenge,
   type Challenge,
@@ -179,39 +184,14 @@ const METRICS: { id: ChallengeMetric; label: string }[] = [
 // Distance-based sports (Running, Cycling, Swimming) only make sense as
 // distance or session challenges — "100 days of 100 Running" (reps) doesn't.
 // Strength sports only make sense as reps or session challenges.
-const METRICS_FOR_KIND: Record<SportActivityKind, ChallengeMetric[]> = {
-  endurance: ["distanceMeters", "sessions"],
-  strength: ["reps", "sessions"],
-};
 const DEFAULT_METRIC_FOR_KIND: Record<SportActivityKind, ChallengeMetric> = {
   endurance: "distanceMeters",
   strength: "reps",
 };
-const DEFAULT_TARGET_FOR_METRIC: Record<ChallengeMetric, number> = {
-  reps: 100,
-  distanceMeters: 5, // km — converted to meters (Challenge.dailyTarget's storage unit) at submit
-  sessions: 1,
-};
 
-function metricUnitLabel(metric: ChallengeMetric): string {
-  return metric === "distanceMeters" ? "km" : metric === "sessions" ? "sessions" : "reps";
-}
 
 /** Formats a raw stored value (meters for distance, count otherwise) for display. */
-function formatMetricValue(metric: ChallengeMetric, value: number): string {
-  if (metric === "distanceMeters") {
-    const km = value / 1000;
-    return `${km % 1 === 0 ? km.toFixed(0) : km.toFixed(2)}km`;
-  }
-  if (metric === "sessions") return `${value} ${value === 1 ? "session" : "sessions"}`;
-  return `${value} reps`;
-}
 
-function buildChallengeTitle(durationDays: number, metric: ChallengeMetric, dailyTargetDisplay: number, type: string): string {
-  if (metric === "sessions") return `${durationDays} Days of ${type}`;
-  const target = dailyTargetDisplay % 1 === 0 ? dailyTargetDisplay.toFixed(0) : dailyTargetDisplay.toFixed(1);
-  return `${durationDays} Days of ${target}${metric === "distanceMeters" ? "km" : ""} ${type}`;
-}
 
 
 function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof createChallenge>[2]) => void }) {

@@ -17,7 +17,7 @@ import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SkeletonList } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { confirmDestructive } from '@/lib/confirm';
@@ -210,7 +210,7 @@ function GoalCard({
               </ThemedText>
             )}
             {days !== null && (
-              <ThemedText type="small" themeColor={days < 0 ? undefined : 'textSecondary'} style={days < 0 ? styles.deleteText : undefined}>
+              <ThemedText type="small" themeColor={days < 0 ? 'danger' : 'textSecondary'}>
                 {days < 0
                   ? `${Math.abs(days)}d overdue`
                   : days === 0
@@ -250,7 +250,7 @@ function GoalCard({
                 </ThemedText>
               </Pressable>
               <Pressable onPress={onDelete}>
-                <ThemedText type="small" style={styles.deleteText}>
+                <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
               </Pressable>
@@ -609,7 +609,7 @@ export default function GoalsScreen() {
                         </ThemedText>
                       </View>
                       <Pressable onPress={() => user && data.deleteViceLog(user.uid, v.id)}>
-                        <ThemedText type="small" style={styles.deleteText}>
+                        <ThemedText type="small" themeColor="danger">
                           Dismiss
                         </ThemedText>
                       </Pressable>
@@ -654,10 +654,9 @@ const styles = StyleSheet.create({
   error: { marginBottom: Spacing.two },
   emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
-  // Radius two / padding three, and clears the 44pt touch minimum. All
-  // eleven screens now agree on both; the minimum used to be set only here,
-  // on goals, profile and sports, while this comment read as though it were
-  // the app-wide standard.
+  // Radius two / padding three, and clears the 44pt touch minimum. Every
+  // screen with a text input sets all three — integrations and music have no
+  // input, so nine of the eleven carry this block.
   input: {
     borderWidth: 1,
     borderRadius: Spacing.two,
@@ -671,7 +670,6 @@ const styles = StyleSheet.create({
   goalActions: { flexDirection: 'row', gap: Spacing.two },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
   badgeText: { fontSize: 10 },
-  deleteText: { color: Colors.dark.danger },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   progressTrack: { flex: 1, height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: '100%' },

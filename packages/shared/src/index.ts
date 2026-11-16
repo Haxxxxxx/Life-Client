@@ -19,6 +19,7 @@ export * from "./remindersApi";
 export * from "./spotify";
 export * from "./spotifyApi";
 export * from "./challenges";
+export * from "./challengeDisplay";
 export * from "./charts";
 export * from "./goals";
 export * from "./pushTokens";

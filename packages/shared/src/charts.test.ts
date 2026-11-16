@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countPerDay, goalStatusCounts, lastNDays, monthlyMoneyTrend } from "./charts";
+import { countPerDay, goalStatusCounts, lastNDays, monthlyMoneyTrend, startOfWeek } from "./charts";
 import type { Goal, Transaction } from "./types";
 
 function goal(status: Goal["status"]): Goal {
@@ -151,5 +151,33 @@ describe("countPerDay", () => {
 
   it("returns all zeros for no timestamps", () => {
     expect(countPerDay([], days)).toEqual([0, 0, 0]);
+  });
+});
+
+describe("startOfWeek", () => {
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  it("returns the Monday of that week", () => {
+    // 2026-11-11 is a Wednesday.
+    expect(key(startOfWeek(new Date(2026, 10, 11)))).toBe("2026-11-09");
+  });
+
+  it("treats Sunday as the end of the week, not the start", () => {
+    // (getDay() + 6) % 7 maps Sunday to 6, so it walks back six days.
+    expect(key(startOfWeek(new Date(2026, 10, 15)))).toBe("2026-11-09");
+  });
+
+  it("is a no-op on a Monday", () => {
+    expect(key(startOfWeek(new Date(2026, 10, 9)))).toBe("2026-11-09");
+  });
+
+  it("crosses a month boundary", () => {
+    // 2026-12-01 is a Tuesday.
+    expect(key(startOfWeek(new Date(2026, 11, 1)))).toBe("2026-11-30");
+  });
+
+  it("drops the time component", () => {
+    const d = startOfWeek(new Date(2026, 10, 11, 23, 59));
+    expect([d.getHours(), d.getMinutes(), d.getSeconds()]).toEqual([0, 0, 0]);
   });
 });

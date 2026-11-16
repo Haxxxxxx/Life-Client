@@ -154,89 +154,104 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         stayed welded to the top of the viewport, leaving a sliver for content.
         It only needs to stick once it is an actual sidebar.
       */}
-      <aside className="static z-10 flex shrink-0 flex-col justify-between border-b border-border bg-surface p-4 md:sticky md:top-0 md:h-screen md:max-h-screen md:w-64 md:overflow-y-auto md:border-r md:border-b-0 md:p-6">
-        <div className="flex flex-col gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary font-mono text-sm font-bold text-primary-foreground">
-              L
-            </span>
-            <span className="text-[15px] font-bold tracking-tight text-foreground">Life Client</span>
-          </Link>
+      {/*
+        Two elements, not one. The surface colour and the divider belong to the
+        *column*, which stretches to the full height of the flex row; the
+        scrolling, sticky part is the inner <aside>.
 
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className="flex w-full items-center gap-2.5 rounded-xl border border-border px-3.5 py-2.5 text-sm text-muted transition hover:border-border-strong hover:text-foreground"
-          >
-            {icon(
-              <>
-                <circle cx="11" cy="11" r="7" />
-                <line x1="21" y1="21" x2="16.2" y2="16.2" />
-              </>,
-            )}
-            <span className="flex-1 text-left">Search…</span>
-            <span className="hidden rounded-md border border-border px-1.5 py-0.5 font-mono text-micro md:inline">
-              ⌘K
-            </span>
-          </button>
+        As a single element it was `bg-surface` on an `md:h-screen` box, so on
+        any page taller than the viewport the sidebar's background stopped dead
+        at 100vh and the body showed through beneath it. That is not a subtle
+        seam: body paints #141210 under an orange radial gradient anchored at
+        its top-right corner, and on a long page `farthest-corner` sizing
+        stretches that circle far enough down that the exposed strip reads as
+        warm brown against the sidebar's neutral #1d1a16.
+      */}
+      <div className="z-10 shrink-0 border-b border-border bg-surface md:w-64 md:border-r md:border-b-0">
+        <aside className="flex flex-col justify-between p-4 md:sticky md:top-0 md:h-screen md:max-h-screen md:overflow-y-auto md:p-6">
+          <div className="flex flex-col gap-6">
+            <Link href="/dashboard" className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary font-mono text-sm font-bold text-primary-foreground">
+                L
+              </span>
+              <span className="text-[15px] font-bold tracking-tight text-foreground">Life Client</span>
+            </Link>
 
-          {/* The mobile row hides its scrollbar, so a right-edge fade is the
-              only cue that there is more nav off-screen. */}
-          <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,black_88%,transparent)] [scrollbar-width:none] md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0 md:[mask-image:none] [&::-webkit-scrollbar]:hidden">
-            {NAV_ITEMS.map((item) => {
-              const active = pathname?.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
-                    active ? "bg-primary/10 text-primary" : "text-muted hover:bg-surface-2 hover:text-foreground"
-                  }`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-            {KNOWLEDGE_APP_URL && (
-              <>
-                <div className="mx-3.5 my-2 hidden h-px bg-border md:block" />
-                <a
-                  href={KNOWLEDGE_APP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex shrink-0 items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-foreground"
-                >
-                  <span>Knowledge</span>
-                  {icon(
-                    <>
-                      <path d="M7 17 L17 7" />
-                      <path d="M9 7 H17 V15" />
-                    </>,
-                  )}
-                </a>
-              </>
-            )}
-          </nav>
-        </div>
-        <div className="mt-4 hidden items-center gap-3 border-t border-border pt-4 md:mt-6 md:flex">
-          {user.photoURL ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.photoURL} alt="" className="h-9 w-9 shrink-0 rounded-full" />
-          ) : (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/80 font-mono text-sm font-bold text-primary-foreground">
-              {initial}
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">{user.displayName || user.email}</p>
-            <button type="button" onClick={() => signOutUser()} className="text-xs text-muted hover:text-foreground">
-              Sign out
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex w-full items-center gap-2.5 rounded-xl border border-border px-3.5 py-2.5 text-sm text-muted transition hover:border-border-strong hover:text-foreground"
+            >
+              {icon(
+                <>
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="21" y1="21" x2="16.2" y2="16.2" />
+                </>,
+              )}
+              <span className="flex-1 text-left">Search…</span>
+              <span className="hidden rounded-md border border-border px-1.5 py-0.5 font-mono text-micro md:inline">
+                ⌘K
+              </span>
             </button>
+
+            {/* The mobile row hides its scrollbar, so a right-edge fade is the
+                only cue that there is more nav off-screen. */}
+            <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,black_88%,transparent)] [scrollbar-width:none] md:mx-0 md:flex-col md:overflow-visible md:px-0 md:pb-0 md:[mask-image:none] [&::-webkit-scrollbar]:hidden">
+              {NAV_ITEMS.map((item) => {
+                const active = pathname?.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
+                      active ? "bg-primary/10 text-primary" : "text-muted hover:bg-surface-2 hover:text-foreground"
+                    }`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+              {KNOWLEDGE_APP_URL && (
+                <>
+                  <div className="mx-3.5 my-2 hidden h-px bg-border md:block" />
+                  <a
+                    href={KNOWLEDGE_APP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex shrink-0 items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-foreground"
+                  >
+                    <span>Knowledge</span>
+                    {icon(
+                      <>
+                        <path d="M7 17 L17 7" />
+                        <path d="M9 7 H17 V15" />
+                      </>,
+                    )}
+                  </a>
+                </>
+              )}
+            </nav>
           </div>
-        </div>
-      </aside>
+          <div className="mt-4 hidden items-center gap-3 border-t border-border pt-4 md:mt-6 md:flex">
+            {user.photoURL ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.photoURL} alt="" className="h-9 w-9 shrink-0 rounded-full" />
+            ) : (
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/80 font-mono text-sm font-bold text-primary-foreground">
+                {initial}
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{user.displayName || user.email}</p>
+              <button type="button" onClick={() => signOutUser()} className="text-xs text-muted hover:text-foreground">
+                Sign out
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
       <main className="animate-rise-in flex-1 p-4 md:p-8">{children}</main>
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>

@@ -7,6 +7,7 @@ import {
   lastNDays,
   monthKey,
   monthlyMoneyTrend,
+  startOfWeek,
   taskCompletedIso,
   type Goal,
   type GoalStatus,
@@ -317,11 +318,6 @@ interface WeekRow {
   strength: number;
 }
 
-function startOfWeek(date: Date): Date {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d;
-}
 
 function buildWeeklySessions(activities: SportActivity[], truncated: boolean): WeekRow[] {
   const firstStart = startOfWeek(new Date());

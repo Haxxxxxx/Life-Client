@@ -1,3 +1,5 @@
+import type { CalendarEvent } from "./types";
+
 /**
  * Display formatting shared by every client.
  *
@@ -46,4 +48,39 @@ export function formatDuration(seconds?: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.round((seconds % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/**
+ * True when a calendar event covers whole days rather than a time range.
+ *
+ * Google returns `start.date` for an all-day event and `start.dateTime` for a
+ * timed one; the stored string keeps that distinction, so the presence of the
+ * ISO time separator is what tells them apart. Both agenda screens worked this
+ * out separately.
+ */
+export function isAllDay(event: CalendarEvent): boolean {
+  return !event.start.includes("T");
+}
+
+/** `09:00 – 10:30` in the viewer's locale, or "All day". */
+export function timeRangeLabel(event: CalendarEvent): string {
+  if (isAllDay(event)) return "All day";
+  const opts = { hour: "numeric", minute: "2-digit" } as const;
+  const start = new Date(event.start).toLocaleTimeString(undefined, opts);
+  const end = new Date(event.end).toLocaleTimeString(undefined, opts);
+  return `${start} – ${end}`;
+}
+
+/**
+ * A Date as `YYYY-MM-DDTHH:mm` in local time — the format an
+ * `<input type="datetime-local">` expects, and what mobile's date field
+ * mirrors.
+ *
+ * Built from local getters rather than toISOString(), which would convert to
+ * UTC and show the wrong clock time to everyone outside it. This existed three
+ * times: twice in apps/web and once in apps/mobile.
+ */
+export function toDatetimeLocalValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

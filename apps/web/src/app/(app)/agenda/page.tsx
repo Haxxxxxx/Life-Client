@@ -3,6 +3,9 @@
 import {
   createCalendarEvent,
   deleteCalendarEvent,
+  isAllDay,
+  timeRangeLabel,
+  toDatetimeLocalValue,
   updateCalendarEvent,
   type CalendarEvent,
 } from "@life-client/shared";
@@ -12,9 +15,6 @@ import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SkeletonRows, page
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
-function isAllDay(event: CalendarEvent): boolean {
-  return !event.start.includes("T");
-}
 
 // Deleting a past event through Google's API is unreliable (already-elapsed
 // events can fail in ways that surface as a 500) and there's no real need to
@@ -41,17 +41,7 @@ function dayLabel(key: string): string {
   return date.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 }
 
-function timeRangeLabel(event: CalendarEvent): string {
-  if (isAllDay(event)) return "All day";
-  const start = new Date(event.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  const end = new Date(event.end).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  return `${start} – ${end}`;
-}
 
-function toDatetimeLocalValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function EventForm({
   initial,
