@@ -448,7 +448,13 @@ export function Select({
     // globals.css sets `color-scheme: dark` on :root, so the browser already
     // draws the arrow and the open menu in dark styling, and the native menu
     // behaves correctly on touch and with a screen reader.
-    <select className={cx(FIELD_BASE, FIELD_SIZE[size], className)} {...rest}>
+    // min-w-0 and max-w-full, because a native <select> is as wide as its
+    // widest <option>. Where the options are user data — task titles on the
+    // goals page, goal titles on the task form — that width is unbounded, and
+    // a flex item defaults to min-width:auto, which refuses to shrink below
+    // it. The select then pushes itself and whatever sits beside it straight
+    // out of the card.
+    <select className={cx(FIELD_BASE, FIELD_SIZE[size], 'min-w-0 max-w-full', className)} {...rest}>
       {children}
     </select>
   );
