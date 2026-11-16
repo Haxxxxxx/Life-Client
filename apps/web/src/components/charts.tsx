@@ -7,6 +7,8 @@ import {
   lastNDays,
   monthKey,
   monthlyMoneyTrend,
+  spendingSlices,
+  spendingTotal,
   startOfWeek,
   taskCompletedIso,
   type Goal,
@@ -107,7 +109,13 @@ function Donut({
           endAngle={-270}
           paddingAngle={visible.length > 1 ? 2 : 0}
           stroke="var(--surface)"
-          strokeWidth={2}
+          // 0 for a single slice. The stroke is drawn on each slice's
+          // boundary, and a lone slice spanning the full 360 degrees has its
+          // start and end at the same place — so the 2px stroke lands on top
+          // of itself at twelve o'clock and reads as a notch cut out of an
+          // otherwise solid ring. Mobile's Donut already did this; web did
+          // not, which is why the Goals donut shows a seam at 100%.
+          strokeWidth={visible.length > 1 ? 2 : 0}
           isAnimationActive={false}
         />
         <Tooltip
@@ -176,43 +184,24 @@ interface MonthRow {
 // midnight and shift first-of-month entries into the previous month west of UTC.
 function buildMoneyCharts(transactions: Transaction[]) {
   const thisMonth = monthKey();
-  const byCategory = new Map<TransactionCategory, number>();
-  // Shared with mobile so the two cannot drift — mobile used to render this
-  // trend whenever any transaction existed, however old, producing six
-  // invisible bars and a "Net +$0" summary.
+  // Both shared with mobile so the two cannot drift — mobile used to render
+  // this trend whenever any transaction existed, however old, producing six
+  // invisible bars and a "Net +$0" summary. The donut ranking and its "other"
+  // roll-up were written out separately on each platform until now; only the
+  // colour is still decided here, because web tints a CSS variable where
+  // mobile alpha-blends a theme value.
   const { rows: trend, net, hasTrend } = monthlyMoneyTrend(transactions, TREND_MONTHS);
-
-  for (const t of transactions) {
-    const month = t.date.slice(0, 7);
-    if (t.type === "expense" && month === thisMonth) {
-      byCategory.set(t.category, (byCategory.get(t.category) ?? 0) + t.amount);
-    }
-  }
-
-  const ranked = [...byCategory]
-    .map(([category, amount]) => ({ category, amount }))
-    .sort((a, b) => b.amount - a.amount);
-  // The real "other" category always folds into the tail bucket so it can't
-  // collide with the rolled-up "Other" slice.
-  const named = ranked.filter((c) => c.category !== "other");
-  const top = named.slice(0, DONUT_TINTS.length - 1);
-  const rest = [...named.slice(DONUT_TINTS.length - 1), ...ranked.filter((c) => c.category === "other")];
-  const slices: DonutSlice[] = top.map((c, i) => ({
-    label: CATEGORY_LABEL[c.category],
-    value: c.amount,
-    fill: tint(DONUT_TINTS[i]!),
-  }));
-  if (rest.length > 0) {
-    slices.push({
-      label: rest.length === 1 ? CATEGORY_LABEL[rest[0]!.category] : CATEGORY_LABEL.other,
-      value: rest.reduce((sum, c) => sum + c.amount, 0),
-      fill: tint(DONUT_TINTS[DONUT_TINTS.length - 1]!),
-    });
-  }
+  const slices: DonutSlice[] = spendingSlices(transactions, thisMonth, DONUT_TINTS.length).map(
+    (slice, i) => ({
+      label: CATEGORY_LABEL[slice.category],
+      value: slice.value,
+      fill: tint(DONUT_TINTS[Math.min(i, DONUT_TINTS.length - 1)]!),
+    }),
+  );
 
   return {
     slices,
-    monthTotal: ranked.reduce((sum, c) => sum + c.amount, 0),
+    monthTotal: spendingTotal(transactions, thisMonth),
     trend,
     net,
     hasTrend,
@@ -414,6 +403,13 @@ export function GoalStatusChart({ goals }: { goals: Goal[] }) {
     () => GOAL_STATUS_SLICES.map((s) => ({ label: s.label, value: counts[s.status], fill: s.fill })),
     [counts],
   );
+  // One filtered list for both the donut and its legend. Donut drops
+  // zero-value slices internally, but the legend was mapping the unfiltered
+  // array — so a board with no archived goals still showed "Archived 0" with
+  // a colour swatch for a segment that is not in the chart. A legend that
+  // describes slices the chart does not draw is worse than no legend.
+  const shown = useMemo(() => slices.filter((s) => s.value > 0), [slices]);
+  const shownTotal = shown.reduce((sum, s) => sum + s.value, 0);
 
   return (
     // "of decided", not "of every goal". Archived goals were dropped rather
@@ -425,8 +421,15 @@ export function GoalStatusChart({ goals }: { goals: Goal[] }) {
       headline={`${counts.completed} of ${counts.decided} completed`}
     >
       <div className="flex flex-col items-center gap-4 sm:flex-row">
-        <Donut slices={slices} centerValue={String(goals.length)} centerCaption="goals" formatValue={(v) => plural(v, "goal")} />
-        <Legend vertical items={slices.map((s) => ({ label: s.label, color: s.fill, value: String(s.value) }))} />
+        <Donut slices={shown} centerValue={String(goals.length)} centerCaption="goals" formatValue={(v) => plural(v, "goal")} />
+        <Legend
+          vertical
+          items={shown.map((s) => ({
+            label: s.label,
+            color: s.fill,
+            value: `${s.value} · ${Math.round((s.value / shownTotal) * 100)}%`,
+          }))}
+        />
       </div>
     </ChartCard>
   );

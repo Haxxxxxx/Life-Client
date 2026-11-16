@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countPerDay, goalStatusCounts, lastNDays, monthlyMoneyTrend, startOfWeek } from "./charts";
+import { countPerDay, goalStatusCounts, lastNDays, monthlyMoneyTrend, spendingSlices, spendingTotal, startOfWeek } from "./charts";
 import type { Goal, Transaction } from "./types";
 
 function goal(status: Goal["status"]): Goal {
@@ -179,5 +179,77 @@ describe("startOfWeek", () => {
   it("drops the time component", () => {
     const d = startOfWeek(new Date(2026, 10, 11, 23, 59));
     expect([d.getHours(), d.getMinutes(), d.getSeconds()]).toEqual([0, 0, 0]);
+  });
+});
+
+describe("spendingSlices", () => {
+  const tx = (category: string, amount: number, date = "2026-11-04", type = "expense") =>
+    ({ id: `${category}-${amount}`, type, amount, category, date }) as unknown as Transaction;
+
+  it("ranks categories largest first", () => {
+    const out = spendingSlices([tx("food", 10), tx("rent", 90), tx("transport", 50)], "2026-11", 5);
+    expect(out.map((s) => s.category)).toEqual(["rent", "transport", "food"]);
+  });
+
+  it("ignores income and other months", () => {
+    const out = spendingSlices(
+      [tx("food", 10), tx("food", 500, "2026-11-04", "income"), tx("rent", 999, "2026-10-04")],
+      "2026-11",
+      5,
+    );
+    expect(out).toEqual([{ category: "food", value: 10 }]);
+  });
+
+  it("sums repeat spends in one category", () => {
+    const out = spendingSlices([tx("food", 10), tx("food", 15)], "2026-11", 5);
+    expect(out).toEqual([{ category: "food", value: 25 }]);
+  });
+
+  it("rolls the tail into a single other slice", () => {
+    const out = spendingSlices(
+      [tx("rent", 50), tx("food", 40), tx("transport", 30), tx("subscription", 20), tx("entertainment", 10)],
+      "2026-11",
+      3,
+    );
+    // Two named, then everything else summed.
+    expect(out).toEqual([
+      { category: "rent", value: 50 },
+      { category: "food", value: 40 },
+      { category: "other", value: 60 },
+    ]);
+  });
+
+  it("never shows the real other category twice", () => {
+    // "other" is a real category as well as the roll-up label, so it has to
+    // fold into the tail rather than rank as itself.
+    const out = spendingSlices(
+      [tx("other", 100), tx("rent", 50), tx("food", 40)],
+      "2026-11",
+      3,
+    );
+    expect(out.filter((s) => s.category === "other")).toHaveLength(1);
+    expect(out.find((s) => s.category === "other")!.value).toBe(100);
+  });
+
+  it("keeps a tail of exactly one under its own name", () => {
+    const out = spendingSlices([tx("rent", 50), tx("food", 40), tx("transport", 30)], "2026-11", 3);
+    expect(out.map((s) => s.category)).toEqual(["rent", "food", "transport"]);
+  });
+
+  it("returns nothing when the month has no expenses", () => {
+    expect(spendingSlices([], "2026-11", 5)).toEqual([]);
+  });
+});
+
+describe("spendingTotal", () => {
+  const tx = (amount: number, date = "2026-11-04", type = "expense") =>
+    ({ id: String(amount), type, amount, category: "food", date }) as unknown as Transaction;
+
+  it("counts every expense in the month, including rolled-up ones", () => {
+    expect(spendingTotal([tx(10), tx(15), tx(5, "2026-10-01")], "2026-11")).toBe(25);
+  });
+
+  it("excludes income", () => {
+    expect(spendingTotal([tx(10), tx(999, "2026-11-04", "income")], "2026-11")).toBe(10);
   });
 });
