@@ -57,6 +57,11 @@ export function PressableScale({
   const theme = useTheme();
   return (
     <Pressable
+      // Defaulted, not required: every use of this component is something you
+      // tap, and 50 of them declared no role at all, so a screen reader read
+      // the label without saying it was actionable. Spread before {...rest} so
+      // a caller can still say "link" or "checkbox".
+      accessibilityRole="button"
       android_ripple={{ color: rippleColor ?? theme.backgroundSelected, borderless: false }}
       style={(state) => [
         { opacity: state.pressed ? 0.72 : 1, transform: [{ scale: state.pressed ? 0.985 : 1 }] },
