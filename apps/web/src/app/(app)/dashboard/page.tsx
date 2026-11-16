@@ -374,9 +374,9 @@ function EditReminderForm({
 
   return (
     <div className="flex flex-1 flex-col gap-2">
-      <Input size="sm" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <Input aria-label="Reminder title" size="sm" value={title} onChange={(e) => setTitle(e.target.value)} />
       <Input size="sm" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notes" />
-      <Input size="sm" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+      <Input aria-label="Deadline" size="sm" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <div className="flex gap-3">
         <button
@@ -493,7 +493,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
             placeholder="Notes (e.g. account it's linked to)"
           />
           <div className="flex gap-2">
-            <Input
+            <Input aria-label="Deadline"
               type="datetime-local"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}

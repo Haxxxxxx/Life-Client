@@ -43,7 +43,7 @@ export function EditTaskForm({
         className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
       />
       <div className="flex flex-wrap gap-2">
-        <Select
+        <Select aria-label="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value as TaskCategory)}
           size="sm"
@@ -54,7 +54,7 @@ export function EditTaskForm({
             </option>
           ))}
         </Select>
-        <Select
+        <Select aria-label="Difficulty"
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
           size="sm"
@@ -65,7 +65,7 @@ export function EditTaskForm({
             </option>
           ))}
         </Select>
-        <Select
+        <Select aria-label="Priority"
           value={priority}
           onChange={(e) => setPriority(e.target.value as TaskPriority)}
           size="sm"
@@ -76,8 +76,8 @@ export function EditTaskForm({
             </option>
           ))}
         </Select>
-        <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} size="sm" />
-        <Select
+        <Input aria-label="Due date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} size="sm" />
+        <Select aria-label="Linked goal"
           value={goalId}
           onChange={(e) => setGoalId(e.target.value)}
           size="sm"

@@ -129,7 +129,7 @@ export default function TasksPage() {
       <form onSubmit={handleAddTask} className="flex flex-col gap-2 rounded-xl border border-border-strong bg-surface p-3">
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task…" />
         <div className="flex flex-wrap gap-2">
-          <Select
+          <Select aria-label="Category"
             value={category}
             onChange={(e) => setCategory(e.target.value as TaskCategory)}
             size="sm"
@@ -140,7 +140,7 @@ export default function TasksPage() {
               </option>
             ))}
           </Select>
-          <Select
+          <Select aria-label="Difficulty"
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
             size="sm"

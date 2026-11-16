@@ -202,7 +202,7 @@ function CodeRunner() {
   return (
     <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
       <p className="font-mono text-xs font-bold text-primary uppercase">Try it — JS/TS scratchpad</p>
-      <Textarea
+      <Textarea aria-label="Your solution"
         value={code}
         onChange={(e) => setCode(e.target.value)}
         spellCheck={false}

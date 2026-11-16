@@ -72,7 +72,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
           placeholder="Amount"
           className="min-w-0 flex-1"
         />
-        <Select
+        <Select aria-label="Transaction category"
           value={category}
           onChange={(e) => setCategory(e.target.value as TransactionCategory)}
           size="sm"
@@ -85,7 +85,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         </Select>
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" />
-      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <Input aria-label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} noneLabel="One-time" />
       <Button
         size="sm"
@@ -114,7 +114,7 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-border p-3">
-      <Select
+      <Select aria-label="Budget category"
         value={category}
         onChange={(e) => setCategory(e.target.value as TransactionCategory)}
         size="sm"

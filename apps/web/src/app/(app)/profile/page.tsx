@@ -68,7 +68,7 @@ function LogEventForm({
       className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3"
     >
       <div className="flex gap-2">
-        <Select
+        <Select aria-label="Event type"
           value={eventType}
           onChange={(e) => setEventType(e.target.value as ManualEventType)}
           size="sm" className="flex-1"

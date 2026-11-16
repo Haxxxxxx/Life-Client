@@ -258,7 +258,7 @@ function GoalCard({
         <div className="flex flex-wrap gap-2">
           {unlinkedTasks.length > 0 && (
             <div className="flex gap-1">
-              <Select
+              <Select aria-label="Link a task to this goal"
                 value={linkPick}
                 onChange={(e) => setLinkPick(e.target.value)}
                 size="sm"
