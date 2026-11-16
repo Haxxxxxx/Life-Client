@@ -1,4 +1,19 @@
 import {
+  completedTaskTimestamps,
+  computeChallengeProgress,
+  computeGoalProgress,
+  computeInsightXp,
+  daysUntil,
+  deleteReminderEverywhere,
+  describeRecurrence,
+  isDueSoon,
+  levelFromXp,
+  nextOccurrenceDate,
+  reminderUrgency,
+  syncReminderToCalendar,
+  todayLessonId,
+  visibleGoals,
+  visibleTasks,
   type CalendarEvent,
   type Challenge,
   type CodeDrill,
@@ -12,21 +27,6 @@ import {
   type SportActivity,
   type SpotifySummary,
   type Task,
-  computeChallengeProgress,
-  computeGoalProgress,
-  computeInsightXp,
-  daysUntil,
-  deleteReminderEverywhere,
-  describeRecurrence,
-  isDueSoon,
-  levelFromXp,
-  nextOccurrenceDate,
-  reminderUrgency,
-  syncReminderToCalendar,
-  taskCompletedIso,
-  todayLessonId,
-  visibleGoals,
-  visibleTasks,
   type VocabWord,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
@@ -627,11 +627,7 @@ function WeekActivity({ tasks, activities }: { tasks: Task[]; activities: SportA
   const theme = useTheme();
   const { days, taskCounts, sessionCounts, total, activeDays } = useMemo(() => {
     const days = lastNDays(7);
-    const doneTimestamps = tasks
-      .filter((t) => t.status === 'done')
-      .map(taskCompletedIso)
-      .filter((iso): iso is string => iso !== null);
-    const taskCounts = countPerDay(doneTimestamps, days);
+    const taskCounts = countPerDay(completedTaskTimestamps(tasks), days);
     const sessionCounts = countPerDay(
       activities.map((a) => a.startDate),
       days,

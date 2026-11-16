@@ -2,6 +2,7 @@
 
 import {
   TRANSACTION_CATEGORIES,
+  completedTaskTimestamps,
   countPerDay,
   goalStatusCounts,
   lastNDays,
@@ -10,7 +11,6 @@ import {
   spendingSlices,
   spendingTotal,
   startOfWeek,
-  taskCompletedIso,
   type Goal,
   type GoalStatus,
   type SportActivity,
@@ -144,13 +144,6 @@ function Donut({
 function parseLocalDay(day: string): Date {
   const [y, m, d] = day.split("-").map(Number);
   return new Date(y!, m! - 1, d!);
-}
-
-function completedTimestamps(tasks: Task[]): string[] {
-  return tasks
-    .filter((t) => t.status === "done")
-    .map(taskCompletedIso)
-    .filter((iso): iso is string => iso !== null);
 }
 
 // ---------------------------------------------------------------------------
@@ -450,7 +443,7 @@ interface DayRow {
 export function TasksCompletedChart({ tasks }: { tasks: Task[] }) {
   const { rows, total } = useMemo(() => {
     const days = lastNDays(COMPLETED_DAYS);
-    const counts = countPerDay(completedTimestamps(tasks), days);
+    const counts = countPerDay(completedTaskTimestamps(tasks), days);
     return {
       rows: days.map<DayRow>((day, i) => ({
         day,
@@ -514,7 +507,7 @@ interface WeekDayRow {
 export function WeekActivityChart({ tasks, activities }: { tasks: Task[]; activities: SportActivity[] }) {
   const { rows, total, activeDays } = useMemo(() => {
     const days = lastNDays(7);
-    const taskCounts = countPerDay(completedTimestamps(tasks), days);
+    const taskCounts = countPerDay(completedTaskTimestamps(tasks), days);
     const sessionCounts = countPerDay(
       activities.map((a) => a.startDate),
       days,

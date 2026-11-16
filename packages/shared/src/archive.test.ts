@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { archivedGoals, visibleGoals } from "./goals";
-import { archivedTasks, visibleTasks } from "./tasks";
+import { archivedTasks, completedTaskTimestamps, visibleTasks } from "./tasks";
 import type { Goal, Task } from "./types";
 
 function goal(id: string, status: Goal["status"]): Goal {
@@ -79,5 +79,55 @@ describe("visible/archived partition tasks", () => {
   it("handles an empty list", () => {
     expect(visibleTasks([])).toEqual([]);
     expect(archivedTasks([])).toEqual([]);
+  });
+});
+
+describe("completedTaskTimestamps", () => {
+  const t = (over: Partial<Task>): Task =>
+    ({
+      id: "t",
+      title: "t",
+      status: "done",
+      priority: "medium",
+      difficulty: "medium",
+      category: "code",
+      source: "manual",
+      tags: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+      ...over,
+    }) as Task;
+
+  it("only counts done tasks", () => {
+    const out = completedTaskTimestamps([
+      t({ status: "done", completedAt: "2026-03-01T10:00:00.000Z" }),
+      t({ status: "todo", completedAt: "2026-03-02T10:00:00.000Z" }),
+    ]);
+    expect(out).toEqual(["2026-03-01T10:00:00.000Z"]);
+  });
+
+  it("prefers completedAt over updatedAt", () => {
+    const out = completedTaskTimestamps([
+      t({ completedAt: "2026-03-01T10:00:00.000Z", updatedAt: "2026-09-09T00:00:00.000Z" }),
+    ]);
+    expect(out).toEqual(["2026-03-01T10:00:00.000Z"]);
+  });
+
+  it("falls back to updatedAt for tasks finished before completedAt shipped", () => {
+    // Dropping these would silently erase history from the charts, which is
+    // worse than dating them approximately.
+    const out = completedTaskTimestamps([t({ completedAt: undefined })]);
+    expect(out).toEqual(["2026-01-02T00:00:00.000Z"]);
+  });
+
+  it("drops a task with no usable timestamp rather than charting a bogus date", () => {
+    const out = completedTaskTimestamps([
+      t({ completedAt: undefined, updatedAt: undefined as unknown as string }),
+    ]);
+    expect(out).toEqual([]);
+  });
+
+  it("returns nothing for an empty list", () => {
+    expect(completedTaskTimestamps([])).toEqual([]);
   });
 });
