@@ -6,6 +6,7 @@
 // have thrown until first use.
 import "server-only";
 
+import { addressIsPrivate } from "@life-client/shared";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
@@ -25,6 +26,14 @@ import { isIP } from "node:net";
  * So the check has to be on the resolved address, and it has to run again on
  * every hop. The body is also read with a hard byte cap, because the old code
  * buffered the whole response before slicing it.
+ *
+ * The address classification itself lives in packages/shared/netAddress, where
+ * it is tested against a table of literals. It used to live here and matched
+ * IPv6 by string prefix, which was worse than it looked: WHATWG `URL`
+ * canonicalises an IPv6 host to compressed hex, so `[::ffff:127.0.0.1]`
+ * arrives as `[::ffff:7f00:1]` and the dotted-form branch could never match a
+ * parsed URL at all. Every IPv4-mapped address was allowed through, metadata
+ * endpoints included.
  */
 
 const MAX_REDIRECTS = 3;
@@ -34,41 +43,6 @@ export class BlockedUrlError extends Error {
     super(message);
     this.name = "BlockedUrlError";
   }
-}
-
-function ipv4IsPrivate(ip: string): boolean {
-  const parts = ip.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
-  const [a, b] = parts as [number, number, number, number];
-  if (a === 0) return true; // 0.0.0.0/8 "this network"
-  if (a === 10) return true; // private
-  if (a === 127) return true; // loopback
-  if (a === 169 && b === 254) return true; // link-local, incl. cloud metadata
-  if (a === 172 && b >= 16 && b <= 31) return true; // private
-  if (a === 192 && b === 168) return true; // private
-  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
-  if (a === 192 && b === 0) return true; // IETF protocol assignments
-  if (a >= 224) return true; // multicast + reserved + broadcast
-  return false;
-}
-
-function ipv6IsPrivate(ip: string): boolean {
-  const addr = ip.toLowerCase().replace(/^\[|\]$/g, "");
-  if (addr === "::" || addr === "::1") return true; // unspecified / loopback
-  // IPv4-mapped (::ffff:127.0.0.1) and IPv4-compatible forms delegate to v4.
-  const mapped = /^(?:::ffff:)?(\d+\.\d+\.\d+\.\d+)$/.exec(addr);
-  if (mapped) return ipv4IsPrivate(mapped[1]!);
-  if (addr.startsWith("fe80")) return true; // link-local
-  if (/^f[cd]/.test(addr)) return true; // unique local fc00::/7
-  if (addr.startsWith("ff")) return true; // multicast
-  return false;
-}
-
-export function addressIsPrivate(ip: string): boolean {
-  const family = isIP(ip);
-  if (family === 4) return ipv4IsPrivate(ip);
-  if (family === 6) return ipv6IsPrivate(ip);
-  return true; // not a parseable address — refuse rather than guess
 }
 
 /** Resolves the host and rejects unless every address it maps to is public. */

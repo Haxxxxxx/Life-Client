@@ -15,6 +15,7 @@ export * from "./knowledge";
 export * from "./numericInput";
 export * from "./format";
 export * from "./music";
+export * from "./netAddress";
 export * from "./knowledgeApi";
 export * from "./remindersApi";
 export * from "./spotify";
