@@ -36,6 +36,7 @@ import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -81,7 +82,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
             <Pressable
               key={k}
               onPress={() => handleKindChange(k)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {k === 'endurance' ? 'Endurance' : 'Strength'}
               </ThemedText>
@@ -90,7 +91,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         })}
       </View>
 
-      <View style={styles.chipRowWrap}>
+      <View style={Common.chipRow}>
         {presets.map((p) => {
           const active = p === type && !customType;
           return (
@@ -100,7 +101,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
                 setType(p);
                 setCustomType('');
               }}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
               <ThemedText type="small">{p}</ThemedText>
             </Pressable>
           );
@@ -111,7 +112,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         onChangeText={setCustomType}
         placeholder="Or type your own…"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
 
       {kind === 'endurance' ? (
@@ -124,7 +125,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={distanceKm}
               onChangeText={setDistanceKm}
               keyboardType="decimal-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -135,7 +136,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={durationMin}
               onChangeText={setDurationMin}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
         </View>
@@ -149,7 +150,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={reps}
               onChangeText={setReps}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -160,7 +161,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={sets}
               onChangeText={setSets}
               keyboardType="number-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
           <View style={styles.formField}>
@@ -171,7 +172,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               value={weightKg}
               onChangeText={setWeightKg}
               keyboardType="decimal-pad"
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
           </View>
         </View>
@@ -324,7 +325,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             <Pressable
               key={k}
               onPress={() => handleKindChange(k)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {k === 'endurance' ? 'Endurance' : 'Strength'}
               </ThemedText>
@@ -332,7 +333,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
           );
         })}
       </View>
-      <View style={styles.chipRowWrap}>
+      <View style={Common.chipRow}>
         {presets.map((p) => {
           const active = p === exerciseType && !customType;
           return (
@@ -342,7 +343,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
                 setExerciseType(p);
                 setCustomType('');
               }}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
               <ThemedText type="small">{p}</ThemedText>
             </Pressable>
           );
@@ -353,7 +354,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         onChangeText={setCustomType}
         placeholder="Or type your own…"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.chipRow}>
         {availableMetrics.map((m) => {
@@ -362,7 +363,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             <Pressable
               key={m.id}
               onPress={() => handleMetricChange(m.id)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {m.label}
               </ThemedText>
@@ -379,7 +380,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             value={dailyTarget}
             onChangeText={setDailyTarget}
             keyboardType={metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
-            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -390,7 +391,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             value={durationDays}
             onChangeText={setDurationDays}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -402,7 +403,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
             onChangeText={setStartDate}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
       </View>
@@ -508,7 +509,7 @@ function ChallengeCard({
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <View style={styles.formRow}>
               <View style={styles.formField}>
@@ -519,7 +520,7 @@ function ChallengeCard({
                   value={dailyTarget}
                   onChangeText={setDailyTarget}
                   keyboardType={challenge.metric === 'distanceMeters' ? 'decimal-pad' : 'number-pad'}
-                  style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+                  style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
                 />
               </View>
               <View style={styles.formField}>
@@ -530,7 +531,7 @@ function ChallengeCard({
                   value={durationDays}
                   onChangeText={setDurationDays}
                   keyboardType="number-pad"
-                  style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+                  style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
                 />
               </View>
             </View>
@@ -721,8 +722,8 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
   return (
     <View style={styles.challengesSection}>
       <View style={styles.headerRow}>
-        <View style={styles.headerText}>
-          <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+        <View style={Common.headerText}>
+          <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
             Streaks
           </ThemedText>
           <ThemedText type="subtitle">Challenges</ThemedText>
@@ -730,7 +731,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
         {!formOpen && (
           <Pressable
             onPress={() => setFormOpen(true)}
-            style={[styles.logToggle, { borderColor: theme.border }]}>
+            style={[Common.logToggle, { borderColor: theme.border }]}>
             <ThemedText type="small" style={{ fontWeight: '700' }}>
               New challenge
             </ThemedText>
@@ -766,7 +767,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
         </View>
       ) : (
         !formOpen && (
-          <ThemedView type="backgroundElement" style={styles.emptyState}>
+          <ThemedView type="backgroundElement" style={Common.emptyState}>
             <ThemedText themeColor="textSecondary">
               No active challenges — e.g. &ldquo;100 days of 100 push-ups&rdquo;. Completion is tracked
               automatically from activities you log below.
@@ -823,12 +824,12 @@ export default function SportsScreen() {
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
+        <View style={Common.header}>
           <View style={styles.headerRow}>
-            <View style={styles.headerText}>
-              <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+            <View style={Common.headerText}>
+              <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
                 Performance
               </ThemedText>
               <ThemedText type="subtitle">Sports</ThemedText>
@@ -836,7 +837,7 @@ export default function SportsScreen() {
             {!formOpen && (
               <Pressable
                 onPress={() => setFormOpen(true)}
-                style={[styles.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+                style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
                 <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
                   Log activity
                 </ThemedText>
@@ -867,7 +868,7 @@ export default function SportsScreen() {
             !loaded ? (
               <SkeletonList rows={3} />
             ) : (
-              <ThemedView type="backgroundElement" style={styles.emptyState}>
+              <ThemedView type="backgroundElement" style={Common.emptyState}>
                 <ThemedText themeColor="textSecondary">
                   No activities yet. Connect Strava from the Integrations tab, or log one by hand above.
                 </ThemedText>
@@ -933,16 +934,9 @@ export default function SportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
-  header: { marginTop: Spacing.four, gap: Spacing.one },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
-  headerText: { flex: 1, gap: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   error: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
-  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   card: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -957,20 +951,11 @@ const styles = StyleSheet.create({
   stat: { alignItems: 'flex-end' },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginTop: Spacing.three },
   chipRow: { flexDirection: 'row', gap: Spacing.one },
-  chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
   // Radius two / padding three, and clears the 44pt touch minimum. Every
   // screen with a text input sets all three — integrations and music have no
   // input, so nine of the eleven carry this block.
-  input: {
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   logButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   trendSection: { marginBottom: Spacing.four },
   challengesSection: { gap: Spacing.two, marginBottom: Spacing.four },

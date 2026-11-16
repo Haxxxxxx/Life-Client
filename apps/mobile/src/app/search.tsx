@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorBanner } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -66,10 +67,10 @@ export default function SearchScreen() {
     : [];
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
+        <View style={Common.header}>
+          <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
             Search
           </ThemedText>
           <ThemedText type="subtitle">Search</ThemedText>
@@ -80,7 +81,7 @@ export default function SearchScreen() {
           autoFocus
           placeholder="Search Tasks, Goals, Reminders…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+          style={[Common.input, styles.inputSpacing, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
         <FlatList
           data={results}
@@ -97,8 +98,8 @@ export default function SearchScreen() {
           }
           renderItem={({ item }) => (
             <Pressable onPress={() => router.push(item.href)} style={[styles.row, { borderColor: theme.border }]}>
-              <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
-                <ThemedText type="code" style={styles.badgeText}>
+              <View style={[Common.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
+                <ThemedText type="code" style={Common.badgeText}>
                   {item.kind}
                 </ThemedText>
               </View>
@@ -114,20 +115,8 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
-  header: { marginTop: Spacing.four, gap: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  input: {
-    marginTop: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    // Without this the box is about 38pt: 8pt of vertical padding, two 1pt
-    // borders and a ~20pt line box. Under Apple's 44pt and Android's 48dp.
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
+  /** Only the gap under the header; the field itself is Common.input. */
+  inputSpacing: { marginTop: Spacing.three },
   listContent: { paddingVertical: Spacing.three, gap: Spacing.two },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.five },
   row: {
@@ -139,6 +128,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
-  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
-  badgeText: { fontSize: 10 },
 });

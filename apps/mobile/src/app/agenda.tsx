@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ErrorBanner } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -120,28 +121,28 @@ function EventForm({
         onChangeText={setTitle}
         placeholder="Event title"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={location}
         onChangeText={setLocation}
         placeholder="Location (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={start}
         onChangeText={setStart}
         placeholder="Start YYYY-MM-DDTHH:MM"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={end}
         onChangeText={setEnd}
         placeholder="End YYYY-MM-DDTHH:MM"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.formActions}>
         <Pressable
@@ -222,11 +223,11 @@ export default function AgendaScreen() {
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
         <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+          <View style={Common.headerText}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               Agenda
             </ThemedText>
             <ThemedText type="subtitle">Calendar</ThemedText>
@@ -237,7 +238,7 @@ export default function AgendaScreen() {
           {!formOpen && (
             <Pressable
               onPress={() => setFormOpen(true)}
-              style={[styles.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+              style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
               <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
                 New event
               </ThemedText>
@@ -258,7 +259,7 @@ export default function AgendaScreen() {
           }
           ListEmptyComponent={
             !formOpen ? (
-              <ThemedView type="backgroundElement" style={styles.emptyState}>
+              <ThemedView type="backgroundElement" style={Common.emptyState}>
                 <ThemedText themeColor="textSecondary">
                   No events yet — connect Google Calendar from Integrations, add one above, or check back
                   once it&apos;s synced.
@@ -324,14 +325,8 @@ export default function AgendaScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
-  headerText: { flex: 1, gap: Spacing.one },
-  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.three },
-  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   group: { gap: Spacing.two },
   groupLabel: { letterSpacing: 1, textTransform: 'uppercase' },
   card: {
@@ -348,15 +343,6 @@ const styles = StyleSheet.create({
   openButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   openButtonText: { fontWeight: '700', textTransform: 'uppercase' },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginBottom: Spacing.three },
-  input: {
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    // Without this the box is about 38pt: 8pt of vertical padding, two 1pt
-    // borders and a ~20pt line box. Under Apple's 44pt and Android's 48dp.
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   formActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, alignItems: 'center' },
 });

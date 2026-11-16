@@ -27,6 +27,7 @@ import { ErrorBanner } from '@/components/ui';
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -137,7 +138,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
   const canSubmit = amount.trim().length > 0 && parsedAmount > 0 && date.trim().length > 0;
 
   return (
-    <View style={[styles.form, { borderColor: theme.border }]}>
+    <View style={[Common.form, { borderColor: theme.border }]}>
       <View style={styles.chipRow}>
         {(['expense', 'income'] as const).map((t) => {
           const active = type === t;
@@ -159,16 +160,16 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         placeholder="Amount"
         placeholderTextColor={theme.textSecondary}
         keyboardType="decimal-pad"
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
-      <View style={styles.chipRowWrap}>
+      <View style={Common.chipRow}>
         {TRANSACTION_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
             <Pressable
               key={c.id}
               onPress={() => setCategory(c.id)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {c.label}
               </ThemedText>
@@ -181,14 +182,14 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         onChangeText={setNote}
         placeholder="Note (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={date}
         onChangeText={setDate}
         placeholder="YYYY-MM-DD"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} noneLabel="One-time" />
       <Pressable
@@ -217,15 +218,15 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
   const parsedLimit = Number(monthlyLimit);
 
   return (
-    <View style={[styles.form, { borderColor: theme.border }]}>
-      <View style={styles.chipRowWrap}>
+    <View style={[Common.form, { borderColor: theme.border }]}>
+      <View style={Common.chipRow}>
         {TRANSACTION_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
             <Pressable
               key={c.id}
               onPress={() => setCategory(c.id)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {c.label}
               </ThemedText>
@@ -239,7 +240,7 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
         placeholder="Monthly limit"
         placeholderTextColor={theme.textSecondary}
         keyboardType="decimal-pad"
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <Pressable
         disabled={!monthlyLimit.trim() || parsedLimit <= 0}
@@ -300,11 +301,11 @@ export default function MoneyScreen() {
   const subscriptions = transactions.filter((t) => t.recurrence);
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               Money
             </ThemedText>
             <ThemedText type="subtitle">Money</ThemedText>
@@ -343,7 +344,7 @@ export default function MoneyScreen() {
             {!txFormOpen && (
               <Pressable
                 onPress={() => setTxFormOpen(true)}
-                style={[styles.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+                style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
                 <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
                   New transaction
                 </ThemedText>
@@ -399,7 +400,7 @@ export default function MoneyScreen() {
                   <View style={[styles.progressTrack, { borderColor: theme.border }]}>
                     <View
                       style={[
-                        styles.progressFill,
+                        Common.progressFill,
                         { width: `${Math.min(100, Math.round(status.percent * 100))}%`, backgroundColor: over ? theme.danger : theme.primary },
                       ]}
                     />
@@ -468,7 +469,7 @@ export default function MoneyScreen() {
               </View>
             ))}
             {transactions.length === 0 && (
-              <ThemedView type="backgroundElement" style={styles.emptyState}>
+              <ThemedView type="backgroundElement" style={Common.emptyState}>
                 <ThemedText themeColor="textSecondary">No transactions yet — log your first one above.</ThemedText>
               </ThemedView>
             )}
@@ -480,38 +481,20 @@ export default function MoneyScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   content: { paddingVertical: Spacing.four, gap: Spacing.four },
   header: { gap: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   statsRow: { flexDirection: 'row', gap: Spacing.two },
   statTile: { flex: 1, borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center', gap: 2 },
   statLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
   sectionHeaderTitle: { flexShrink: 1 },
-  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
-  input: {
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    // Without this the box is about 38pt: 8pt of vertical padding, two 1pt
-    // borders and a ~20pt line box. Under Apple's 44pt and Android's 48dp.
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   chipRow: { flexDirection: 'row', gap: Spacing.one },
-  chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   typeButton: { flex: 1, borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.one, alignItems: 'center' },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   budgetCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   progressTrack: { height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
-  progressFill: { height: '100%' },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
-  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

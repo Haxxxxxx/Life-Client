@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorBanner } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -35,7 +36,7 @@ import { knowledgeApiClient } from '@/lib/knowledgeClient';
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <View style={styles.sectionHeader}>
-      <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+      <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
         {eyebrow}
       </ThemedText>
       <ThemedText type="subtitle">{title}</ThemedText>
@@ -190,7 +191,7 @@ function DrillCard({
     <ThemedView type="backgroundElement" style={[styles.listCard, { borderColor: theme.border }]}>
       <View style={styles.rowBetween}>
         <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
-          <ThemedText type="code" style={styles.badgeText}>
+          <ThemedText type="code" style={Common.badgeText}>
             {drill.difficulty}
           </ThemedText>
         </View>
@@ -381,22 +382,22 @@ function CodeDrillsSection({ drills, loaded }: { drills: CodeDrill[]; loaded: bo
   return (
     <View style={styles.section}>
       <SectionHeader eyebrow="Practice" title="Code Drills" />
-      <View style={[styles.form, { borderColor: theme.border }]}>
+      <View style={[Common.form, { borderColor: theme.border }]}>
         <TextInput
           value={topic}
           onChangeText={setTopic}
           placeholder="Topic (optional) — e.g. recursion, closures…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+          style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
-        <View style={styles.chipRowWrap}>
+        <View style={Common.chipRow}>
           {DIFFICULTIES.map((d) => {
             const active = d.id === difficulty;
             return (
               <Pressable
                 key={d.id}
                 onPress={() => setDifficulty(d.id)}
-                style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+                style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
                 <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                   {d.label}
                 </ThemedText>
@@ -485,12 +486,12 @@ function VocabCard({ w }: { w: VocabWord }) {
             &ldquo;{w.example}&rdquo;
           </ThemedText>
         </View>
-        <View style={styles.chipRowWrap}>
+        <View style={Common.chipRow}>
           {MASTERY_ORDER.map((m) => (
             <Pressable
               key={m}
               onPress={() => user && data.setVocabMastery(user.uid, w.id, m)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: w.mastery === m ? theme.accent : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: w.mastery === m ? theme.accent : 'transparent' }]}>
               <ThemedText type="code">{MASTERY_LABEL[m]}</ThemedText>
             </Pressable>
           ))}
@@ -505,7 +506,7 @@ function VocabCard({ w }: { w: VocabWord }) {
           onChangeText={setSentence}
           placeholder={`Write a sentence using "${w.word}"…`}
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+          style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
         <Pressable hitSlop={10}
           onPress={handleSubmit}
@@ -676,7 +677,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
           onChangeText={setUrl}
           placeholder="Paste a link to read later…"
           placeholderTextColor={theme.textSecondary}
-          style={[styles.input, styles.flex1, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.backgroundElement }]}
+          style={[Common.input, styles.flex1, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.backgroundElement }]}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
         />
@@ -793,8 +794,8 @@ export default function KnowledgeScreen() {
   const firstName = user?.displayName?.split(' ')[0];
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
           <ErrorBanner>{loadError}</ErrorBanner>
           <View style={styles.header}>
@@ -823,7 +824,7 @@ export default function KnowledgeScreen() {
               <View style={[styles.progressTrack, { borderColor: theme.border }]}>
                 <View
                   style={[
-                    styles.progressFill,
+                    Common.progressFill,
                     { width: `${Math.min(100, Math.max(0, insightLevel.progress * 100))}%`, backgroundColor: theme.primary },
                   ]}
                 />
@@ -841,11 +842,8 @@ export default function KnowledgeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   content: { paddingBottom: Spacing.six, gap: Spacing.six },
   header: { marginTop: Spacing.four, gap: Spacing.three },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   section: { gap: Spacing.three },
   sectionHeader: { gap: 2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
@@ -872,28 +870,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButtonSmall: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.three },
-  form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
-  input: {
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    // Without this the box is about 38pt: 8pt of vertical padding, two 1pt
-    // borders and a ~20pt line box. Under Apple's 44pt and Android's 48dp.
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   textArea: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, minHeight: 72, textAlignVertical: 'top' },
   inputRow: { flexDirection: 'row', gap: Spacing.two },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.four, justifyContent: 'center' },
-  chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   list: { gap: Spacing.two },
   listCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
   // Pill, matching goals/index/search. These two were squares using the
   // off-scale values 4 and 6, so the same concept rendered as two
   // different components depending on the screen.
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  badgeText: { fontSize: 10 },
   pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   resultBox: { borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.three, marginTop: Spacing.two },
   hintBox: { borderTopWidth: 1, marginTop: Spacing.three, paddingTop: Spacing.three },
@@ -905,5 +890,4 @@ const styles = StyleSheet.create({
   // 8, matching goals/money and the web ProgressBar's h-2. music.tsx keeps 6
   // deliberately: that one is an inline track scrubber, not a stat bar.
   progressTrack: { height: 8, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
-  progressFill: { height: '100%' },
 });

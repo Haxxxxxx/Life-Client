@@ -35,6 +35,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ErrorBanner } from '@/components/ui';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -49,7 +50,7 @@ function ProgressBar({ progress }: { progress: number }) {
   const pct = Math.min(100, Math.max(0, progress * 100));
   return (
     <View style={[styles.progressTrack, { borderColor: theme.border }]}>
-      <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: theme.primary }]} />
+      <View style={[Common.progressFill, { width: `${pct}%`, backgroundColor: theme.primary }]} />
     </View>
   );
 }
@@ -76,7 +77,7 @@ function LogEventForm({
 
   return (
     <View style={[styles.form, { borderColor: theme.border }]}>
-      <View style={styles.chipRow}>
+      <View style={Common.chipRow}>
         {MANUAL_EVENT_TYPES.map((t) => {
           const active = t.id === eventType;
           return (
@@ -84,7 +85,7 @@ function LogEventForm({
               key={t.id}
               onPress={() => setEventType(t.id)}
               style={[
-                styles.chip,
+                Common.chip,
                 {
                   borderColor: theme.border,
                   backgroundColor: active ? theme.primary : 'transparent',
@@ -110,7 +111,7 @@ function LogEventForm({
             value={durationMinutes}
             onChangeText={setDurationMinutes}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
         <View style={styles.formField}>
@@ -121,7 +122,7 @@ function LogEventForm({
             value={peopleCount}
             onChangeText={setPeopleCount}
             keyboardType="number-pad"
-            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
         </View>
       </View>
@@ -130,7 +131,7 @@ function LogEventForm({
         onChangeText={setNote}
         placeholder={NOTE_PLACEHOLDER[characteristicId] ?? 'Notes (optional)'}
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <Pressable
         onPress={() =>
@@ -307,13 +308,13 @@ export default function ProfileScreen() {
     : null;
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
           <ErrorBanner>{loadError}</ErrorBanner>
           <ErrorBanner>{error}</ErrorBanner>
-          <View style={styles.header}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+          <View style={Common.header}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               You
             </ThemedText>
             <ThemedText type="subtitle">Profile</ThemedText>
@@ -336,7 +337,7 @@ export default function ProfileScreen() {
             </View>
           </ThemedView>
 
-          <ThemedText type="code" themeColor="primary" style={[styles.eyebrow, styles.sectionTitle]}>
+          <ThemedText type="code" themeColor="primary" style={[Common.eyebrow, styles.sectionTitle]}>
             Core Stats
           </ThemedText>
           <View style={styles.list}>
@@ -364,7 +365,7 @@ export default function ProfileScreen() {
             ))}
           </View>
 
-          <ThemedText type="code" themeColor="primary" style={[styles.eyebrow, styles.sectionTitle]}>
+          <ThemedText type="code" themeColor="primary" style={[Common.eyebrow, styles.sectionTitle]}>
             Task Categories
           </ThemedText>
           <View style={styles.list}>
@@ -385,11 +386,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   content: { gap: Spacing.four },
-  header: { marginTop: Spacing.four, gap: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   sectionTitle: { marginTop: Spacing.one },
   accountCard: {
     flexDirection: 'row',
@@ -411,7 +408,6 @@ const styles = StyleSheet.create({
   // 8, matching goals/money and the web ProgressBar's h-2. music.tsx keeps 6
   // deliberately: that one is an inline track scrubber, not a stat bar.
   progressTrack: { height: 8, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
-  progressFill: { height: '100%' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   logButton: {
@@ -423,18 +419,9 @@ const styles = StyleSheet.create({
   },
   signOut: { alignSelf: 'center', marginTop: Spacing.two, padding: Spacing.two },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   formRow: { flexDirection: 'row', gap: Spacing.two },
   formField: { flex: 1, gap: Spacing.half },
   // Radius two / padding three, and clears the 44pt touch minimum. Every
   // screen with a text input sets all three — integrations and music have no
   // input, so nine of the eleven carry this block.
-  input: {
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
 });

@@ -17,6 +17,7 @@ import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SkeletonList } from '@/components/ui';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -61,7 +62,7 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
 
   return (
     <View style={[styles.form, { borderColor: theme.border }]}>
-      <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+      <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
         New goal
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
@@ -72,26 +73,26 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
         onChangeText={setTitle}
         placeholder="e.g. Ship WeSplit v2"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={description}
         onChangeText={setDescription}
         placeholder="Description (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={targetDate}
         onChangeText={setTargetDate}
         placeholder="Target date YYYY-MM-DD (optional)"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       {!title.trim() && (
-        <View style={styles.chipRowWrap}>
+        <View style={Common.chipRow}>
           {GOAL_EXAMPLES.map((example) => (
-            <Pressable key={example} onPress={() => setTitle(example)} style={[styles.chip, { borderColor: theme.border }]}>
+            <Pressable key={example} onPress={() => setTitle(example)} style={[Common.chip, { borderColor: theme.border }]}>
               <ThemedText type="small" themeColor="textSecondary">
                 {example}
               </ThemedText>
@@ -164,21 +165,21 @@ function GoalCard({
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <TextInput
               value={description}
               onChangeText={setDescription}
               placeholder="Description"
               placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <TextInput
               value={targetDate}
               onChangeText={setTargetDate}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+              style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <View style={styles.goalActions}>
               <Pressable
@@ -224,7 +225,7 @@ function GoalCard({
           <View style={{ alignItems: 'flex-end', gap: Spacing.one }}>
             <View
               style={[
-                styles.badge,
+                Common.badge,
                 {
                   borderColor: theme.border,
                   backgroundColor: goal.status === 'completed' ? theme.primary : theme.accent,
@@ -232,7 +233,7 @@ function GoalCard({
               ]}>
               <ThemedText
                 type="code"
-                style={[styles.badgeText, goal.status === 'completed' ? { color: theme.primaryForeground } : undefined]}>
+                style={[Common.badgeText, goal.status === 'completed' ? { color: theme.primaryForeground } : undefined]}>
                 {goal.status}
               </ThemedText>
             </View>
@@ -261,7 +262,7 @@ function GoalCard({
 
       <View style={styles.progressRow}>
         <View style={[styles.progressTrack, { borderColor: theme.borderStrong, backgroundColor: theme.background }]}>
-          <View style={[styles.progressFill, { width: `${Math.round(progress.percent * 100)}%`, backgroundColor: theme.primary }]} />
+          <View style={[Common.progressFill, { width: `${Math.round(progress.percent * 100)}%`, backgroundColor: theme.primary }]} />
         </View>
         <ThemedText type="code" themeColor="textSecondary">
           {progress.completedTaskCount}/{progress.linkedTaskCount}
@@ -275,7 +276,7 @@ function GoalCard({
               <ThemedText
                 type="small"
                 numberOfLines={1}
-                style={[{ flex: 1 }, task.status === 'done' ? styles.doneText : undefined]}
+                style={[{ flex: 1 }, task.status === 'done' ? Common.doneText : undefined]}
                 themeColor={task.status === 'done' ? 'textSecondary' : 'text'}>
                 {task.title}
               </ThemedText>
@@ -294,15 +295,15 @@ function GoalCard({
       )}
 
       <View style={[styles.linkSection, { borderColor: theme.border }]}>
-        <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+        <ThemedText type="code" themeColor="textSecondary" style={Common.eyebrow}>
           Link tasks to this goal
         </ThemedText>
-        <View style={styles.chipRowWrap}>
+        <View style={Common.chipRow}>
           {unlinkedTasks.map((t) => (
             <Pressable
               key={t.id}
               onPress={() => onLinkTask(t.id)}
-              style={[styles.chip, { borderColor: theme.border }]}>
+              style={[Common.chip, { borderColor: theme.border }]}>
               <ThemedText type="small">+ {t.title}</ThemedText>
             </Pressable>
           ))}
@@ -313,7 +314,7 @@ function GoalCard({
             onChangeText={setNewTaskTitle}
             placeholder="Or create a new task…"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { flex: 1, color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { flex: 1, color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <Pressable
             disabled={!newTaskTitle.trim()}
@@ -459,11 +460,11 @@ export default function GoalsScreen() {
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
         <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+          <View style={Common.headerText}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               Long-term
             </ThemedText>
             <ThemedText type="subtitle">Goals</ThemedText>
@@ -471,7 +472,7 @@ export default function GoalsScreen() {
           {!formOpen && (
             <Pressable
               onPress={() => setFormOpen(true)}
-              style={[styles.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+              style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
               <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
                 New goal
               </ThemedText>
@@ -518,7 +519,7 @@ export default function GoalsScreen() {
           )}
 
           {loaded && activeGoals.length === 0 && !formOpen && (
-            <ThemedView type="backgroundElement" style={styles.emptyState}>
+            <ThemedView type="backgroundElement" style={Common.emptyState}>
               <ThemedText themeColor="textSecondary">
                 No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
               </ThemedText>
@@ -528,7 +529,7 @@ export default function GoalsScreen() {
           {completedGoals.length > 0 && (
             <View style={{ gap: Spacing.two }}>
               <Pressable onPress={() => setShowCompleted((v) => !v)}>
-                <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+                <ThemedText type="code" themeColor="textSecondary" style={Common.eyebrow}>
                   {showCompleted ? '▾' : '▸'} Completed ({completedGoals.length})
                 </ThemedText>
               </Pressable>
@@ -543,7 +544,7 @@ export default function GoalsScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ expanded: showArchived }}
                 accessibilityLabel={`Archived goals, ${archived.length}`}>
-                <ThemedText type="code" themeColor="textSecondary" style={styles.eyebrow}>
+                <ThemedText type="code" themeColor="textSecondary" style={Common.eyebrow}>
                   {showArchived ? '▾' : '▸'} Archived ({archived.length})
                 </ThemedText>
               </Pressable>
@@ -577,16 +578,16 @@ export default function GoalsScreen() {
           )}
 
           <View style={[styles.section, styles.viceSection, { borderColor: theme.border }]}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               Slipped up?
             </ThemedText>
             <ThemedText type="subtitle">Log a slip</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               Docks XP from a relevant stat and auto-creates a compensating task — complete it to refund the XP.
             </ThemedText>
-            <View style={styles.chipRowWrap}>
+            <View style={Common.chipRow}>
               {VICE_PRESETS.map((v) => (
-                <Pressable key={v.id} onPress={() => handleLogVice(v.id)} style={[styles.chip, { borderColor: theme.border }]}>
+                <Pressable key={v.id} onPress={() => handleLogVice(v.id)} style={[Common.chip, { borderColor: theme.border }]}>
                   <ThemedText type="small">{v.label}</ThemedText>
                 </Pressable>
               ))}
@@ -644,39 +645,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.three,
   },
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
-  headerText: { flex: 1, gap: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
-  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   scrollContent: { paddingVertical: Spacing.four, gap: Spacing.three },
   error: { marginBottom: Spacing.two },
-  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
   // Radius two / padding three, and clears the 44pt touch minimum. Every
   // screen with a text input sets all three — integrations and music have no
   // input, so nine of the eleven carry this block.
-  input: {
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   goalCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   goalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   goalActions: { flexDirection: 'row', gap: Spacing.two },
-  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
-  badgeText: { fontSize: 10 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   progressTrack: { flex: 1, height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
-  progressFill: { height: '100%' },
   linkedTaskRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
-  doneText: { textDecorationLine: 'line-through' },
-  chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   newTaskRow: { flexDirection: 'row', gap: Spacing.one, alignItems: 'center' },
   smallButton: { borderWidth: 1, borderRadius: Spacing.one, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
   statsRow: { flexDirection: 'row', gap: Spacing.two, marginBottom: Spacing.three },
