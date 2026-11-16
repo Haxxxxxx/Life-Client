@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ErrorBanner } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -22,7 +23,7 @@ const NOW_PLAYING_POLL_MS = 15_000;
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <View style={styles.sectionHeader}>
-      <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+      <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
         {eyebrow}
       </ThemedText>
       <ThemedText type="subtitle">{title}</ThemedText>
@@ -121,7 +122,7 @@ function NowPlayingSection() {
               <View style={[styles.progressTrack, { borderColor: theme.border }]}>
                 <View
                   style={[
-                    styles.progressFill,
+                    Common.progressFill,
                     {
                       backgroundColor: theme.primary,
                       width: `${Math.min(100, (liveProgressMs / track.durationMs) * 100)}%`,
@@ -136,7 +137,7 @@ function NowPlayingSection() {
           </View>
         </ThemedView>
       ) : (
-        <ThemedView type="backgroundElement" style={styles.emptyState}>
+        <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
           <ThemedText themeColor="textSecondary">Nothing playing right now.</ThemedText>
         </ThemedView>
       )}
@@ -165,7 +166,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="History" title="Recently Played" />
-        <Pressable onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
+        <Pressable hitSlop={10} onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
           <ThemedText type="small">{syncing ? 'Syncing…' : 'Sync now'}</ThemedText>
         </Pressable>
       </View>
@@ -194,7 +195,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
           ))}
         </ScrollView>
       ) : (
-        <ThemedView type="backgroundElement" style={styles.emptyState}>
+        <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
           <ThemedText themeColor="textSecondary">
             No listening history yet — connect Spotify from Integrations.
           </ThemedText>
@@ -210,7 +211,7 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
     <View style={styles.section}>
       <SectionHeader eyebrow="Stats" title="Top Artists" />
       <ThemedView type="backgroundElement" style={[styles.statsCard, { borderColor: theme.border }]}>
-        <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+        <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
           Recent listening
         </ThemedText>
         <ThemedText type="title" style={styles.bigNumber}>
@@ -220,9 +221,9 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
           across your last {summary?.recentTracks.length ?? 0} tracks
         </ThemedText>
       </ThemedView>
-      <View style={styles.chipRow}>
+      <View style={Common.chipRow}>
         {(summary?.topArtists ?? []).map((artist) => (
-          <View key={artist.name} style={[styles.chip, { borderColor: theme.border, backgroundColor: theme.accent }]}>
+          <View key={artist.name} style={[Common.chip, { borderColor: theme.border, backgroundColor: theme.accent }]}>
             <ThemedText type="small" style={styles.chipText}>
               {artist.name} · {artist.playCount}
             </ThemedText>
@@ -239,18 +240,20 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
 export default function MusicScreen() {
   const { user } = useAuth();
   const [summary, setSummary] = useState<SpotifySummary | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeSpotifySummary(user.uid, setSummary);
+    return data.subscribeSpotifySummary(user.uid, setSummary, (err) => setLoadError(err.message));
   }, [user]);
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
+        <ErrorBanner>{loadError}</ErrorBanner>
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.header}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+          <View style={Common.header}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               Listen
             </ThemedText>
             <ThemedText type="subtitle">Music</ThemedText>
@@ -268,16 +271,11 @@ export default function MusicScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   content: { gap: Spacing.four, paddingBottom: Spacing.four },
-  header: { marginTop: Spacing.four, gap: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   section: { gap: Spacing.two },
   sectionHeader: { gap: 2 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   syncButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
-  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   nowPlayingCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -290,7 +288,6 @@ const styles = StyleSheet.create({
   nowPlayingInfo: { flex: 1, gap: 4, minWidth: 0 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginTop: Spacing.one },
   progressTrack: { flex: 1, height: 6, borderRadius: 999, borderWidth: 1, overflow: 'hidden' },
-  progressFill: { height: '100%' },
   trackListScroll: { maxHeight: 340 },
   list: { gap: Spacing.two },
   trackRow: {
@@ -305,7 +302,5 @@ const styles = StyleSheet.create({
   trackInfo: { flex: 1, gap: 2, minWidth: 0 },
   statsCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: 2 },
   bigNumber: { fontSize: 28 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   chipText: { fontWeight: '700' },
 });

@@ -8,7 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Button, Card, PageHeader, pageShellClassName } from "@/components/ui";
+import { Alert, Button, Card, PageHeader, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -72,16 +72,25 @@ export default function IntegrationsPage() {
   // Keyed on uid rather than a boolean reset inside the effect: setState in an
   // effect body cascades a render, and deriving it stops a user switch from
   // briefly showing the previous account's rows as loaded.
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const loaded = Boolean(user) && loadedFor === user?.uid;
 
   useEffect(() => {
     if (!user) return;
     const uid = user.uid;
-    return data.subscribeIntegrations(uid, (next) => {
-      setConnections(next);
-      setLoadedFor(uid);
-    });
+    return data.subscribeIntegrations(
+      uid,
+      (next) => {
+        setConnections(next);
+        setLoadedFor(uid);
+      },
+      // Without this a failed read rendered as every provider showing
+      // "Not connected", which is the same thing the page shows when they
+      // genuinely are not — so a permissions or network failure looked like
+      // a normal, if disappointing, state.
+      (err) => setLoadError(err.message),
+    );
   }, [user]);
 
   async function handleSync(provider: IntegrationProvider) {
@@ -131,6 +140,7 @@ export default function IntegrationsPage() {
 
   return (
     <div className={pageShellClassName()}>
+      <Alert>{loadError}</Alert>
       <PageHeader
         eyebrow="Connect"
         title="Integrations"

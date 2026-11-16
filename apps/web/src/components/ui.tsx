@@ -543,3 +543,17 @@ export function pageShellClassName(width: "content" | "wide" = "content") {
     width === "wide" ? "max-w-4xl gap-8" : "max-w-2xl gap-6",
   );
 }
+
+/**
+ * The dashed panel that stands in for an empty list.
+ *
+ * Twelve pages hand-typed this exact class string — nine plain, three with
+ * `bg-surface`. It is a class rather than a component on purpose: the
+ * EmptyPanel component below takes a title and hint and lays them out, which
+ * is a different thing from "style this one line of copy", and forcing those
+ * twelve through it would mean rewriting their wording.
+ *
+ * For the surfaced variant: `` `${emptyPanelClassName} bg-surface` ``.
+ */
+export const emptyPanelClassName =
+  "rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted";

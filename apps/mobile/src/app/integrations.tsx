@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -66,11 +67,11 @@ export default function IntegrationsScreen() {
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <ThemedView style={Common.screen}>
+      <SafeAreaView style={Common.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.header}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+          <View style={Common.header}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               Connect
             </ThemedText>
             <ThemedText type="subtitle">Integrations</ThemedText>
@@ -105,7 +106,7 @@ export default function IntegrationsScreen() {
                 <ThemedView key={provider} type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
                   <View style={styles.cardHeader}>
                     <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
-                      <ThemedText type="code" style={styles.badgeText}>
+                      <ThemedText type="code" style={Common.badgeText}>
                         {meta.badge}
                       </ThemedText>
                     </View>
@@ -158,11 +159,7 @@ export default function IntegrationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.four },
   content: { gap: Spacing.four },
-  header: { marginTop: Spacing.four, gap: Spacing.one },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   notice: { borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.three, padding: Spacing.three },
   list: { gap: Spacing.three },
   card: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.three },
@@ -171,7 +168,6 @@ const styles = StyleSheet.create({
   // off-scale values 4 and 6, so the same concept rendered as two
   // different components depending on the screen.
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  badgeText: { fontSize: 10 },
   cardText: { flex: 1, gap: 2 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
   connectionStatus: { flex: 1 },

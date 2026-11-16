@@ -40,6 +40,7 @@ import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { Common } from '@/constants/styles';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
@@ -76,7 +77,7 @@ function Card({ title, href, children }: { title: string; href: Href; children: 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <View style={{ gap: 2 }}>
-      <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+      <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
         {eyebrow}
       </ThemedText>
       <ThemedText type="subtitle">{title}</ThemedText>
@@ -165,7 +166,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="Today" title="Tasks" />
         <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-          <Pressable onPress={clearCompleted} style={[styles.smallOutlineButton, { borderColor: theme.border }]}>
+          <Pressable hitSlop={10} onPress={clearCompleted} style={[styles.smallOutlineButton, { borderColor: theme.border }]}>
             <ThemedText type="small" style={{ fontWeight: '700' }}>
               Clear completed
             </ThemedText>
@@ -214,7 +215,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
             <RenameField
               value={task.title}
               onSave={(next) => db && data.updateTask(uid, task.id, { title: next })}
-              style={task.status === 'done' ? styles.doneText : undefined}
+              style={task.status === 'done' ? Common.doneText : undefined}
             />
             <ThemedText type="code" themeColor="textSecondary">
               {task.status}
@@ -401,23 +402,23 @@ function EditReminderForm({
       <TextInput
         value={title}
         onChangeText={setTitle}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <TextInput
         value={note}
         onChangeText={setNote}
         placeholder="Notes"
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+        style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
-      <View style={styles.chipRow}>
+      <View style={Common.chipRow}>
         {QUICK_OFFSETS.map((opt) => {
           const active = opt.days === offsetDays;
           return (
             <Pressable
               key={opt.days}
               onPress={() => setOffsetDays(opt.days)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 In {opt.label}
               </ThemedText>
@@ -522,7 +523,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
         {!formOpen && (
           <Pressable
             onPress={() => setFormOpen(true)}
-            style={[styles.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
+            style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
             <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
               New reminder
             </ThemedText>
@@ -531,29 +532,29 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
       </View>
 
       {formOpen && (
-        <View style={[styles.form, { borderColor: theme.border }]}>
+        <View style={[Common.form, { borderColor: theme.border }]}>
           <TextInput
             value={title}
             onChangeText={setTitle}
             placeholder="What do you need to remember?"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <TextInput
             value={note}
             onChangeText={setNote}
             placeholder="Notes (e.g. account it's linked to)"
             placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
+            style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
-          <View style={styles.chipRow}>
+          <View style={Common.chipRow}>
             {QUICK_OFFSETS.map((opt) => {
               const active = opt.days === offsetDays;
               return (
                 <Pressable
                   key={opt.days}
                   onPress={() => setOffsetDays(opt.days)}
-                  style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+                  style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
                   <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                     In {opt.label}
                   </ThemedText>
@@ -618,8 +619,8 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                 </ThemedText>
               </Pressable>
               <View style={styles.cardActions}>
-                <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
-                  <ThemedText type="code" style={styles.badgeText}>
+                <View style={[Common.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
+                  <ThemedText type="code" style={Common.badgeText}>
                     {urgencyLabel(urgency, days)}
                   </ThemedText>
                 </View>
@@ -633,7 +634,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
           );
         })}
         {reminders.length === 0 && !formOpen && (
-          <ThemedView type="backgroundElement" style={styles.emptyState}>
+          <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
             <ThemedText themeColor="textSecondary">Nothing to remember yet — add your first deadline above.</ThemedText>
           </ThemedView>
         )}
@@ -756,12 +757,12 @@ export default function DashboardScreen() {
   const pendingReadingCount = readingItems.filter((i) => i.status !== 'read').length;
 
   return (
-    <ThemedView style={styles.screen}>
+    <ThemedView style={Common.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content}>
           <ErrorBanner>{loadError}</ErrorBanner>
           <View style={styles.header}>
-            <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
+            <ThemedText type="code" themeColor="primary" style={Common.eyebrow}>
               Overview
             </ThemedText>
             <ThemedText type="subtitle">
@@ -867,7 +868,6 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   safeArea: { flex: 1 },
   content: {
     alignItems: 'center',
@@ -880,7 +880,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.four,
     gap: Spacing.one,
   },
-  eyebrow: { letterSpacing: 2, textTransform: 'uppercase' },
   grid: {
     width: '100%',
     maxWidth: MaxContentWidth,
@@ -905,7 +904,6 @@ const styles = StyleSheet.create({
   sections: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.five },
   weekSection: { width: '100%', maxWidth: MaxContentWidth },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  logToggle: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one },
   smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   bulkBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.two },
   row: {
@@ -919,24 +917,20 @@ const styles = StyleSheet.create({
   },
   checkbox: { width: 16, height: 16, borderWidth: 1, borderRadius: 4 },
   renameInput: { borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
-  doneText: { textDecorationLine: 'line-through' },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
-  form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
-  input: {
+  addButton: {
+    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
+    // box), under Apple's minimum and under the input it sits beneath.
+    minHeight: 44,
+    justifyContent: 'center',
     borderWidth: 1,
     borderRadius: Spacing.two,
-    // Without this the box is about 38pt: 8pt of vertical padding, two 1pt
-    // borders and a ~20pt line box. Under Apple's 44pt and Android's 48dp.
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    alignItems: 'center',
   },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three, alignItems: 'center' },
   cardActionsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   error: {},
-  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
   reminderCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -948,6 +942,4 @@ const styles = StyleSheet.create({
   },
   cardInfo: { flex: 1, gap: 2 },
   cardActions: { gap: Spacing.one, alignItems: 'flex-end' },
-  badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
-  badgeText: { fontSize: 10 },
 });

@@ -11,7 +11,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Badge, Button, Card, Eyebrow, textLinkClassName } from "@/components/ui";
+import { Alert, Badge, Button, Card, Eyebrow, textLinkClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { EditTaskForm } from "../_components";
 import {
@@ -153,25 +153,48 @@ export default function TaskDetailPage() {
   const [task, setTask] = useState<Task | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (!user || !taskId) return;
-    return data.subscribeTask(user.uid, taskId, (t) => {
-      setTask(t);
-      setLoading(false);
-    });
+    return data.subscribeTask(
+      user.uid,
+      taskId,
+      (t) => {
+        setTask(t);
+        setLoading(false);
+      },
+      // `setLoading(false)` lived only in the success callback, so a denied
+      // read or a dropped connection left this page on "Loading…" forever —
+      // no error, no empty state, nothing to retry. Clearing the flag here
+      // too is what lets the render below ever get past it.
+      (err) => {
+        setLoadError(err.message);
+        setLoading(false);
+      },
+    );
   }, [user, taskId]);
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeGoals(user.uid, setGoals);
+    return data.subscribeGoals(user.uid, setGoals, (err) => setLoadError(err.message));
   }, [user]);
 
   if (!user) return null;
 
   if (loading) {
     return <p className="mx-auto max-w-2xl text-sm text-muted">Loading…</p>;
+  }
+
+  // Before the not-found branch: a task that failed to load is not a task that
+  // does not exist, and saying so sends people looking for the wrong problem.
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Alert>{loadError}</Alert>
+      </div>
+    );
   }
 
   if (!task) {
