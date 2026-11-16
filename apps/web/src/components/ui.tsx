@@ -438,7 +438,17 @@ export function Select({
   ...rest
 }: { size?: keyof typeof FIELD_SIZE } & Omit<ComponentPropsWithoutRef<"select">, "size">) {
   return (
-    <select className={cx(FIELD_BASE, FIELD_SIZE[size], "appearance-none pr-8", className)} {...rest}>
+    // No `appearance-none`. It used to strip the native dropdown arrow and
+    // reserve `pr-8` for a replacement that this component never rendered, so
+    // the control came out as a plain box with unexplained right padding and
+    // nothing to say it opens a menu. That is very likely why all ten selects
+    // in the app were hand-rolled instead of using this.
+    //
+    // Keeping the native control is the right call rather than a concession:
+    // globals.css sets `color-scheme: dark` on :root, so the browser already
+    // draws the arrow and the open menu in dark styling, and the native menu
+    // behaves correctly on touch and with a screen reader.
+    <select className={cx(FIELD_BASE, FIELD_SIZE[size], className)} {...rest}>
       {children}
     </select>
   );
