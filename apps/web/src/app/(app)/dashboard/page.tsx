@@ -35,7 +35,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WeekActivityChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Alert, Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, emptyPanelClassName, pageShellClassName } from "@/components/ui";
+import { Alert, Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, emptyPanelClassName, pageShellClassName, rowActionClassName } from "@/components/ui";
 import { RecurrencePicker } from "@/components/recurrence-picker";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -158,7 +158,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
           </button>
           <Link
             href="/tasks"
-            className="rounded-xl px-2.5 py-1 font-mono text-xs font-bold text-primary uppercase hover:underline"
+            className={rowActionClassName("primary")}
           >
             Open Tasks →
           </Link>
@@ -167,16 +167,16 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
       {selected.size > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-primary bg-primary/10 px-3 py-2">
           <span className="font-mono text-xs font-bold">{selected.size} selected</span>
-          <button type="button" onClick={bulkMarkDone} className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+          <button type="button" onClick={bulkMarkDone} className={rowActionClassName("primary")}>
             Mark done
           </button>
-          <button type="button" onClick={bulkDelete} className="font-mono text-xs font-bold text-danger uppercase hover:underline">
+          <button type="button" onClick={bulkDelete} className={rowActionClassName("danger")}>
             Delete selected
           </button>
           <button
             type="button"
             onClick={() => setSelected(new Set())}
-            className="ml-auto font-mono text-xs font-bold text-muted uppercase hover:underline"
+            className={rowActionClassName("muted", "ml-auto")}
           >
             Clear
           </button>
@@ -197,7 +197,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
                 href={task.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 font-mono text-xs font-bold text-primary uppercase hover:underline"
+                className={rowActionClassName("primary", "shrink-0")}
               >
                 {task.source === "gitlab" ? "GitLab" : "GitHub"} ↗
               </a>
@@ -205,7 +205,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
             <button
               type="button"
               onClick={() => db && data.deleteTask(uid, task.id)}
-              className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
+              className={rowActionClassName("danger", "shrink-0")}
             >
               Delete
             </button>
@@ -229,7 +229,7 @@ function GoalsSection({ goals, tasks, uid, loaded }: { goals: Goal[]; tasks: Tas
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <SectionHeader eyebrow="Long-term" title="Goals" />
-        <Link href="/goals" className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+        <Link href="/goals" className={rowActionClassName("primary")}>
           Open Goals →
         </Link>
       </div>
@@ -250,7 +250,7 @@ function GoalsSection({ goals, tasks, uid, loaded }: { goals: Goal[]; tasks: Tas
                 <button
                   type="button"
                   onClick={() => db && data.setGoalStatus(uid, goal.id, "completed")}
-                  className="shrink-0 font-mono text-xs font-bold text-primary uppercase hover:underline"
+                  className={rowActionClassName("primary", "shrink-0")}
                 >
                   Complete
                 </button>
@@ -258,7 +258,7 @@ function GoalsSection({ goals, tasks, uid, loaded }: { goals: Goal[]; tasks: Tas
               <button
                 type="button"
                 onClick={() => db && data.setGoalStatus(uid, goal.id, "archived")}
-                className="shrink-0 font-mono text-xs font-bold text-muted uppercase hover:underline"
+                className={rowActionClassName("muted", "shrink-0")}
               >
                 Archive
               </button>
@@ -294,7 +294,7 @@ function ChallengesSection({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <SectionHeader eyebrow="Streaks" title="Challenges" />
-        <Link href="/sports" className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+        <Link href="/sports" className={rowActionClassName("primary")}>
           Open Sports →
         </Link>
       </div>
@@ -315,7 +315,7 @@ function ChallengesSection({
                 <button
                   type="button"
                   onClick={() => db && data.archiveChallenge(uid, challenge.id)}
-                  className="shrink-0 font-mono text-xs font-bold text-muted uppercase hover:underline"
+                  className={rowActionClassName("muted", "shrink-0")}
                 >
                   Archive
                 </button>
@@ -323,7 +323,7 @@ function ChallengesSection({
               <button
                 type="button"
                 onClick={() => db && data.deleteChallenge(uid, challenge.id)}
-                className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
+                className={rowActionClassName("danger", "shrink-0")}
               >
                 Delete
               </button>
@@ -389,11 +389,11 @@ function EditReminderForm({
               recurrence,
             })
           }
-          className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+          className={rowActionClassName("primary")}
         >
           Save
         </button>
-        <button type="button" onClick={onCancel} className="font-mono text-xs font-bold text-muted uppercase hover:underline">
+        <button type="button" onClick={onCancel} className={rowActionClassName("muted")}>
           Cancel
         </button>
       </div>

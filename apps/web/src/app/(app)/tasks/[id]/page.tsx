@@ -11,7 +11,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Alert, Badge, Button, Card, Eyebrow, textLinkClassName } from "@/components/ui";
+import { Alert, Badge, Button, Card, Eyebrow, rowActionClassName, textLinkClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { EditTaskForm } from "../_components";
 import {
@@ -259,7 +259,7 @@ export default function TaskDetailPage() {
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+              className={rowActionClassName("primary")}
             >
               Edit fields
             </button>

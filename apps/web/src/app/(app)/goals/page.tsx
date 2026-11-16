@@ -14,7 +14,7 @@ import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName, rowActionClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function daysUntil(dateStr: string): number {
@@ -159,14 +159,14 @@ function GoalCard({
                   });
                   setEditing(false);
                 }}
-                className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+                className={rowActionClassName("primary")}
               >
                 Save
               </button>
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="font-mono text-xs font-bold text-muted uppercase hover:underline"
+                className={rowActionClassName("muted")}
               >
                 Cancel
               </button>
@@ -201,7 +201,7 @@ function GoalCard({
                 <button
                   type="button"
                   onClick={onComplete}
-                  className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+                  className={rowActionClassName("primary")}
                 >
                   Complete
                 </button>
@@ -209,14 +209,14 @@ function GoalCard({
               <button
                 type="button"
                 onClick={onArchive}
-                className="font-mono text-xs font-bold text-muted uppercase hover:underline"
+                className={rowActionClassName("muted")}
               >
                 Archive
               </button>
               <button
                 type="button"
                 onClick={onDelete}
-                className="font-mono text-xs font-bold text-danger uppercase hover:underline"
+                className={rowActionClassName("danger")}
               >
                 Delete
               </button>
@@ -242,7 +242,7 @@ function GoalCard({
               <button
                 type="button"
                 onClick={() => onUnlinkTask(task.id)}
-                className="shrink-0 font-mono text-micro font-bold text-muted uppercase hover:underline"
+                className={rowActionClassName("muted", "shrink-0")}
               >
                 Unlink
               </button>
@@ -545,7 +545,7 @@ export default function GoalsPage() {
                   <button
                     type="button"
                     onClick={() => user && data.deleteViceLog(user.uid, v.id)}
-                    className="shrink-0 font-mono text-xs font-bold text-danger uppercase hover:underline"
+                    className={rowActionClassName("danger", "shrink-0")}
                   >
                     Dismiss
                   </button>

@@ -524,6 +524,41 @@ export function EmptyPanel({
 }
 
 /**
+ * The small uppercase action that sits at the end of a list row — Edit,
+ * Archive, Delete, Open.
+ *
+ * Thirty-seven of these were hand-typed across the two apps, in fifteen
+ * spellings of the same idea, every one of them `font-mono text-xs font-bold
+ * text-<tone> uppercase hover:underline` with an optional layout prefix.
+ *
+ * None had padding, so the clickable box was the height of the text — about
+ * 16px. WCAG 2.2 AA asks for 24x24 CSS pixels (Target Size, Minimum), and the
+ * `px-2 py-1` here is what clears it. That is the same reasoning, and the same
+ * treatment, as textLinkClassName below; this version only adds the tone,
+ * because a Delete has to stay red and these actions come in three colours.
+ *
+ * The hover moves from an underline to a tinted background for the same
+ * reason it did there: an underline on a 10px uppercase mono label reads as a
+ * 1998 hyperlink, and it gives no feedback about the size of the thing you
+ * are actually allowed to click.
+ */
+export function rowActionClassName(
+  tone: "primary" | "muted" | "danger" = "muted",
+  className?: string,
+) {
+  const tones = {
+    primary: "text-primary hover:bg-primary/10",
+    muted: "text-muted hover:bg-surface-2 hover:text-foreground",
+    danger: "text-danger hover:bg-danger/10",
+  } as const;
+  return cx(
+    "rounded-md px-2 py-1 font-mono text-xs font-bold uppercase transition",
+    tones[tone],
+    className,
+  );
+}
+
+/**
  * The visual treatment of TextButton, as a class, for anchors and Links.
  *
  * Several of these row actions are navigation (`<a>`, `next/link`), not

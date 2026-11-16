@@ -36,6 +36,7 @@ import {
   SectionHeader,
   Textarea,
   emptyPanelClassName,
+  rowActionClassName,
 } from "@/components/ui";
 import { ProgressCharts } from "@/components/charts";
 import { useAuth } from "@/lib/auth-context";
@@ -99,7 +100,7 @@ function DailyLessonSection() {
                 href={lesson.articleUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 inline-block font-mono text-xs font-bold text-primary uppercase hover:underline"
+                className={rowActionClassName("primary", "mt-2 inline-block")}
               >
                 Read the article →
               </a>
@@ -286,7 +287,7 @@ function DrillCard({
             type="button"
             onClick={onDelete}
             disabled={deleting}
-            className="font-mono text-xs font-bold text-danger uppercase hover:underline disabled:opacity-50"
+            className={rowActionClassName("danger", "disabled:opacity-50")}
           >
             {deleting ? "Deleting…" : "Delete"}
           </button>
@@ -310,7 +311,7 @@ function DrillCard({
               <button
                 type="button"
                 onClick={() => setRevealed(true)}
-                className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+                className={rowActionClassName("primary")}
               >
                 Show answer instead
               </button>
@@ -319,7 +320,7 @@ function DrillCard({
               type="button"
               onClick={onSkip}
               disabled={skipping}
-              className="ml-auto font-mono text-xs font-bold text-muted uppercase hover:underline disabled:opacity-50"
+              className={rowActionClassName("muted", "ml-auto disabled:opacity-50")}
             >
               {skipping ? "Skipping…" : "Skip"}
             </button>
@@ -348,7 +349,7 @@ function DrillCard({
                   href={result.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="self-start font-mono text-xs font-bold text-primary uppercase hover:underline"
+                  className={rowActionClassName("primary", "self-start")}
                 >
                   Watch a video on this →
                 </a>
@@ -358,7 +359,7 @@ function DrillCard({
           <button
             type="button"
             onClick={() => setResult(null)}
-            className="mt-3 font-mono text-xs font-bold text-primary uppercase hover:underline"
+            className={rowActionClassName("primary", "mt-3")}
           >
             Edit answer
           </button>
@@ -372,7 +373,7 @@ function DrillCard({
       <button
         type="button"
         onClick={() => setShowRunner((v) => !v)}
-        className="mt-3 font-mono text-xs font-bold text-primary uppercase hover:underline"
+        className={rowActionClassName("primary", "mt-3")}
       >
         {showRunner ? "Hide scratchpad" : "Try it in JS →"}
       </button>
@@ -410,7 +411,7 @@ function PastDrillRow({
           type="button"
           onClick={onDelete}
           disabled={deleting}
-          className="font-mono text-micro font-bold text-danger uppercase hover:underline disabled:opacity-50"
+          className={rowActionClassName("danger", "disabled:opacity-50")}
         >
           {deleting ? "…" : "Delete"}
         </button>
@@ -777,7 +778,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
                 <button
                   type="button"
                   onClick={() => user && data.deleteReadingListItem(user.uid, item.id)}
-                  className="font-mono text-xs font-bold text-danger uppercase hover:underline"
+                  className={rowActionClassName("danger")}
                 >
                   Delete
                 </button>

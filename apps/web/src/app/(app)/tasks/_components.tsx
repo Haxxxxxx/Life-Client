@@ -14,6 +14,7 @@ import {
 } from "@life-client/shared";
 import { useState } from "react";
 import { RecurrencePicker } from "@/components/recurrence-picker";
+import { rowActionClassName } from "@/components/ui";
 
 export function EditTaskForm({
   task,
@@ -113,11 +114,11 @@ export function EditTaskForm({
               recurrence: recurrence ?? null,
             })
           }
-          className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+          className={rowActionClassName("primary")}
         >
           Save
         </button>
-        <button type="button" onClick={onCancel} className="font-mono text-xs font-bold text-muted uppercase hover:underline">
+        <button type="button" onClick={onCancel} className={rowActionClassName("muted")}>
           Cancel
         </button>
       </div>

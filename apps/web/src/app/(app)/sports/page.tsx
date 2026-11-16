@@ -24,7 +24,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { WeeklySessionsChart } from "@/components/charts";
-import { Button, Card, ErrorText, PageHeader, SectionHeader, emptyPanelClassName, pageShellClassName } from "@/components/ui";
+import { Button, Card, ErrorText, PageHeader, SectionHeader, emptyPanelClassName, pageShellClassName, rowActionClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 // Passed explicitly (matches the shared default) so the sessions chart knows
@@ -410,13 +410,13 @@ function ChallengeCard({
               </label>
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={save} className="font-mono text-xs font-bold text-primary uppercase hover:underline">
+              <button type="button" onClick={save} className={rowActionClassName("primary")}>
                 Save
               </button>
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="font-mono text-xs font-bold text-muted uppercase hover:underline"
+                className={rowActionClassName("muted")}
               >
                 Cancel
               </button>
@@ -435,14 +435,14 @@ function ChallengeCard({
             <button
               type="button"
               onClick={onArchive}
-              className="font-mono text-xs font-bold text-muted uppercase hover:underline"
+              className={rowActionClassName("muted")}
             >
               Archive
             </button>
             <button
               type="button"
               onClick={onDelete}
-              className="font-mono text-xs font-bold text-danger uppercase hover:underline"
+              className={rowActionClassName("danger")}
             >
               Delete
             </button>
