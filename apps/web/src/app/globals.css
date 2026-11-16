@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* The shared primitives live outside this app, and v4 only scans the
+   project root by default. Without this the utility classes they use are
+   never generated and every shared component renders unstyled — silently,
+   since nothing in the build fails. */
+@source "../../../../packages/ui-web/src";
+
 :root {
   color-scheme: dark;
   --background: #141210;
