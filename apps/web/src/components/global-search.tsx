@@ -26,6 +26,11 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
   const [goals, setGoals] = useState<Goal[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Whatever had focus when the palette opened, so it can be handed back on
+  // close. Without this, dismissing with Escape drops focus onto <body> and a
+  // keyboard user restarts from the top of the page.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   function close() {
     onOpenChange(false);
@@ -53,7 +58,41 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
   }, [open, onOpenChange]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+    if (open) {
+      returnFocusRef.current = document.activeElement as HTMLElement | null;
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } else {
+      returnFocusRef.current?.focus();
+      returnFocusRef.current = null;
+    }
+  }, [open]);
+
+  // Keep Tab inside the dialog while it is open. A modal that lets focus walk
+  // out behind the overlay is worse than one with no keyboard support at all:
+  // the focus ring disappears behind a backdrop and there is no way to tell
+  // where it went.
+  useEffect(() => {
+    if (!open) return;
+    function onTab(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      const root = dialogRef.current;
+      if (!root) return;
+      const focusable = root.querySelectorAll<HTMLElement>(
+        'input, button, [href], select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", onTab);
+    return () => window.removeEventListener("keydown", onTab);
   }, [open]);
 
   useEffect(() => {
@@ -103,11 +142,16 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-24 backdrop-blur-sm" onClick={close}>
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search tasks, goals and reminders"
         className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl shadow-black/40"
         onClick={(e) => e.stopPropagation()}
       >
         <input
           ref={inputRef}
+          aria-label="Search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search Tasks, Goals, Reminders…"
