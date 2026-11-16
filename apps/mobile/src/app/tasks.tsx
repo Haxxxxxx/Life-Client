@@ -11,7 +11,8 @@ import {
   type TaskDifficulty,
   type TaskPriority,
   type TaskStatus,
-  taskCompletedIso,
+  completedTaskTimestamps,
+  toDateStr,
   archivedTasks,
   visibleTasks,
 } from '@life-client/shared';
@@ -51,16 +52,17 @@ const TREND_DAYS = 14;
 
 function CompletionChart({ tasks }: { tasks: Task[] }) {
   const theme = useTheme();
+  const today = toDateStr(new Date());
   const { days, counts, total } = useMemo(() => {
     const days = lastNDays(TREND_DAYS);
     // archived done tasks are still in `tasks`, so the full window is covered.
-    const timestamps = tasks
-      .filter((t) => t.status === 'done')
-      .map(taskCompletedIso)
-      .filter((iso): iso is string => iso !== null);
-    const counts = countPerDay(timestamps, days);
+    const counts = countPerDay(completedTaskTimestamps(tasks), days);
     return { days, counts, total: counts.reduce((a, b) => a + b, 0) };
-  }, [tasks]);
+  // today isn't read in the callback below, but lastNDays defaults its `now` to
+  // new Date(), so it's a real (if invisible-to-the-linter) dependency — without
+  // it the window stays on yesterday's days until `tasks` itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, today]);
 
   return (
     <View style={styles.chartSection}>
