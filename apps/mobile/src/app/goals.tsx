@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -92,27 +92,21 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
       {!title.trim() && (
         <View style={Common.chipRow}>
           {GOAL_EXAMPLES.map((example) => (
-            <PressableScale key={example} onPress={() => setTitle(example)} style={[Common.chip, { borderColor: theme.border }]}>
-              <ThemedText type="small" themeColor="textSecondary">
-                {example}
-              </ThemedText>
-            </PressableScale>
+            <Chip key={example} label={example} muted onPress={() => setTitle(example)} />
           ))}
         </View>
       )}
       <View style={styles.goalActions}>
-        <PressableScale
-          disabled={!title.trim()}
+        <Button
+          label="Set goal"
           onPress={() =>
             onSubmit({
               title: title.trim(),
               description: description.trim() || undefined,
               targetDate: targetDate || undefined,
-            })
-          }
-          style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-          <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Set goal</ThemedText>
-        </PressableScale>
+            })}
+          disabled={!title.trim()}
+        />
         <PressableScale onPress={onCancel}>
           <ThemedText type="small" themeColor="textSecondary">
             Cancel
@@ -300,12 +294,7 @@ function GoalCard({
         </ThemedText>
         <View style={Common.chipRow}>
           {unlinkedTasks.map((t) => (
-            <PressableScale
-              key={t.id}
-              onPress={() => onLinkTask(t.id)}
-              style={[Common.chip, { borderColor: theme.border }]}>
-              <ThemedText type="small">+ {t.title}</ThemedText>
-            </PressableScale>
+            <Chip key={t.id} label={`+ ${t.title}`} onPress={() => onLinkTask(t.id)} />
           ))}
         </View>
         <View style={styles.newTaskRow}>
@@ -470,13 +459,10 @@ export default function GoalsScreen() {
             <ThemedText type="subtitle">Goals</ThemedText>
           </View>
           {!formOpen && (
-            <PressableScale
+            <Button
+              label="New goal"
               onPress={() => setFormOpen(true)}
-              style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-              <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-                New goal
-              </ThemedText>
-            </PressableScale>
+            />
           )}
         </View>
 
@@ -560,14 +546,11 @@ export default function GoalsScreen() {
                       <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
                         {goal.title}
                       </ThemedText>
-                      <PressableScale
+                      <Button
+                        label="Restore"
                         onPress={() => handleRestoreGoal(goal.id)}
-                        hitSlop={8}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Restore goal ${goal.title}`}
-                        style={[styles.restoreButton, { borderColor: theme.border }]}>
-                        <ThemedText type="small">Restore</ThemedText>
-                      </PressableScale>
+                        variant="outline"
+                      />
                     </ThemedView>
                   ))}
                 </View>
@@ -585,9 +568,7 @@ export default function GoalsScreen() {
             </ThemedText>
             <View style={Common.chipRow}>
               {VICE_PRESETS.map((v) => (
-                <PressableScale key={v.id} onPress={() => handleLogVice(v.id)} style={[Common.chip, { borderColor: theme.border }]}>
-                  <ThemedText type="small">{v.label}</ThemedText>
-                </PressableScale>
+                <Chip key={v.id} label={v.label} onPress={() => handleLogVice(v.id)} />
               ))}
             </View>
           </View>
@@ -636,13 +617,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   archivedTitle: { flex: 1 },
-  restoreButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
-  },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
   scrollContent: { paddingVertical: Spacing.four, gap: Spacing.three },
   errorSpacing: { marginBottom: Spacing.two },
@@ -650,7 +624,6 @@ const styles = StyleSheet.create({
   // Radius two / padding three, and clears the 44pt touch minimum. Every
   // screen with a text input sets all three — integrations and music have no
   // input, so nine of the eleven carry this block.
-  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   goalCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   goalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   goalActions: { flexDirection: 'row', gap: Spacing.two },

@@ -24,7 +24,7 @@ import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/c
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -107,14 +107,12 @@ function EditTaskForm({
         {TASK_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
-            <PressableScale
+            <Chip
               key={c.id}
+              label={c.label}
+              active={active}
               onPress={() => setCategory(c.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                {c.label}
-              </ThemedText>
-            </PressableScale>
+            />
           );
         })}
       </View>
@@ -122,14 +120,12 @@ function EditTaskForm({
         {TASK_DIFFICULTIES.map((d) => {
           const active = d.id === difficulty;
           return (
-            <PressableScale
+            <Chip
               key={d.id}
+              label={d.label}
+              active={active}
               onPress={() => setDifficulty(d.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                {d.label}
-              </ThemedText>
-            </PressableScale>
+            />
           );
         })}
       </View>
@@ -137,14 +133,12 @@ function EditTaskForm({
         {TASK_PRIORITIES.map((p) => {
           const active = p.id === priority;
           return (
-            <PressableScale
+            <Chip
               key={p.id}
+              label={p.label}
+              active={active}
               onPress={() => setPriority(p.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                {p.label}
-              </ThemedText>
-            </PressableScale>
+            />
           );
         })}
       </View>
@@ -156,22 +150,18 @@ function EditTaskForm({
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={Common.chipRow}>
-        <PressableScale
+        <Chip
+          label="No goal"
+          active={!goalId}
           onPress={() => setGoalId('')}
-          style={[Common.chip, { borderColor: theme.border, backgroundColor: !goalId ? theme.primary : 'transparent' }]}>
-          <ThemedText type="small" style={!goalId ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-            No goal
-          </ThemedText>
-        </PressableScale>
+        />
         {goals.map((g) => (
-          <PressableScale
+          <Chip
             key={g.id}
+            label={g.title}
+            active={goalId === g.id}
             onPress={() => setGoalId(g.id)}
-            style={[Common.chip, { borderColor: theme.border, backgroundColor: goalId === g.id ? theme.primary : 'transparent' }]}>
-            <ThemedText type="small" style={goalId === g.id ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-              {g.title}
-            </ThemedText>
-          </PressableScale>
+          />
         ))}
       </View>
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
@@ -302,19 +292,7 @@ export default function TasksScreen() {
             {TASK_CATEGORIES.map((c) => {
               const active = c.id === category;
               return (
-                <PressableScale
-                  key={c.id}
-                  onPress={() => setCategory(c.id)}
-                  style={[
-                    Common.chip,
-                    { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' },
-                  ]}>
-                  <ThemedText
-                    type="small"
-                    style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                    {c.label}
-                  </ThemedText>
-                </PressableScale>
+                <Chip key={c.id} label={c.label} active={active} onPress={() => setCategory(c.id)} />
               );
             })}
           </View>
@@ -322,26 +300,15 @@ export default function TasksScreen() {
             {TASK_DIFFICULTIES.map((d) => {
               const active = d.id === difficulty;
               return (
-                <PressableScale
-                  key={d.id}
-                  onPress={() => setDifficulty(d.id)}
-                  style={[
-                    Common.chip,
-                    { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' },
-                  ]}>
-                  <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                    {d.label}
-                  </ThemedText>
-                </PressableScale>
+                <Chip key={d.id} label={d.label} active={active} onPress={() => setDifficulty(d.id)} />
               );
             })}
           </View>
-          <PressableScale
+          <Button
+            label="Add task"
             onPress={handleAdd}
             disabled={!title.trim()}
-            style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-            <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add task</ThemedText>
-          </PressableScale>
+          />
         </View>
 
         {error && (
@@ -380,14 +347,11 @@ export default function TasksScreen() {
                         <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
                           {task.title}
                         </ThemedText>
-                        <PressableScale
+                        <Button
+                          label="Restore"
                           onPress={() => handleRestoreTask(task.id)}
-                          hitSlop={8}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Restore task ${task.title}`}
-                          style={[styles.restoreButton, { borderColor: theme.border }]}>
-                          <ThemedText type="small">Restore</ThemedText>
-                        </PressableScale>
+                          variant="outline"
+                        />
                       </ThemedView>
                     ))}
                   </View>
@@ -446,11 +410,11 @@ export default function TasksScreen() {
                       </ThemedText>
                     </PressableScale>
                   )}
-                  <PressableScale
+                  <Button
+                    label={STATUS_LABEL[nextStatus(item.status)]}
                     onPress={() => data.advanceTaskStatus(user!.uid, item, nextStatus(item.status))}
-                    style={[styles.pillButton, { borderColor: theme.border }]}>
-                    <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
-                  </PressableScale>
+                    variant="outline"
+                  />
                   <PressableScale
                     onPress={() =>
                       confirmDestructive({
@@ -489,24 +453,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   archivedTitle: { flex: 1 },
-  restoreButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-  },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
-  addButton: {
-    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
-    // box), under Apple's minimum and under the input it sits beneath.
-    minHeight: 44,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.two,
-    alignItems: 'center',
-  },
   errorSpacing: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   chartSection: { marginBottom: Spacing.two },
@@ -521,6 +468,5 @@ const styles = StyleSheet.create({
   },
   taskInfo: { flex: 1, gap: 2, minWidth: 0 },
   taskActions: { gap: Spacing.one, alignItems: 'flex-end' },
-  pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
 });

@@ -39,7 +39,7 @@ import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, wi
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -166,11 +166,7 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="Today" title="Tasks" />
         <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-          <PressableScale hitSlop={10} onPress={clearCompleted} style={[styles.smallOutlineButton, { borderColor: theme.border }]}>
-            <ThemedText type="small" style={{ fontWeight: '700' }}>
-              Clear completed
-            </ThemedText>
-          </PressableScale>
+          <Button label="Clear completed" onPress={clearCompleted} variant="outline" />
           <Link href="/tasks" asChild>
             <PressableScale>
               <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
@@ -415,14 +411,12 @@ function EditReminderForm({
         {QUICK_OFFSETS.map((opt) => {
           const active = opt.days === offsetDays;
           return (
-            <PressableScale
+            <Chip
               key={opt.days}
+              label={`In ${opt.label}`}
+              active={active}
               onPress={() => setOffsetDays(opt.days)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                In {opt.label}
-              </ThemedText>
-            </PressableScale>
+            />
           );
         })}
       </View>
@@ -521,13 +515,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="Deadlines" title="Remember" />
         {!formOpen && (
-          <PressableScale
-            onPress={() => setFormOpen(true)}
-            style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-              New reminder
-            </ThemedText>
-          </PressableScale>
+          <Button label="New reminder" onPress={() => setFormOpen(true)} />
         )}
       </View>
 
@@ -551,25 +539,18 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
             {QUICK_OFFSETS.map((opt) => {
               const active = opt.days === offsetDays;
               return (
-                <PressableScale
+                <Chip
                   key={opt.days}
+                  label={`In ${opt.label}`}
+                  active={active}
                   onPress={() => setOffsetDays(opt.days)}
-                  style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-                  <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                    In {opt.label}
-                  </ThemedText>
-                </PressableScale>
+                />
               );
             })}
           </View>
           <RecurrencePicker value={recurrence} onChange={setRecurrence} />
           <View style={styles.cardActionsRow}>
-            <PressableScale
-              onPress={handleAdd}
-              disabled={!title.trim()}
-              style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-              <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add reminder</ThemedText>
-            </PressableScale>
+            <Button label="Add reminder" onPress={handleAdd} disabled={!title.trim()} />
             <PressableScale onPress={() => setFormOpen(false)}>
               <ThemedText type="small" themeColor="textSecondary">
                 Cancel
@@ -902,7 +883,6 @@ const styles = StyleSheet.create({
   sections: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.five },
   weekSection: { width: '100%', maxWidth: MaxContentWidth },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   bulkBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.two },
   row: {
     flexDirection: 'row',
@@ -916,17 +896,6 @@ const styles = StyleSheet.create({
   checkbox: { width: 16, height: 16, borderWidth: 1, borderRadius: 4 },
   renameInput: { borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
-  addButton: {
-    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
-    // box), under Apple's minimum and under the input it sits beneath.
-    minHeight: 44,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    alignItems: 'center',
-  },
   cardActionsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   reminderCard: {
     flexDirection: 'row',

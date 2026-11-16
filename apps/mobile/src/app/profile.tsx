@@ -34,7 +34,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, PressableScale } from '@/components/ui';
+import { Chip, ErrorBanner, PressableScale } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -81,24 +81,7 @@ function LogEventForm({
         {MANUAL_EVENT_TYPES.map((t) => {
           const active = t.id === eventType;
           return (
-            <PressableScale
-              key={t.id}
-              onPress={() => setEventType(t.id)}
-              style={[
-                Common.chip,
-                {
-                  borderColor: theme.border,
-                  backgroundColor: active ? theme.primary : 'transparent',
-                },
-              ]}
-            >
-              <ThemedText
-                type="small"
-                style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}
-              >
-                {t.label}
-              </ThemedText>
-            </PressableScale>
+            <Chip key={t.id} label={t.label} active={active} onPress={() => setEventType(t.id)} />
           );
         })}
       </View>

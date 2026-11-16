@@ -23,7 +23,7 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, Donut, Legend, withAlpha } from '@/components/charts';
-import { ErrorBanner, PressableScale } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale } from '@/components/ui';
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -166,14 +166,12 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         {TRANSACTION_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
-            <PressableScale
+            <Chip
               key={c.id}
+              label={c.label}
+              active={active}
               onPress={() => setCategory(c.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                {c.label}
-              </ThemedText>
-            </PressableScale>
+            />
           );
         })}
       </View>
@@ -192,8 +190,8 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} noneLabel="One-time" />
-      <PressableScale
-        disabled={!canSubmit}
+      <Button
+        label="Log it"
         onPress={() =>
           onSubmit({
             type,
@@ -202,11 +200,9 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
             note: note.trim() || undefined,
             date,
             recurrence,
-          })
-        }
-        style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: canSubmit ? 1 : 0.5 }]}>
-        <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Log it</ThemedText>
-      </PressableScale>
+          })}
+        disabled={!canSubmit}
+      />
     </View>
   );
 }
@@ -223,14 +219,12 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
         {TRANSACTION_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
-            <PressableScale
+            <Chip
               key={c.id}
+              label={c.label}
+              active={active}
               onPress={() => setCategory(c.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                {c.label}
-              </ThemedText>
-            </PressableScale>
+            />
           );
         })}
       </View>
@@ -242,12 +236,11 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
         keyboardType="decimal-pad"
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
-      <PressableScale
-        disabled={!monthlyLimit.trim() || parsedLimit <= 0}
+      <Button
+        label="Set budget"
         onPress={() => onSubmit({ category, monthlyLimit: parsedLimit })}
-        style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: parsedLimit > 0 ? 1 : 0.5 }]}>
-        <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Set budget</ThemedText>
-      </PressableScale>
+        disabled={!monthlyLimit.trim() || parsedLimit <= 0}
+      />
     </View>
   );
 }
@@ -342,13 +335,10 @@ export default function MoneyScreen() {
               Log a transaction
             </ThemedText>
             {!txFormOpen && (
-              <PressableScale
+              <Button
+                label="New transaction"
                 onPress={() => setTxFormOpen(true)}
-                style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-                <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-                  New transaction
-                </ThemedText>
-              </PressableScale>
+              />
             )}
           </View>
           {txFormOpen && <TransactionForm onSubmit={handleAddTransaction} />}
@@ -358,13 +348,11 @@ export default function MoneyScreen() {
               Budgets
             </ThemedText>
             {!budgetFormOpen && (
-              <PressableScale
+              <Button
+                label="New budget"
                 onPress={() => setBudgetFormOpen(true)}
-                style={[styles.smallOutlineButton, { borderColor: theme.border }]}>
-                <ThemedText type="small" style={{ fontWeight: '700' }}>
-                  New budget
-                </ThemedText>
-              </PressableScale>
+                variant="outline"
+              />
             )}
           </View>
           {budgetFormOpen && <BudgetForm onSubmit={handleAddBudget} />}
@@ -488,10 +476,8 @@ const styles = StyleSheet.create({
   statLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
   sectionHeaderTitle: { flexShrink: 1 },
-  smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   chipRow: { flexDirection: 'row', gap: Spacing.one },
   typeButton: { flex: 1, borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.one, alignItems: 'center' },
-  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   budgetCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   progressTrack: { height: 8, borderWidth: 1, borderRadius: 999, overflow: 'hidden' },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },

@@ -13,7 +13,7 @@ import { FlatList, Linking, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { ErrorBanner, PressableScale } from '@/components/ui';
+import { Button, ErrorBanner, PressableScale } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
@@ -145,8 +145,8 @@ function EventForm({
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.formActions}>
-        <PressableScale
-          disabled={!canSubmit}
+        <Button
+          label={submitLabel}
           onPress={() =>
             canSubmit &&
             onSubmit({
@@ -157,11 +157,9 @@ function EventForm({
               start: editingAllDay ? initial!.start : startDate!.toISOString(),
               end: editingAllDay ? initial!.end : endDate!.toISOString(),
               location: location.trim() || undefined,
-            })
-          }
-          style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: canSubmit ? 1 : 0.5 }]}>
-          <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>{submitLabel}</ThemedText>
-        </PressableScale>
+            })}
+          disabled={!canSubmit}
+        />
         <PressableScale onPress={onCancel}>
           <ThemedText type="small" themeColor="textSecondary">
             Cancel
@@ -236,13 +234,10 @@ export default function AgendaScreen() {
             </ThemedText>
           </View>
           {!formOpen && (
-            <PressableScale
+            <Button
+              label="New event"
               onPress={() => setFormOpen(true)}
-              style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-              <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-                New event
-              </ThemedText>
-            </PressableScale>
+            />
           )}
         </View>
 
@@ -344,5 +339,4 @@ const styles = StyleSheet.create({
   openButtonText: { fontWeight: '700', textTransform: 'uppercase' },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginBottom: Spacing.three },
   formActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, alignItems: 'center' },
 });

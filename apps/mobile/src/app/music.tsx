@@ -10,7 +10,7 @@ import { AppState, Image, Linking, ScrollView, StyleSheet, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { ErrorBanner, PressableScale } from '@/components/ui';
+import { Button, ErrorBanner, PressableScale } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
@@ -166,9 +166,12 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="History" title="Recently Played" />
-        <PressableScale hitSlop={10} onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
-          <ThemedText type="small">{syncing ? 'Syncing…' : 'Sync now'}</ThemedText>
-        </PressableScale>
+        <Button
+          label={syncing ? 'Syncing…' : 'Sync now'}
+          onPress={handleSync}
+          variant="outline"
+          disabled={syncing}
+        />
       </View>
       <ErrorBanner>{error}</ErrorBanner>
       {summary && summary.recentTracks.length > 0 ? (
@@ -275,7 +278,6 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.two },
   sectionHeader: { gap: 2 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
-  syncButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
   nowPlayingCard: {
     flexDirection: 'row',
     alignItems: 'center',
