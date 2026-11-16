@@ -35,7 +35,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WeekActivityChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Alert, Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
+import { Alert, Button, CardExternalLink, CardLink, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { RecurrencePicker } from "@/components/recurrence-picker";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -557,7 +557,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
           );
         })}
         {reminders.length === 0 && !formOpen && (
-          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          <li className={emptyPanelClassName}>
             Nothing to remember yet — add your first deadline above.
           </li>
         )}

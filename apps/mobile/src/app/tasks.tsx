@@ -397,7 +397,7 @@ export default function TasksScreen() {
             !loaded ? (
               <SkeletonList rows={4} />
             ) : (
-              <ThemedView type="backgroundElement" style={Common.emptyState}>
+              <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
                 <ThemedText themeColor="textSecondary">
                   {tasks.length === 0
                     ? 'No tasks yet — add your first one above.'

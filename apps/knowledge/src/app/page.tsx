@@ -35,6 +35,7 @@ import {
   ProgressBar,
   SectionHeader,
   Textarea,
+  emptyPanelClassName,
 } from "@/components/ui";
 import { ProgressCharts } from "@/components/charts";
 import { useAuth } from "@/lib/auth-context";
@@ -504,7 +505,7 @@ function CodeDrillsSection({ drills }: { drills: CodeDrill[] }) {
             deleting={deletingIds.has(drills[0].id)}
           />
         ) : (
-          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          <li className={emptyPanelClassName}>
             No drills yet — generate your first one above.
           </li>
         )}
@@ -651,7 +652,7 @@ function VocabularySection({ words }: { words: VocabWord[] }) {
           <VocabCard key={w.id} w={w} />
         ))}
         {activeWords.length === 0 && (
-          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          <li className={emptyPanelClassName}>
             {words.length === 0
               ? "No words yet — get your first one above."
               : "All caught up — every word's in your dictionary. Get a new one above."}
@@ -785,7 +786,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
           </li>
         ))}
         {items.length === 0 && (
-          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          <li className={emptyPanelClassName}>
             Nothing on your reading list yet.
           </li>
         )}

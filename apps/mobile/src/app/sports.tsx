@@ -767,7 +767,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
         </View>
       ) : (
         !formOpen && (
-          <ThemedView type="backgroundElement" style={Common.emptyState}>
+          <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
             <ThemedText themeColor="textSecondary">
               No active challenges — e.g. &ldquo;100 days of 100 push-ups&rdquo;. Completion is tracked
               automatically from activities you log below.
@@ -868,7 +868,7 @@ export default function SportsScreen() {
             !loaded ? (
               <SkeletonList rows={3} />
             ) : (
-              <ThemedView type="backgroundElement" style={Common.emptyState}>
+              <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
                 <ThemedText themeColor="textSecondary">
                   No activities yet. Connect Strava from the Integrations tab, or log one by hand above.
                 </ThemedText>

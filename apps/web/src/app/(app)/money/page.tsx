@@ -21,7 +21,7 @@ import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { MoneyCharts } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, Card, ErrorText, Input, PageHeader, SkeletonRows, StatTile, pageShellClassName } from "@/components/ui";
+import { Button, Card, ErrorText, Input, PageHeader, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { RecurrencePicker } from "@/components/recurrence-picker";
 import { useAuth } from "@/lib/auth-context";
 
@@ -335,7 +335,7 @@ export default function MoneyPage() {
             </li>
           )}
           {loaded && transactions.length === 0 && (
-            <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+            <li className={emptyPanelClassName}>
               No transactions yet — log your first one above.
             </li>
           )}

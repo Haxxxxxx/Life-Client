@@ -14,7 +14,7 @@ import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile, pageShellClassName } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function daysUntil(dateStr: string): number {
@@ -461,7 +461,7 @@ export default function GoalsPage() {
       {!loaded && <SkeletonRows rows={3} />}
 
       {loaded && activeGoals.length === 0 && !formOpen && (
-        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
+        <div className={`${emptyPanelClassName} bg-surface`}>
           No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
         </div>
       )}

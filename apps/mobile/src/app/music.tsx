@@ -137,7 +137,7 @@ function NowPlayingSection() {
           </View>
         </ThemedView>
       ) : (
-        <ThemedView type="backgroundElement" style={Common.emptyState}>
+        <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
           <ThemedText themeColor="textSecondary">Nothing playing right now.</ThemedText>
         </ThemedView>
       )}
@@ -195,7 +195,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
           ))}
         </ScrollView>
       ) : (
-        <ThemedView type="backgroundElement" style={Common.emptyState}>
+        <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
           <ThemedText themeColor="textSecondary">
             No listening history yet — connect Spotify from Integrations.
           </ThemedText>

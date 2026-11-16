@@ -469,7 +469,7 @@ export default function MoneyScreen() {
               </View>
             ))}
             {transactions.length === 0 && (
-              <ThemedView type="backgroundElement" style={Common.emptyState}>
+              <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
                 <ThemedText themeColor="textSecondary">No transactions yet — log your first one above.</ThemedText>
               </ThemedView>
             )}

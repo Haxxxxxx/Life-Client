@@ -519,7 +519,7 @@ export default function GoalsScreen() {
           )}
 
           {loaded && activeGoals.length === 0 && !formOpen && (
-            <ThemedView type="backgroundElement" style={Common.emptyState}>
+            <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
               <ThemedText themeColor="textSecondary">
                 No active goals yet — set one above, e.g. &ldquo;Ship WeSplit v2&rdquo;, then link Tasks to it.
               </ThemedText>

@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { TasksCompletedChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, ErrorText, Input, PageHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
+import { Button, ErrorText, Input, PageHeader, SkeletonRows, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
   CATEGORY_LABEL,
@@ -232,7 +232,7 @@ export default function TasksPage() {
           </li>
         )}
         {loaded && sortedTasks.length === 0 && (
-          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          <li className={emptyPanelClassName}>
             {tasks.length === 0
               ? "No tasks yet — add your first one above."
               : "All caught up — everything here has been done long enough to auto-archive."}

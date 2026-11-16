@@ -259,7 +259,7 @@ export default function AgendaScreen() {
           }
           ListEmptyComponent={
             !formOpen ? (
-              <ThemedView type="backgroundElement" style={Common.emptyState}>
+              <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
                 <ThemedText themeColor="textSecondary">
                   No events yet — connect Google Calendar from Integrations, add one above, or check back
                   once it&apos;s synced.

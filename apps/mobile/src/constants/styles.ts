@@ -88,8 +88,26 @@ export const Common = StyleSheet.create({
     padding: Spacing.three,
   },
 
-  /** Panel shown in place of an empty list. */
-  emptyState: { borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center' },
+  /**
+   * Panel shown in place of an empty list.
+   *
+   * Dashed, because that is what this app already decided an empty state
+   * looks like: the EmptyState component in components/ui.tsx uses a dashed
+   * 1px border, and so does the knowledge screen's own copy. The other eight
+   * screens set neither borderWidth nor borderStyle, so they rendered a plain
+   * filled panel — two different treatments for the same idea, with the
+   * majority not matching the component built for it.
+   *
+   * Pair with a borderColor at the call site; borderWidth without a colour
+   * picks up React Native's default black.
+   */
+  emptyState: {
+    alignItems: 'center',
+    borderRadius: Spacing.three,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    padding: Spacing.five,
+  },
 
   /** Filled portion of a progress track. */
   progressFill: { height: '100%' },

@@ -24,7 +24,7 @@ import { data } from "@life-client/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { WeeklySessionsChart } from "@/components/charts";
-import { Button, Card, ErrorText, PageHeader, SectionHeader, pageShellClassName } from "@/components/ui";
+import { Button, Card, ErrorText, PageHeader, SectionHeader, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 // Passed explicitly (matches the shared default) so the sessions chart knows
@@ -587,7 +587,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
         </div>
       ) : (
         !formOpen && (
-          <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
+          <div className={`${emptyPanelClassName} bg-surface`}>
             No active challenges — e.g. &ldquo;100 days of 100 push-ups&rdquo;. Completion is tracked automatically
             from activities you log below.
           </div>
@@ -667,7 +667,7 @@ export default function SportsPage() {
       <ChallengesSection activities={activities} />
 
       {loaded && activities.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
+        <div className={`${emptyPanelClassName} bg-surface`}>
           No activities yet.{" "}
           <Link href="/integrations" className="font-bold text-primary hover:underline">
             Connect Strava

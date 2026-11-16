@@ -11,7 +11,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SkeletonRows, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -192,7 +192,7 @@ export default function AgendaPage() {
       {!loaded && <SkeletonRows rows={3} />}
 
       {loaded && groups.length === 0 && !formOpen && (
-        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+        <div className={emptyPanelClassName}>
           No events yet — connect Google Calendar from Integrations, add one above, or check back once it&apos;s
           synced.
         </div>

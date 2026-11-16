@@ -8,7 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, ErrorText, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
+import { Alert, Button, Card, ErrorText, PageHeader, SectionHeader, SkeletonRows, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -105,7 +105,7 @@ function NowPlayingSection() {
           </div>
         </Card>
       ) : (
-        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+        <div className={emptyPanelClassName}>
           Nothing playing right now.
         </div>
       )}
@@ -158,7 +158,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
           </li>
         ))}
         {(!summary || summary.recentTracks.length === 0) && (
-          <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
+          <li className={emptyPanelClassName}>
             No listening history yet — connect Spotify from Integrations.
           </li>
         )}

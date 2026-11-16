@@ -119,7 +119,7 @@ function DailyLessonSection() {
           </ThemedView>
         </View>
       ) : (
-        <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
+        <ThemedView type="backgroundElement" style={[Common.emptyState, styles.emptyStateGap, { borderColor: theme.border }]}>
           <ThemedText themeColor="textSecondary">No lesson generated yet today.</ThemedText>
           <Pressable
             onPress={handleGenerate}
@@ -425,7 +425,7 @@ function CodeDrillsSection({ drills, loaded }: { drills: CodeDrill[]; loaded: bo
             deleting={deletingId === drills[0].id}
           />
         ) : (
-          <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
+          <ThemedView type="backgroundElement" style={[Common.emptyState, styles.emptyStateGap, { borderColor: theme.border }]}>
             <ThemedText themeColor="textSecondary">
               {loaded ? 'No drills yet — generate your first one above.' : 'Loading drills…'}
             </ThemedText>
@@ -606,7 +606,7 @@ function VocabularySection({ words }: { words: VocabWord[] }) {
           <VocabCard key={w.id} w={w} />
         ))}
         {activeWords.length === 0 && (
-          <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
+          <ThemedView type="backgroundElement" style={[Common.emptyState, styles.emptyStateGap, { borderColor: theme.border }]}>
             <ThemedText themeColor="textSecondary">
               {words.length === 0
                 ? 'No words yet — get your first one above.'
@@ -741,7 +741,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
           </ThemedView>
         ))}
         {items.length === 0 && (
-          <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
+          <ThemedView type="backgroundElement" style={[Common.emptyState, styles.emptyStateGap, { borderColor: theme.border }]}>
             <ThemedText themeColor="textSecondary">Nothing on your reading list yet.</ThemedText>
           </ThemedView>
         )}
@@ -857,7 +857,8 @@ const styles = StyleSheet.create({
   lessonCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.half },
   cardLabel: { textTransform: 'uppercase', letterSpacing: 0.5 },
   wikiLink: { marginTop: Spacing.one, textTransform: 'uppercase' },
-  emptyState: { borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.three, padding: Spacing.five, alignItems: 'center', gap: Spacing.three },
+  /** Only the inner gap; the panel itself is Common.emptyState. */
+  emptyStateGap: { gap: Spacing.three },
   primaryButton: {
     // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
     // box), under Apple's minimum and under the input it sits beneath.

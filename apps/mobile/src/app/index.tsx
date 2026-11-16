@@ -634,7 +634,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
           );
         })}
         {reminders.length === 0 && !formOpen && (
-          <ThemedView type="backgroundElement" style={Common.emptyState}>
+          <ThemedView type="backgroundElement" style={[Common.emptyState, { borderColor: theme.border }]}>
             <ThemedText themeColor="textSecondary">Nothing to remember yet — add your first deadline above.</ThemedText>
           </ThemedView>
         )}
