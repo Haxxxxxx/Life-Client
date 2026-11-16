@@ -166,6 +166,52 @@ export function startOfWeek(date: Date): Date {
   return d;
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** One week of the sessions trend: how many of each activity kind landed in it. */
+export interface WeeklySessionRow {
+  /** Local midnight on the Monday that opens this week. */
+  start: Date;
+  endurance: number;
+  strength: number;
+}
+
+/**
+ * Session counts per week, oldest first, ending with the week containing `now`.
+ *
+ * Both sports screens built this themselves, down to the same DST-rounding
+ * comment, so the only reason the two platforms agreed on "sessions this week"
+ * was that nobody had edited one copy yet. Buckets are keyed off local
+ * midnight, so an activity counts toward the day the user perceives it on
+ * rather than the UTC day.
+ *
+ * Activities outside the window are skipped rather than clamped into the first
+ * or last bucket, which would invent sessions in a week that had none.
+ */
+export function weeklySessionRows(
+  activities: { startDate: string; kind: "endurance" | "strength" }[],
+  weeks: number,
+  now: Date = new Date(),
+): WeeklySessionRow[] {
+  const firstStart = startOfWeek(now);
+  firstStart.setDate(firstStart.getDate() - 7 * (weeks - 1));
+  const rows: WeeklySessionRow[] = Array.from({ length: weeks }, (_, i) => ({
+    start: new Date(firstStart.getFullYear(), firstStart.getMonth(), firstStart.getDate() + 7 * i),
+    endurance: 0,
+    strength: 0,
+  }));
+  for (const activity of activities) {
+    const d = new Date(activity.startDate);
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    // Rounded because DST shifts make a local-midnight difference an hour off a whole number of days.
+    const index = Math.floor(Math.round((day.getTime() - firstStart.getTime()) / MS_PER_DAY) / 7);
+    const row = rows[index];
+    if (!row) continue;
+    row[activity.kind] += 1;
+  }
+  return rows;
+}
+
 export interface SpendingSlice {
   /** The category this slice represents, or "other" once it is a roll-up. */
   category: TransactionCategory;

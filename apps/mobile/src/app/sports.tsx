@@ -12,9 +12,9 @@ import {
   formatDuration,
   formatMetricValue,
   metricUnitLabel,
-  startOfWeek,
   toDateStr,
   updateChallenge,
+  weeklySessionRows,
   type Challenge,
   type ChallengeMetric,
   type SportActivity,
@@ -223,39 +223,17 @@ const TREND_WEEKS = 12;
 // A sane upper bound: a year-1000 start date made dateRange iterate about
 // 365,000 days on every render of every challenge card.
 const MAX_CHALLENGE_DAYS = 3660;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-
-function weeklySessions(activities: SportActivity[], weeks: number): { start: Date; endurance: number; strength: number }[] {
-  const firstStart = startOfWeek(new Date());
-  firstStart.setDate(firstStart.getDate() - 7 * (weeks - 1));
-  const rows = Array.from({ length: weeks }, (_, i) => ({
-    start: new Date(firstStart.getFullYear(), firstStart.getMonth(), firstStart.getDate() + 7 * i),
-    endurance: 0,
-    strength: 0,
-  }));
-  for (const activity of activities) {
-    const d = new Date(activity.startDate);
-    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    // Rounded because DST shifts make a local-midnight difference an hour off a whole number of days.
-    const index = Math.floor(Math.round((day.getTime() - firstStart.getTime()) / MS_PER_DAY) / 7);
-    const row = rows[index];
-    if (!row) continue;
-    row[activity.kind] += 1;
-  }
-  return rows;
-}
 
 // A trend across *all* logged activity — the per-challenge day grid below only
 // covers one exercise type against its target, so this isn't a duplicate of it.
 function WeeklyActivityChart({ activities }: { activities: SportActivity[] }) {
   const theme = useTheme();
   const today = toDateStr(new Date());
-  // today isn't read in the callback below, but weeklySessions computes its "current
-  // week" bucket from `new Date()` internally, so it's a real (if invisible-to-the-linter)
-  // dependency — without it the memo stays stale until `activities` itself changes.
+  // today isn't read in the callback below, but weeklySessionRows defaults its `now`
+  // to new Date(), so it's a real (if invisible-to-the-linter) dependency — without
+  // it the memo stays stale until `activities` itself changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const weeks = useMemo(() => weeklySessions(activities, TREND_WEEKS), [activities, today]);
+  const weeks = useMemo(() => weeklySessionRows(activities, TREND_WEEKS), [activities, today]);
   const thisWeek = weeks[weeks.length - 1]!;
   const thisWeekCount = thisWeek.endurance + thisWeek.strength;
   const enduranceColor = theme.primary;

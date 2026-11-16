@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { countPerDay, goalStatusCounts, lastNDays, monthlyMoneyTrend, spendingSlices, spendingTotal, startOfWeek } from "./charts";
+import {
+  countPerDay,
+  goalStatusCounts,
+  lastNDays,
+  monthlyMoneyTrend,
+  spendingSlices,
+  spendingTotal,
+  startOfWeek,
+  weeklySessionRows,
+} from "./charts";
 import type { Goal, Transaction } from "./types";
 
 function goal(status: Goal["status"]): Goal {
@@ -251,5 +260,66 @@ describe("spendingTotal", () => {
 
   it("excludes income", () => {
     expect(spendingTotal([tx(10), tx(999, "2026-11-04", "income")], "2026-11")).toBe(10);
+  });
+});
+
+describe("weeklySessionRows", () => {
+  // Wed 18 Nov 2026, so the current week opens on Mon the 16th.
+  const now = new Date(2026, 10, 18, 9, 0, 0);
+  const act = (y: number, m: number, d: number, kind: "endurance" | "strength" = "endurance") => ({
+    startDate: new Date(y, m, d, 12, 0, 0).toISOString(),
+    kind,
+  });
+
+  it("returns one row per week, oldest first, ending with the week containing now", () => {
+    const rows = weeklySessionRows([], 4, now);
+    expect(rows).toHaveLength(4);
+    expect(rows.map((r) => r.start.getDate())).toEqual([26, 2, 9, 16]);
+    expect(rows.every((r) => r.start.getDay() === 1)).toBe(true);
+  });
+
+  it("gives all-zero weeks rather than an empty list when nothing is logged", () => {
+    // Both charts read weeks[weeks.length - 1] for the "this week" headline, so
+    // an empty array would crash rather than render a flat trend.
+    const rows = weeklySessionRows([], 3, now);
+    expect(rows.map((r) => r.endurance + r.strength)).toEqual([0, 0, 0]);
+  });
+
+  it("counts each activity into its own week, by kind", () => {
+    const rows = weeklySessionRows(
+      [act(2026, 10, 18), act(2026, 10, 16, "strength"), act(2026, 10, 10)],
+      3,
+      now,
+    );
+    expect(rows[2]).toMatchObject({ endurance: 1, strength: 1 });
+    expect(rows[1]).toMatchObject({ endurance: 1, strength: 0 });
+    expect(rows[0]).toMatchObject({ endurance: 0, strength: 0 });
+  });
+
+  it("skips activities older than the window instead of piling them into the first week", () => {
+    // Clamping an out-of-range activity would invent a session in a week that
+    // had none - the same false reading the old truncation guard existed to
+    // avoid, now impossible because nothing is dropped from the input.
+    const rows = weeklySessionRows([act(2025, 0, 1), act(2026, 10, 18)], 3, now);
+    expect(rows.map((r) => r.endurance)).toEqual([0, 0, 1]);
+  });
+
+  it("skips activities dated after the current week", () => {
+    const rows = weeklySessionRows([act(2026, 11, 25)], 3, now);
+    expect(rows.map((r) => r.endurance)).toEqual([0, 0, 0]);
+  });
+
+  it("puts a Sunday in the week it closes, not the one that follows", () => {
+    // Weeks run Monday-first, so Sun 15 Nov belongs to the week of Mon 9 Nov.
+    const rows = weeklySessionRows([act(2026, 10, 15)], 3, now);
+    expect(rows.map((r) => r.endurance)).toEqual([0, 1, 0]);
+  });
+
+  it("counts a full run of daily sessions, not just the newest 50", () => {
+    // Web's sports listener capped at 50 newest-first, so older sessions went
+    // missing from this chart and from challenge progress alike.
+    const daily = Array.from({ length: 60 }, (_, i) => act(2026, 10, 18 - i));
+    const rows = weeklySessionRows(daily, 12, now);
+    expect(rows.reduce((sum, r) => sum + r.endurance, 0)).toBe(60);
   });
 });
