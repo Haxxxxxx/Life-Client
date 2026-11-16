@@ -228,13 +228,16 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 }
 
 /** Errors were rendered as ordinary body text, so they did not read as errors. */
-export function ErrorBanner({ children }: { children?: string | null }) {
+export function ErrorBanner({ children, style }: { children?: string | null; style?: ViewStyle }) {
   const theme = useTheme();
   if (!children) return null;
   return (
     <View
       accessibilityRole="alert"
-      style={[styles.error, { borderColor: theme.danger, backgroundColor: `${theme.danger}1A` }]}>
+      // `style` last so a caller can keep the margin its old inline error had.
+      // Without it, swapping a plain <ThemedText style={styles.error}> for this
+      // banner silently dropped that screen's spacing.
+      style={[styles.error, { borderColor: theme.danger, backgroundColor: `${theme.danger}1A` }, style]}>
       <ThemedText type="small" style={{ color: theme.danger }}>
         {children}
       </ThemedText>

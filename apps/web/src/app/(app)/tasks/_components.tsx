@@ -14,6 +14,7 @@ import {
 } from "@life-client/shared";
 import { useState } from "react";
 import { RecurrencePicker } from "@/components/recurrence-picker";
+import { Input, Select, rowActionClassName } from "@/components/ui";
 
 export function EditTaskForm({
   task,
@@ -42,49 +43,44 @@ export function EditTaskForm({
         className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-sm"
       />
       <div className="flex flex-wrap gap-2">
-        <select
+        <Select aria-label="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value as TaskCategory)}
-          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
+          size="sm"
         >
           {TASK_CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select aria-label="Difficulty"
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
-          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
+          size="sm"
         >
           {TASK_DIFFICULTIES.map((d) => (
             <option key={d.id} value={d.id}>
               {d.label}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select aria-label="Priority"
           value={priority}
           onChange={(e) => setPriority(e.target.value as TaskPriority)}
-          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
+          size="sm"
         >
           {TASK_PRIORITIES.map((p) => (
             <option key={p.id} value={p.id}>
               {p.label} priority
             </option>
           ))}
-        </select>
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
-        />
-        <select
+        </Select>
+        <Input aria-label="Due date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} size="sm" />
+        <Select aria-label="Linked goal"
           value={goalId}
           onChange={(e) => setGoalId(e.target.value)}
-          className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
+          size="sm"
         >
           <option value="">No goal</option>
           {goals.map((g) => (
@@ -92,7 +88,7 @@ export function EditTaskForm({
               {g.title}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <div className="flex gap-3">
@@ -113,11 +109,11 @@ export function EditTaskForm({
               recurrence: recurrence ?? null,
             })
           }
-          className="font-mono text-xs font-bold text-primary uppercase hover:underline"
+          className={rowActionClassName("primary")}
         >
           Save
         </button>
-        <button type="button" onClick={onCancel} className="font-mono text-xs font-bold text-muted uppercase hover:underline">
+        <button type="button" onClick={onCancel} className={rowActionClassName("muted")}>
           Cancel
         </button>
       </div>

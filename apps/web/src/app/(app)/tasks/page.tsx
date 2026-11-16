@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { TasksCompletedChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, ErrorText, Input, PageHeader, SkeletonRows, emptyPanelClassName, pageShellClassName } from "@/components/ui";
+import { Button, ErrorText, Input, PageHeader, Select, SkeletonRows, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import {
   CATEGORY_LABEL,
@@ -129,28 +129,28 @@ export default function TasksPage() {
       <form onSubmit={handleAddTask} className="flex flex-col gap-2 rounded-xl border border-border-strong bg-surface p-3">
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task…" />
         <div className="flex flex-wrap gap-2">
-          <select
+          <Select aria-label="Category"
             value={category}
             onChange={(e) => setCategory(e.target.value as TaskCategory)}
-            className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
+            size="sm"
           >
             {TASK_CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select aria-label="Difficulty"
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as TaskDifficulty)}
-            className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
+            size="sm"
           >
             {TASK_DIFFICULTIES.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.label}
               </option>
             ))}
-          </select>
+          </Select>
           <Button type="submit" size="sm" disabled={submitting || !title.trim()} className="ml-auto">
             Add
           </Button>

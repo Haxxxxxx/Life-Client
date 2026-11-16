@@ -21,7 +21,7 @@ import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { MoneyCharts } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, Card, ErrorText, Input, PageHeader, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName } from "@/components/ui";
+import { Button, Card, ErrorText, Input, PageHeader, Select, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName } from "@/components/ui";
 import { RecurrencePicker } from "@/components/recurrence-picker";
 import { useAuth } from "@/lib/auth-context";
 
@@ -72,20 +72,20 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
           placeholder="Amount"
           className="min-w-0 flex-1"
         />
-        <select
+        <Select aria-label="Transaction category"
           value={category}
           onChange={(e) => setCategory(e.target.value as TransactionCategory)}
-          className="rounded-xl border border-border-strong bg-background px-2 py-2 text-xs"
+          size="sm"
         >
           {TRANSACTION_CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" />
-      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <Input aria-label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} noneLabel="One-time" />
       <Button
         size="sm"
@@ -114,17 +114,17 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-border p-3">
-      <select
+      <Select aria-label="Budget category"
         value={category}
         onChange={(e) => setCategory(e.target.value as TransactionCategory)}
-        className="rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
+        size="sm"
       >
         {TRANSACTION_CATEGORIES.map((c) => (
           <option key={c.id} value={c.id}>
             {c.label}
           </option>
         ))}
-      </select>
+      </Select>
       <Input
         type="number"
         min={0}

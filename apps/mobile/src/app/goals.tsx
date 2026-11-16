@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { SkeletonList } from '@/components/ui';
+import { ErrorBanner, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -508,9 +508,7 @@ export default function GoalsScreen() {
 
           {formOpen && <GoalForm onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />}
           {error && (
-            <ThemedText themeColor="text" style={styles.error}>
-              {error}
-            </ThemedText>
+            <ErrorBanner style={styles.errorSpacing}>{error}</ErrorBanner>
           )}
           {!loaded && <SkeletonList rows={3} />}
 
@@ -647,7 +645,7 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
   scrollContent: { paddingVertical: Spacing.four, gap: Spacing.three },
-  error: { marginBottom: Spacing.two },
+  errorSpacing: { marginBottom: Spacing.two },
   form: { gap: Spacing.two, borderWidth: 1, borderStyle: 'dashed', borderRadius: Spacing.two, padding: Spacing.two, marginBottom: Spacing.three },
   // Radius two / padding three, and clears the 44pt touch minimum. Every
   // screen with a text input sets all three — integrations and music have no
