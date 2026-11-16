@@ -44,15 +44,24 @@ export const HIT_TARGET = 44;
  * acknowledgement at all, which is most of why the app felt unfinished next
  * to its web counterpart.
  */
+/**
+ * children is optional: a checkbox or swatch is its own visual and has no
+ * child to render, and requiring one ruled those out of using this at all.
+ */
 export function PressableScale({
   style,
   children,
   rippleColor,
   ...rest
-}: PressableProps & { rippleColor?: string; children: ReactNode }) {
+}: PressableProps & { rippleColor?: string; children?: ReactNode }) {
   const theme = useTheme();
   return (
     <Pressable
+      // Defaulted, not required: every use of this component is something you
+      // tap, and 50 of them declared no role at all, so a screen reader read
+      // the label without saying it was actionable. Spread before {...rest} so
+      // a caller can still say "link" or "checkbox".
+      accessibilityRole="button"
       android_ripple={{ color: rippleColor ?? theme.backgroundSelected, borderless: false }}
       style={(state) => [
         { opacity: state.pressed ? 0.72 : 1, transform: [{ scale: state.pressed ? 0.985 : 1 }] },
@@ -123,31 +132,58 @@ export function Button({
 }
 
 /** Toggle pill. Roughly ten screens hand-rolled this, at ~26pt tall. */
+/**
+ * Single-select pill, as used by every picker in the app.
+ *
+ * The selected treatment here is the one twenty-four hand-rolled chips
+ * already used — a solid `primary` fill with a near-black
+ * `primaryForeground` label. This component previously did something
+ * different (a primary border over a faint `backgroundSelected` tint, with a
+ * primary label), which is a reasonable design but not this app's. Since
+ * nothing imported it, matching the screens was the cheaper direction: the
+ * alternative restyled twenty-four live controls to suit an unused component.
+ *
+ * `textType` exists because the vocab mastery picker labels its chips in the
+ * monospace `code` face, and losing that was a real difference rather than a
+ * rounding error.
+ */
 export function Chip({
   label,
   active = false,
   onPress,
+  textType = 'small',
+  disabled = false,
+  muted = false,
 }: {
   label: string;
   active?: boolean;
   onPress: () => void;
+  textType?: 'small' | 'code';
+  disabled?: boolean;
+  /** Dims the label, for suggestion chips that offer rather than select. */
+  muted?: boolean;
 }) {
   const theme = useTheme();
   return (
     <PressableScale
       onPress={onPress}
+      disabled={disabled}
       hitSlop={6}
       accessibilityRole="button"
-      accessibilityState={{ selected: active }}
+      accessibilityState={{ selected: active, disabled }}
       accessibilityLabel={label}
       style={[
         styles.chip,
         {
-          borderColor: active ? theme.primary : theme.border,
-          backgroundColor: active ? theme.backgroundSelected : 'transparent',
+          borderColor: theme.border,
+          backgroundColor: active ? theme.primary : 'transparent',
+          opacity: disabled ? 0.5 : 1,
         },
       ]}>
-      <ThemedText type="small" style={{ color: active ? theme.primary : theme.textSecondary }}>
+      <ThemedText
+        type={textType}
+        themeColor={!active && muted ? 'textSecondary' : undefined}
+        style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
         {label}
       </ThemedText>
     </PressableScale>

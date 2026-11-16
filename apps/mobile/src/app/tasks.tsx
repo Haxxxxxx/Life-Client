@@ -17,14 +17,14 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Linking, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/components/charts';
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -107,14 +107,12 @@ function EditTaskForm({
         {TASK_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
-            <Pressable
+            <Chip
               key={c.id}
+              label={c.label}
+              active={active}
               onPress={() => setCategory(c.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                {c.label}
-              </ThemedText>
-            </Pressable>
+            />
           );
         })}
       </View>
@@ -122,14 +120,12 @@ function EditTaskForm({
         {TASK_DIFFICULTIES.map((d) => {
           const active = d.id === difficulty;
           return (
-            <Pressable
+            <Chip
               key={d.id}
+              label={d.label}
+              active={active}
               onPress={() => setDifficulty(d.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
-                {d.label}
-              </ThemedText>
-            </Pressable>
+            />
           );
         })}
       </View>
@@ -137,14 +133,12 @@ function EditTaskForm({
         {TASK_PRIORITIES.map((p) => {
           const active = p.id === priority;
           return (
-            <Pressable
+            <Chip
               key={p.id}
+              label={p.label}
+              active={active}
               onPress={() => setPriority(p.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                {p.label}
-              </ThemedText>
-            </Pressable>
+            />
           );
         })}
       </View>
@@ -156,23 +150,23 @@ function EditTaskForm({
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={Common.chipRow}>
-        <Pressable
+        <Chip
+          label="No goal"
+          active={!goalId}
           onPress={() => setGoalId('')}
-          style={[Common.chip, { borderColor: theme.border, backgroundColor: !goalId ? theme.accent : 'transparent' }]}>
-          <ThemedText type="small">No goal</ThemedText>
-        </Pressable>
+        />
         {goals.map((g) => (
-          <Pressable
+          <Chip
             key={g.id}
+            label={g.title}
+            active={goalId === g.id}
             onPress={() => setGoalId(g.id)}
-            style={[Common.chip, { borderColor: theme.border, backgroundColor: goalId === g.id ? theme.accent : 'transparent' }]}>
-            <ThemedText type="small">{g.title}</ThemedText>
-          </Pressable>
+          />
         ))}
       </View>
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <View style={styles.taskActions}>
-        <Pressable
+        <PressableScale
           onPress={() =>
             onSave({
               title: title.trim() || task.title,
@@ -188,12 +182,12 @@ function EditTaskForm({
           <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
             Save
           </ThemedText>
-        </Pressable>
-        <Pressable onPress={onCancel}>
+        </PressableScale>
+        <PressableScale onPress={onCancel}>
           <ThemedText type="small" themeColor="textSecondary">
             Cancel
           </ThemedText>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -298,19 +292,7 @@ export default function TasksScreen() {
             {TASK_CATEGORIES.map((c) => {
               const active = c.id === category;
               return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => setCategory(c.id)}
-                  style={[
-                    Common.chip,
-                    { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' },
-                  ]}>
-                  <ThemedText
-                    type="small"
-                    style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                    {c.label}
-                  </ThemedText>
-                </Pressable>
+                <Chip key={c.id} label={c.label} active={active} onPress={() => setCategory(c.id)} />
               );
             })}
           </View>
@@ -318,26 +300,15 @@ export default function TasksScreen() {
             {TASK_DIFFICULTIES.map((d) => {
               const active = d.id === difficulty;
               return (
-                <Pressable
-                  key={d.id}
-                  onPress={() => setDifficulty(d.id)}
-                  style={[
-                    Common.chip,
-                    { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' },
-                  ]}>
-                  <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
-                    {d.label}
-                  </ThemedText>
-                </Pressable>
+                <Chip key={d.id} label={d.label} active={active} onPress={() => setDifficulty(d.id)} />
               );
             })}
           </View>
-          <Pressable
+          <Button
+            label="Add task"
             onPress={handleAdd}
             disabled={!title.trim()}
-            style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-            <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add task</ThemedText>
-          </Pressable>
+          />
         </View>
 
         {error && (
@@ -352,7 +323,7 @@ export default function TasksScreen() {
           ListFooterComponent={
             archived.length > 0 ? (
               <View style={{ gap: Spacing.two, marginTop: Spacing.four }}>
-                <Pressable
+                <PressableScale
                   onPress={() => setShowArchived((v) => !v)}
                   hitSlop={8}
                   accessibilityRole="button"
@@ -361,7 +332,7 @@ export default function TasksScreen() {
                   <ThemedText type="code" themeColor="textSecondary" style={Common.eyebrow}>
                     {showArchived ? '▾' : '▸'} Archived ({archived.length})
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
                 {showArchived && (
                   <View style={{ gap: Spacing.two }}>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -376,14 +347,11 @@ export default function TasksScreen() {
                         <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
                           {task.title}
                         </ThemedText>
-                        <Pressable
+                        <Button
+                          label="Restore"
                           onPress={() => handleRestoreTask(task.id)}
-                          hitSlop={8}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Restore task ${task.title}`}
-                          style={[styles.restoreButton, { borderColor: theme.border }]}>
-                          <ThemedText type="small">Restore</ThemedText>
-                        </Pressable>
+                          variant="outline"
+                        />
                       </ThemedView>
                     ))}
                   </View>
@@ -419,7 +387,7 @@ export default function TasksScreen() {
               </ThemedView>
             ) : (
               <ThemedView type="backgroundElement" style={[styles.taskCard, { borderColor: theme.border }]}>
-                <Pressable style={styles.taskInfo} onPress={() => setEditingId(item.id)}>
+                <PressableScale style={styles.taskInfo} onPress={() => setEditingId(item.id)}>
                   <ThemedText
                     numberOfLines={1}
                     style={item.status === 'done' ? Common.doneText : undefined}
@@ -433,21 +401,21 @@ export default function TasksScreen() {
                     {item.goalId && ` · ${goals.find((g) => g.id === item.goalId)?.title ?? 'Goal'}`}
                     {item.recurrence && ` · ↻ ${describeRecurrence(item.recurrence)}`}
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
                 <View style={styles.taskActions}>
                   {item.sourceUrl && (
-                    <Pressable onPress={() => Linking.openURL(item.sourceUrl!)}>
+                    <PressableScale onPress={() => Linking.openURL(item.sourceUrl!)}>
                       <ThemedText type="small" themeColor="primary">
                         {item.source === 'gitlab' ? 'GitLab' : 'GitHub'} ↗
                       </ThemedText>
-                    </Pressable>
+                    </PressableScale>
                   )}
-                  <Pressable
+                  <Button
+                    label={STATUS_LABEL[nextStatus(item.status)]}
                     onPress={() => data.advanceTaskStatus(user!.uid, item, nextStatus(item.status))}
-                    style={[styles.pillButton, { borderColor: theme.border }]}>
-                    <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
-                  </Pressable>
-                  <Pressable
+                    variant="outline"
+                  />
+                  <PressableScale
                     onPress={() =>
                       confirmDestructive({
                         title: 'Delete this task?',
@@ -462,7 +430,7 @@ export default function TasksScreen() {
                     <ThemedText type="small" themeColor="danger">
                       Delete
                     </ThemedText>
-                  </Pressable>
+                  </PressableScale>
                 </View>
               </ThemedView>
             )
@@ -485,24 +453,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   archivedTitle: { flex: 1 },
-  restoreButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-  },
   form: { gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, marginTop: Spacing.four },
-  addButton: {
-    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
-    // box), under Apple's minimum and under the input it sits beneath.
-    minHeight: 44,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.two,
-    alignItems: 'center',
-  },
   errorSpacing: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   chartSection: { marginBottom: Spacing.two },
@@ -517,6 +468,5 @@ const styles = StyleSheet.create({
   },
   taskInfo: { flex: 1, gap: 2, minWidth: 0 },
   taskActions: { gap: Spacing.one, alignItems: 'flex-end' },
-  pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   deleteButton: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
 });

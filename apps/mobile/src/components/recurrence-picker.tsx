@@ -1,7 +1,8 @@
 import { WEEKDAY_LABELS, type Recurrence, type RecurrenceFreq } from '@life-client/shared';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { PressableScale } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -55,14 +56,14 @@ export function RecurrencePicker({
         {(['none', 'daily', 'weekly', 'monthly'] as const).map((f) => {
           const active = (f === 'none' && !freq) || f === freq;
           return (
-            <Pressable
+            <PressableScale
               key={f}
               onPress={() => setFreq(f === 'none' ? undefined : f)}
               style={[styles.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
               <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
                 {f === 'none' ? noneLabel : f}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -90,7 +91,7 @@ export function RecurrencePicker({
           {WEEKDAY_LABELS.map((label, i) => {
             const active = daysOfWeek.includes(i);
             return (
-              <Pressable
+              <PressableScale
                 key={i}
                 onPress={() => toggleDay(i)}
                 style={[
@@ -100,7 +101,7 @@ export function RecurrencePicker({
                 <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                   {label}
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>

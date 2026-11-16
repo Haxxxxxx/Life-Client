@@ -10,13 +10,13 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { ScrollView, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChartCard, Donut, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -92,32 +92,26 @@ function GoalForm({ onSubmit, onCancel }: { onSubmit: (input: NewGoal) => void; 
       {!title.trim() && (
         <View style={Common.chipRow}>
           {GOAL_EXAMPLES.map((example) => (
-            <Pressable key={example} onPress={() => setTitle(example)} style={[Common.chip, { borderColor: theme.border }]}>
-              <ThemedText type="small" themeColor="textSecondary">
-                {example}
-              </ThemedText>
-            </Pressable>
+            <Chip key={example} label={example} muted onPress={() => setTitle(example)} />
           ))}
         </View>
       )}
       <View style={styles.goalActions}>
-        <Pressable
-          disabled={!title.trim()}
+        <Button
+          label="Set goal"
           onPress={() =>
             onSubmit({
               title: title.trim(),
               description: description.trim() || undefined,
               targetDate: targetDate || undefined,
-            })
-          }
-          style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-          <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Set goal</ThemedText>
-        </Pressable>
-        <Pressable onPress={onCancel}>
+            })}
+          disabled={!title.trim()}
+        />
+        <PressableScale onPress={onCancel}>
           <ThemedText type="small" themeColor="textSecondary">
             Cancel
           </ThemedText>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -182,7 +176,7 @@ function GoalCard({
               style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
             />
             <View style={styles.goalActions}>
-              <Pressable
+              <PressableScale
                 onPress={() => {
                   onEdit({
                     title: title.trim() || goal.title,
@@ -194,16 +188,16 @@ function GoalCard({
                 <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
                   Save
                 </ThemedText>
-              </Pressable>
-              <Pressable onPress={() => setEditing(false)}>
+              </PressableScale>
+              <PressableScale onPress={() => setEditing(false)}>
                 <ThemedText type="small" themeColor="textSecondary">
                   Cancel
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
         ) : (
-          <Pressable style={{ flex: 1 }} onPress={() => setEditing(true)}>
+          <PressableScale style={{ flex: 1 }} onPress={() => setEditing(true)}>
             <ThemedText type="smallBold">{goal.title}</ThemedText>
             {goal.description && (
               <ThemedText type="small" themeColor="textSecondary">
@@ -219,7 +213,7 @@ function GoalCard({
                     : `${days}d left · ${new Date(goal.targetDate!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
               </ThemedText>
             )}
-          </Pressable>
+          </PressableScale>
         )}
         {!editing && (
           <View style={{ alignItems: 'flex-end', gap: Spacing.one }}>
@@ -239,22 +233,22 @@ function GoalCard({
             </View>
             <View style={styles.goalActions}>
               {goal.status === 'active' && (
-                <Pressable onPress={onComplete}>
+                <PressableScale onPress={onComplete}>
                   <ThemedText type="small" themeColor="primary">
                     Complete
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               )}
-              <Pressable onPress={onArchive}>
+              <PressableScale onPress={onArchive}>
                 <ThemedText type="small" themeColor="textSecondary">
                   Archive
                 </ThemedText>
-              </Pressable>
-              <Pressable onPress={onDelete}>
+              </PressableScale>
+              <PressableScale onPress={onDelete}>
                 <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
         )}
@@ -280,11 +274,11 @@ function GoalCard({
                 themeColor={task.status === 'done' ? 'textSecondary' : 'text'}>
                 {task.title}
               </ThemedText>
-              <Pressable onPress={() => onUnlinkTask(task.id)}>
+              <PressableScale onPress={() => onUnlinkTask(task.id)}>
                 <ThemedText type="small" themeColor="textSecondary">
                   Unlink
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           ))}
         </View>
@@ -300,12 +294,7 @@ function GoalCard({
         </ThemedText>
         <View style={Common.chipRow}>
           {unlinkedTasks.map((t) => (
-            <Pressable
-              key={t.id}
-              onPress={() => onLinkTask(t.id)}
-              style={[Common.chip, { borderColor: theme.border }]}>
-              <ThemedText type="small">+ {t.title}</ThemedText>
-            </Pressable>
+            <Chip key={t.id} label={`+ ${t.title}`} onPress={() => onLinkTask(t.id)} />
           ))}
         </View>
         <View style={styles.newTaskRow}>
@@ -316,7 +305,7 @@ function GoalCard({
             placeholderTextColor={theme.textSecondary}
             style={[Common.input, { flex: 1, color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
-          <Pressable
+          <PressableScale
             disabled={!newTaskTitle.trim()}
             onPress={() => {
               onNewTask(newTaskTitle.trim());
@@ -326,7 +315,7 @@ function GoalCard({
             <ThemedText type="small" style={{ fontWeight: '700' }}>
               Add
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </View>
       </View>
     </ThemedView>
@@ -470,13 +459,10 @@ export default function GoalsScreen() {
             <ThemedText type="subtitle">Goals</ThemedText>
           </View>
           {!formOpen && (
-            <Pressable
+            <Button
+              label="New goal"
               onPress={() => setFormOpen(true)}
-              style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-              <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-                New goal
-              </ThemedText>
-            </Pressable>
+            />
           )}
         </View>
 
@@ -526,18 +512,18 @@ export default function GoalsScreen() {
 
           {completedGoals.length > 0 && (
             <View style={{ gap: Spacing.two }}>
-              <Pressable onPress={() => setShowCompleted((v) => !v)}>
+              <PressableScale onPress={() => setShowCompleted((v) => !v)}>
                 <ThemedText type="code" themeColor="textSecondary" style={Common.eyebrow}>
                   {showCompleted ? '▾' : '▸'} Completed ({completedGoals.length})
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
               {showCompleted && <View style={{ gap: Spacing.three }}>{completedGoals.map(renderGoalCard)}</View>}
             </View>
           )}
 
           {archived.length > 0 && (
             <View style={{ gap: Spacing.two }}>
-              <Pressable
+              <PressableScale
                 onPress={() => setShowArchived((v) => !v)}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: showArchived }}
@@ -545,7 +531,7 @@ export default function GoalsScreen() {
                 <ThemedText type="code" themeColor="textSecondary" style={Common.eyebrow}>
                   {showArchived ? '▾' : '▸'} Archived ({archived.length})
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
               {showArchived && (
                 <View style={{ gap: Spacing.two }}>
                   <ThemedText type="small" themeColor="textSecondary">
@@ -560,14 +546,11 @@ export default function GoalsScreen() {
                       <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
                         {goal.title}
                       </ThemedText>
-                      <Pressable
+                      <Button
+                        label="Restore"
                         onPress={() => handleRestoreGoal(goal.id)}
-                        hitSlop={8}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Restore goal ${goal.title}`}
-                        style={[styles.restoreButton, { borderColor: theme.border }]}>
-                        <ThemedText type="small">Restore</ThemedText>
-                      </Pressable>
+                        variant="outline"
+                      />
                     </ThemedView>
                   ))}
                 </View>
@@ -585,9 +568,7 @@ export default function GoalsScreen() {
             </ThemedText>
             <View style={Common.chipRow}>
               {VICE_PRESETS.map((v) => (
-                <Pressable key={v.id} onPress={() => handleLogVice(v.id)} style={[Common.chip, { borderColor: theme.border }]}>
-                  <ThemedText type="small">{v.label}</ThemedText>
-                </Pressable>
+                <Chip key={v.id} label={v.label} onPress={() => handleLogVice(v.id)} />
               ))}
             </View>
           </View>
@@ -607,11 +588,11 @@ export default function GoalsScreen() {
                           -{v.penaltyXp} XP · {task ? `${task.title} (${task.status})` : 'Task missing'}
                         </ThemedText>
                       </View>
-                      <Pressable onPress={() => user && data.deleteViceLog(user.uid, v.id)}>
+                      <PressableScale onPress={() => user && data.deleteViceLog(user.uid, v.id)}>
                         <ThemedText type="small" themeColor="danger">
                           Dismiss
                         </ThemedText>
-                      </Pressable>
+                      </PressableScale>
                     </View>
                   );
                 })}
@@ -636,13 +617,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   archivedTitle: { flex: 1 },
-  restoreButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
-  },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two, marginTop: Spacing.four },
   scrollContent: { paddingVertical: Spacing.four, gap: Spacing.three },
   errorSpacing: { marginBottom: Spacing.two },
@@ -650,7 +624,6 @@ const styles = StyleSheet.create({
   // Radius two / padding three, and clears the 44pt touch minimum. Every
   // screen with a text input sets all three — integrations and music have no
   // input, so nine of the eleven carry this block.
-  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.two, alignItems: 'center' },
   goalCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three, gap: Spacing.two },
   goalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
   goalActions: { flexDirection: 'row', gap: Spacing.two },

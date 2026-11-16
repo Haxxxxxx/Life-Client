@@ -39,7 +39,7 @@ import { BarTrend, ChartCard, Legend, countPerDay, lastNDays, weekdayInitial, wi
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -92,7 +92,7 @@ function RenameField({ value, onSave, style }: { value: string; onSave: (next: s
 
   if (!editing) {
     return (
-      <Pressable
+      <PressableScale
         style={{ flex: 1 }}
         onPress={() => {
           setDraft(value);
@@ -101,7 +101,7 @@ function RenameField({ value, onSave, style }: { value: string; onSave: (next: s
         <ThemedText type="small" numberOfLines={1} style={style}>
           {value}
         </ThemedText>
-      </Pressable>
+      </PressableScale>
     );
   }
 
@@ -166,17 +166,13 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="Today" title="Tasks" />
         <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-          <Pressable hitSlop={10} onPress={clearCompleted} style={[styles.smallOutlineButton, { borderColor: theme.border }]}>
-            <ThemedText type="small" style={{ fontWeight: '700' }}>
-              Clear completed
-            </ThemedText>
-          </Pressable>
+          <Button label="Clear completed" onPress={clearCompleted} variant="outline" />
           <Link href="/tasks" asChild>
-            <Pressable>
+            <PressableScale>
               <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
                 Open →
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           </Link>
         </View>
       </View>
@@ -185,27 +181,27 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
           <ThemedText type="small" style={{ fontWeight: '700' }}>
             {selected.size} selected
           </ThemedText>
-          <Pressable onPress={bulkMarkDone}>
+          <PressableScale onPress={bulkMarkDone}>
             <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
               Mark done
             </ThemedText>
-          </Pressable>
-          <Pressable onPress={bulkDelete}>
+          </PressableScale>
+          <PressableScale onPress={bulkDelete}>
             <ThemedText type="small" themeColor="danger">
               Delete
             </ThemedText>
-          </Pressable>
-          <Pressable onPress={() => setSelected(new Set())} style={{ marginLeft: 'auto' }}>
+          </PressableScale>
+          <PressableScale onPress={() => setSelected(new Set())} style={{ marginLeft: 'auto' }}>
             <ThemedText type="small" themeColor="textSecondary">
               Clear
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </View>
       )}
       <View style={{ gap: Spacing.one }}>
         {tasks.map((task) => (
           <View key={task.id} style={[styles.row, { borderColor: theme.border }]}>
-            <Pressable
+            <PressableScale
               onPress={() => toggle(task.id)}
               style={[
                 styles.checkbox,
@@ -221,17 +217,17 @@ function TasksSection({ tasks, uid, loaded }: { tasks: Task[]; uid: string; load
               {task.status}
             </ThemedText>
             {task.sourceUrl && (
-              <Pressable onPress={() => Linking.openURL(task.sourceUrl!)}>
+              <PressableScale onPress={() => Linking.openURL(task.sourceUrl!)}>
                 <ThemedText type="small" themeColor="primary">
                   {task.source === 'gitlab' ? 'GitLab' : 'GitHub'} ↗
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             )}
-            <Pressable onPress={() => db && data.deleteTask(uid, task.id)}>
+            <PressableScale onPress={() => db && data.deleteTask(uid, task.id)}>
               <ThemedText type="small" themeColor="danger">
                 Delete
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           </View>
         ))}
         {!loaded && <SkeletonList rows={3} />}
@@ -253,11 +249,11 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="Long-term" title="Goals" />
         <Link href="/goals" asChild>
-          <Pressable>
+          <PressableScale>
             <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
               Open →
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </Link>
       </View>
       <View style={{ gap: Spacing.one }}>
@@ -270,22 +266,22 @@ function GoalsSection({ goals, tasks, uid }: { goals: Goal[]; tasks: Task[]; uid
                 {progress.completedTaskCount}/{progress.linkedTaskCount} · {goal.status}
               </ThemedText>
               {goal.status === 'active' && (
-                <Pressable onPress={() => db && data.setGoalStatus(uid, goal.id, 'completed')}>
+                <PressableScale onPress={() => db && data.setGoalStatus(uid, goal.id, 'completed')}>
                   <ThemedText type="small" themeColor="primary">
                     Complete
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               )}
-              <Pressable onPress={() => db && data.setGoalStatus(uid, goal.id, 'archived')}>
+              <PressableScale onPress={() => db && data.setGoalStatus(uid, goal.id, 'archived')}>
                 <ThemedText type="small" themeColor="textSecondary">
                   Archive
                 </ThemedText>
-              </Pressable>
-              <Pressable onPress={() => db && data.deleteGoal(uid, goal.id)}>
+              </PressableScale>
+              <PressableScale onPress={() => db && data.deleteGoal(uid, goal.id)}>
                 <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           );
         })}
@@ -315,11 +311,11 @@ function ChallengesSection({
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="Streaks" title="Challenges" />
         <Link href="/sports" asChild>
-          <Pressable>
+          <PressableScale>
             <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
               Open →
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </Link>
       </View>
       <View style={{ gap: Spacing.one }}>
@@ -335,17 +331,17 @@ function ChallengesSection({
                 {progress.currentStreak}d{challenge.archived ? ' · archived' : ''}
               </ThemedText>
               {!challenge.archived && (
-                <Pressable onPress={() => db && data.archiveChallenge(uid, challenge.id)}>
+                <PressableScale onPress={() => db && data.archiveChallenge(uid, challenge.id)}>
                   <ThemedText type="small" themeColor="textSecondary">
                     Archive
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               )}
-              <Pressable onPress={() => db && data.deleteChallenge(uid, challenge.id)}>
+              <PressableScale onPress={() => db && data.deleteChallenge(uid, challenge.id)}>
                 <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           );
         })}
@@ -415,20 +411,18 @@ function EditReminderForm({
         {QUICK_OFFSETS.map((opt) => {
           const active = opt.days === offsetDays;
           return (
-            <Pressable
+            <Chip
               key={opt.days}
+              label={`In ${opt.label}`}
+              active={active}
               onPress={() => setOffsetDays(opt.days)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                In {opt.label}
-              </ThemedText>
-            </Pressable>
+            />
           );
         })}
       </View>
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <View style={styles.cardActionsRow}>
-        <Pressable
+        <PressableScale
           onPress={() =>
             onSave({
               title: title.trim() || reminder.title,
@@ -440,12 +434,12 @@ function EditReminderForm({
           <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
             Save
           </ThemedText>
-        </Pressable>
-        <Pressable onPress={onCancel}>
+        </PressableScale>
+        <PressableScale onPress={onCancel}>
           <ThemedText type="small" themeColor="textSecondary">
             Cancel
           </ThemedText>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -521,13 +515,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="Deadlines" title="Remember" />
         {!formOpen && (
-          <Pressable
-            onPress={() => setFormOpen(true)}
-            style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-              New reminder
-            </ThemedText>
-          </Pressable>
+          <Button label="New reminder" onPress={() => setFormOpen(true)} />
         )}
       </View>
 
@@ -551,30 +539,23 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
             {QUICK_OFFSETS.map((opt) => {
               const active = opt.days === offsetDays;
               return (
-                <Pressable
+                <Chip
                   key={opt.days}
+                  label={`In ${opt.label}`}
+                  active={active}
                   onPress={() => setOffsetDays(opt.days)}
-                  style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-                  <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                    In {opt.label}
-                  </ThemedText>
-                </Pressable>
+                />
               );
             })}
           </View>
           <RecurrencePicker value={recurrence} onChange={setRecurrence} />
           <View style={styles.cardActionsRow}>
-            <Pressable
-              onPress={handleAdd}
-              disabled={!title.trim()}
-              style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
-              <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add reminder</ThemedText>
-            </Pressable>
-            <Pressable onPress={() => setFormOpen(false)}>
+            <Button label="Add reminder" onPress={handleAdd} disabled={!title.trim()} />
+            <PressableScale onPress={() => setFormOpen(false)}>
               <ThemedText type="small" themeColor="textSecondary">
                 Cancel
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           </View>
         </View>
       )}
@@ -604,7 +585,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
               key={reminder.id}
               type={isDueSoon(reminder.deadline) ? 'backgroundSelected' : 'backgroundElement'}
               style={[styles.reminderCard, { borderColor }]}>
-              <Pressable style={styles.cardInfo} onPress={() => setEditingId(reminder.id)}>
+              <PressableScale style={styles.cardInfo} onPress={() => setEditingId(reminder.id)}>
                 <ThemedText type="smallBold">{reminder.title}</ThemedText>
                 {reminder.note && (
                   <ThemedText type="small" themeColor="textSecondary">
@@ -615,18 +596,18 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
                   {new Date(reminder.deadline).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                   {reminder.recurrence && ` · ↻ ${describeRecurrence(reminder.recurrence)}`}
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
               <View style={styles.cardActions}>
                 <View style={[Common.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
                   <ThemedText type="code" style={Common.badgeText}>
                     {urgencyLabel(urgency, days)}
                   </ThemedText>
                 </View>
-                <Pressable onPress={() => handleDelete(reminder)}>
+                <PressableScale onPress={() => handleDelete(reminder)}>
                   <ThemedText type="small" themeColor="danger">
                     Delete
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               </View>
             </ThemedView>
           );
@@ -902,7 +883,6 @@ const styles = StyleSheet.create({
   sections: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.five },
   weekSection: { width: '100%', maxWidth: MaxContentWidth },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  smallOutlineButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   bulkBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.two },
   row: {
     flexDirection: 'row',
@@ -916,17 +896,6 @@ const styles = StyleSheet.create({
   checkbox: { width: 16, height: 16, borderWidth: 1, borderRadius: 4 },
   renameInput: { borderWidth: 1, borderRadius: Spacing.half, paddingHorizontal: Spacing.one, paddingVertical: 2 },
   emptyText: { textAlign: 'center', paddingVertical: Spacing.three },
-  addButton: {
-    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
-    // box), under Apple's minimum and under the input it sits beneath.
-    minHeight: 44,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    alignItems: 'center',
-  },
   cardActionsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   reminderCard: {
     flexDirection: 'row',

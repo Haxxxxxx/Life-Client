@@ -20,10 +20,10 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ErrorBanner } from '@/components/ui';
+import { Button, Chip, ErrorBanner, PressableScale } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Common } from '@/constants/styles';
@@ -110,25 +110,22 @@ function DailyLessonSection() {
               {lesson.articleReason}
             </ThemedText>
             {lesson.articleUrl && (
-              <Pressable onPress={() => Linking.openURL(lesson.articleUrl!)}>
+              <PressableScale onPress={() => Linking.openURL(lesson.articleUrl!)}>
                 <ThemedText type="code" themeColor="primary" style={styles.wikiLink}>
                   Read the article →
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             )}
           </ThemedView>
         </View>
       ) : (
         <ThemedView type="backgroundElement" style={[Common.emptyState, styles.emptyStateGap, { borderColor: theme.border }]}>
           <ThemedText themeColor="textSecondary">No lesson generated yet today.</ThemedText>
-          <Pressable
+          <Button
+            label={generating ? 'Generating…' : "Generate today's lesson"}
             onPress={handleGenerate}
             disabled={generating}
-            style={[styles.primaryButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-            <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-              {generating ? 'Generating…' : "Generate today's lesson"}
-            </ThemedText>
-          </Pressable>
+          />
         </ThemedView>
       )}
       <ErrorBanner>{error}</ErrorBanner>
@@ -199,11 +196,11 @@ function DrillCard({
           <ThemedText type="code" themeColor="textSecondary">
             {drill.topic}
           </ThemedText>
-          <Pressable onPress={onDelete} disabled={deleting}>
+          <PressableScale onPress={onDelete} disabled={deleting}>
             <ThemedText type="code" themeColor="danger">
               {deleting ? 'Deleting…' : 'Delete'}
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </View>
       </View>
       <ThemedText type="smallBold" style={styles.spacedTop}>
@@ -222,30 +219,24 @@ function DrillCard({
             style={[styles.textArea, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
           />
           <View style={styles.rowBetween}>
-            <Pressable hitSlop={10}
+            <Button
+              label={submitting ? 'Grading…' : 'Submit answer'}
               onPress={handleSubmit}
               disabled={submitting || !answer.trim()}
-              style={[
-                styles.primaryButtonSmall,
-                { backgroundColor: theme.primary, borderColor: theme.border, opacity: submitting || !answer.trim() ? 0.5 : 1 },
-              ]}>
-              <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-                {submitting ? 'Grading…' : 'Submit answer'}
-              </ThemedText>
-            </Pressable>
+            />
             <View style={styles.rowGapThree}>
               {!revealed && (
-                <Pressable onPress={() => setRevealed(true)}>
+                <PressableScale onPress={() => setRevealed(true)}>
                   <ThemedText type="code" themeColor="primary">
                     Show answer
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               )}
-              <Pressable onPress={onSkip} disabled={skipping}>
+              <PressableScale onPress={onSkip} disabled={skipping}>
                 <ThemedText type="code" themeColor="textSecondary">
                   {skipping ? 'Skipping…' : 'Skip'}
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
         </View>
@@ -272,19 +263,19 @@ function DrillCard({
                 </ThemedText>
               )}
               {result.videoUrl && (
-                <Pressable onPress={() => Linking.openURL(result.videoUrl!)} style={styles.spacedTop}>
+                <PressableScale onPress={() => Linking.openURL(result.videoUrl!)} style={styles.spacedTop}>
                   <ThemedText type="code" themeColor="primary">
                     Watch a video on this →
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               )}
             </View>
           )}
-          <Pressable onPress={() => setResult(null)} style={styles.spacedTop}>
+          <PressableScale onPress={() => setResult(null)} style={styles.spacedTop}>
             <ThemedText type="code" themeColor="primary">
               Edit answer
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </View>
       )}
 
@@ -330,11 +321,11 @@ function PastDrillRow({
             Skipped
           </ThemedText>
         )}
-        <Pressable onPress={onDelete} disabled={deleting}>
+        <PressableScale onPress={onDelete} disabled={deleting}>
           <ThemedText type="code" themeColor="danger">
             {deleting ? '…' : 'Delete'}
           </ThemedText>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -394,25 +385,20 @@ function CodeDrillsSection({ drills, loaded }: { drills: CodeDrill[]; loaded: bo
           {DIFFICULTIES.map((d) => {
             const active = d.id === difficulty;
             return (
-              <Pressable
+              <Chip
                 key={d.id}
+                label={d.label}
+                active={active}
                 onPress={() => setDifficulty(d.id)}
-                style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
-                <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
-                  {d.label}
-                </ThemedText>
-              </Pressable>
+              />
             );
           })}
         </View>
-        <Pressable
+        <Button
+          label={generating ? 'Generating…' : 'Generate drill'}
           onPress={handleGenerate}
           disabled={generating}
-          style={[styles.primaryButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-          <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-            {generating ? 'Generating…' : 'Generate drill'}
-          </ThemedText>
-        </Pressable>
+        />
       </View>
       <ErrorBanner>{error}</ErrorBanner>
       <View style={styles.list}>
@@ -488,12 +474,13 @@ function VocabCard({ w }: { w: VocabWord }) {
         </View>
         <View style={Common.chipRow}>
           {MASTERY_ORDER.map((m) => (
-            <Pressable
+            <Chip
               key={m}
+              label={MASTERY_LABEL[m]}
+              active={w.mastery === m}
               onPress={() => user && data.setVocabMastery(user.uid, w.id, m)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: w.mastery === m ? theme.accent : 'transparent' }]}>
-              <ThemedText type="code">{MASTERY_LABEL[m]}</ThemedText>
-            </Pressable>
+              textType="code"
+            />
           ))}
         </View>
       </View>
@@ -508,18 +495,11 @@ function VocabCard({ w }: { w: VocabWord }) {
           placeholderTextColor={theme.textSecondary}
           style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
         />
-        <Pressable hitSlop={10}
+        <Button
+          label={submitting ? 'Checking…' : 'Check my sentence'}
           onPress={handleSubmit}
           disabled={submitting || !sentence.trim()}
-          style={[
-            styles.primaryButtonSmall,
-            styles.alignStart,
-            { backgroundColor: theme.primary, borderColor: theme.border, opacity: submitting || !sentence.trim() ? 0.5 : 1 },
-          ]}>
-          <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-            {submitting ? 'Checking…' : 'Check my sentence'}
-          </ThemedText>
-        </Pressable>
+        />
         <ErrorBanner>{error}</ErrorBanner>
         {result && (
           <View style={[styles.resultBox, { borderColor: resultColor, backgroundColor: `${resultColor}1A` }]}>
@@ -591,14 +571,11 @@ function VocabularySection({ words }: { words: VocabWord[] }) {
     <View style={styles.section}>
       <View style={styles.rowBetween}>
         <SectionHeader eyebrow="Vocabulary" title="New Words" />
-        <Pressable hitSlop={10}
+        <Button
+          label={generating ? 'Generating…' : 'New word'}
           onPress={handleGenerate}
           disabled={generating}
-          style={[styles.primaryButtonSmall, { backgroundColor: theme.primary, borderColor: theme.border }]}>
-          <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
-            {generating ? 'Generating…' : 'New word'}
-          </ThemedText>
-        </Pressable>
+        />
       </View>
       <ErrorBanner>{error}</ErrorBanner>
       <View style={styles.list}>
@@ -681,12 +658,11 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
           onSubmitEditing={handleAdd}
           returnKeyType="done"
         />
-        <Pressable
+        <Button
+          label="Add"
           onPress={handleAdd}
           disabled={adding || !url.trim()}
-          style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: url.trim() ? 1 : 0.5 }]}>
-          <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add</ThemedText>
-        </Pressable>
+        />
       </View>
       <ErrorBanner>{error}</ErrorBanner>
       <View style={styles.list}>
@@ -718,25 +694,25 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
             {item.status === 'error' && <ThemedText themeColor="danger">{item.error}</ThemedText>}
             <View style={[styles.rowBetween, styles.spacedTop]}>
               {(item.status === 'pending' || item.status === 'error') && (
-                <Pressable
+                <Button
+                  label={summarizingId === item.id ? 'Summarizing…' : 'Summarize'}
                   onPress={() => handleSummarize(item.id)}
+                  variant="outline"
                   disabled={summarizingId === item.id}
-                  style={[styles.pillButton, { borderColor: theme.border }]}>
-                  <ThemedText type="small">{summarizingId === item.id ? 'Summarizing…' : 'Summarize'}</ThemedText>
-                </Pressable>
+                />
               )}
               {item.status === 'summarized' && (
-                <Pressable
+                <Button
+                  label="Mark read"
                   onPress={() => user && data.markReadingListItemRead(user.uid, item.id)}
-                  style={[styles.pillButton, { borderColor: theme.border }]}>
-                  <ThemedText type="small">Mark read</ThemedText>
-                </Pressable>
+                  variant="outline"
+                />
               )}
-              <Pressable onPress={() => user && data.deleteReadingListItem(user.uid, item.id)}>
+              <PressableScale onPress={() => user && data.deleteReadingListItem(user.uid, item.id)}>
                 <ThemedText type="small" themeColor="danger">
                   Delete
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           </ThemedView>
         ))}
@@ -849,7 +825,6 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two },
   rowGapThree: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   flex1: { flex: 1, minWidth: 0 },
-  alignStart: { alignSelf: 'flex-start' },
   spacedTop: { marginTop: Spacing.two },
   formGap: { gap: Spacing.two },
   italic: { fontStyle: 'italic' },
@@ -859,28 +834,14 @@ const styles = StyleSheet.create({
   wikiLink: { marginTop: Spacing.one, textTransform: 'uppercase' },
   /** Only the inner gap; the panel itself is Common.emptyState. */
   emptyStateGap: { gap: Spacing.three },
-  primaryButton: {
-    // 44pt: the box was 38 (8pt padding, two 1pt borders, a ~20pt line
-    // box), under Apple's minimum and under the input it sits beneath.
-    minHeight: 44,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-  },
-  primaryButtonSmall: { borderWidth: 1, borderRadius: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.three },
   textArea: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, minHeight: 72, textAlignVertical: 'top' },
   inputRow: { flexDirection: 'row', gap: Spacing.two },
-  addButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.four, justifyContent: 'center' },
   list: { gap: Spacing.two },
   listCard: { borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.three },
   // Pill, matching goals/index/search. These two were squares using the
   // off-scale values 4 and 6, so the same concept rendered as two
   // different components depending on the screen.
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
-  pillButton: { borderWidth: 1, borderRadius: Spacing.two, paddingHorizontal: Spacing.two, paddingVertical: Spacing.half },
   resultBox: { borderWidth: 1, borderRadius: Spacing.two, padding: Spacing.three, marginTop: Spacing.two },
   hintBox: { borderTopWidth: 1, marginTop: Spacing.three, paddingTop: Spacing.three },
   pastDrillRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.two, borderWidth: 1, borderRadius: Spacing.three, padding: Spacing.two },
