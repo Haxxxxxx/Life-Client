@@ -196,6 +196,27 @@ export function taskCompletedIso(task: Task): string | null {
 }
 
 /**
+ * Completion timestamps for every done task, for charting.
+ *
+ * Three lines, but three lines that encode a decision: which tasks count as
+ * completed, and which timestamp stands in when `completedAt` is missing.
+ * Both clients had their own copy — web as a `completedTimestamps` helper,
+ * mobile inlined in its week chart — so the two could have come to disagree
+ * about what a "day with activity" means while each looked correct on its
+ * own. That is the shape of the goal-status drift this package already
+ * documents.
+ *
+ * Lives here rather than in charts.ts because it needs taskCompletedIso, and
+ * charts.ts is deliberately free of anything that pulls in the Firestore SDK.
+ */
+export function completedTaskTimestamps(tasks: Task[]): string[] {
+  return tasks
+    .filter((t) => t.status === "done")
+    .map(taskCompletedIso)
+    .filter((iso): iso is string => iso !== null);
+}
+
+/**
  * Sets a task's status, and — if it's a recurring task transitioning to "done" —
  * also creates the next occurrence (same fields, advanced dueDate, status reset to "todo").
  * If the task is a vice's compensating task (Task.viceLogId), marking it done also
