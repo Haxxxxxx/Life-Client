@@ -44,12 +44,16 @@ export const HIT_TARGET = 44;
  * acknowledgement at all, which is most of why the app felt unfinished next
  * to its web counterpart.
  */
+/**
+ * children is optional: a checkbox or swatch is its own visual and has no
+ * child to render, and requiring one ruled those out of using this at all.
+ */
 export function PressableScale({
   style,
   children,
   rippleColor,
   ...rest
-}: PressableProps & { rippleColor?: string; children: ReactNode }) {
+}: PressableProps & { rippleColor?: string; children?: ReactNode }) {
   const theme = useTheme();
   return (
     <Pressable

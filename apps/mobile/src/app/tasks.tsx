@@ -17,14 +17,14 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Linking, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/components/charts';
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -107,14 +107,14 @@ function EditTaskForm({
         {TASK_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
-            <Pressable
+            <PressableScale
               key={c.id}
               onPress={() => setCategory(c.id)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {c.label}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -122,14 +122,14 @@ function EditTaskForm({
         {TASK_DIFFICULTIES.map((d) => {
           const active = d.id === difficulty;
           return (
-            <Pressable
+            <PressableScale
               key={d.id}
               onPress={() => setDifficulty(d.id)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
               <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
                 {d.label}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -137,14 +137,14 @@ function EditTaskForm({
         {TASK_PRIORITIES.map((p) => {
           const active = p.id === priority;
           return (
-            <Pressable
+            <PressableScale
               key={p.id}
               onPress={() => setPriority(p.id)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {p.label}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -156,23 +156,23 @@ function EditTaskForm({
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={Common.chipRow}>
-        <Pressable
+        <PressableScale
           onPress={() => setGoalId('')}
           style={[Common.chip, { borderColor: theme.border, backgroundColor: !goalId ? theme.accent : 'transparent' }]}>
           <ThemedText type="small">No goal</ThemedText>
-        </Pressable>
+        </PressableScale>
         {goals.map((g) => (
-          <Pressable
+          <PressableScale
             key={g.id}
             onPress={() => setGoalId(g.id)}
             style={[Common.chip, { borderColor: theme.border, backgroundColor: goalId === g.id ? theme.accent : 'transparent' }]}>
             <ThemedText type="small">{g.title}</ThemedText>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
       <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       <View style={styles.taskActions}>
-        <Pressable
+        <PressableScale
           onPress={() =>
             onSave({
               title: title.trim() || task.title,
@@ -188,12 +188,12 @@ function EditTaskForm({
           <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
             Save
           </ThemedText>
-        </Pressable>
-        <Pressable onPress={onCancel}>
+        </PressableScale>
+        <PressableScale onPress={onCancel}>
           <ThemedText type="small" themeColor="textSecondary">
             Cancel
           </ThemedText>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -298,7 +298,7 @@ export default function TasksScreen() {
             {TASK_CATEGORIES.map((c) => {
               const active = c.id === category;
               return (
-                <Pressable
+                <PressableScale
                   key={c.id}
                   onPress={() => setCategory(c.id)}
                   style={[
@@ -310,7 +310,7 @@ export default function TasksScreen() {
                     style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                     {c.label}
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               );
             })}
           </View>
@@ -318,7 +318,7 @@ export default function TasksScreen() {
             {TASK_DIFFICULTIES.map((d) => {
               const active = d.id === difficulty;
               return (
-                <Pressable
+                <PressableScale
                   key={d.id}
                   onPress={() => setDifficulty(d.id)}
                   style={[
@@ -328,16 +328,16 @@ export default function TasksScreen() {
                   <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
                     {d.label}
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
               );
             })}
           </View>
-          <Pressable
+          <PressableScale
             onPress={handleAdd}
             disabled={!title.trim()}
             style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: title.trim() ? 1 : 0.5 }]}>
             <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add task</ThemedText>
-          </Pressable>
+          </PressableScale>
         </View>
 
         {error && (
@@ -352,7 +352,7 @@ export default function TasksScreen() {
           ListFooterComponent={
             archived.length > 0 ? (
               <View style={{ gap: Spacing.two, marginTop: Spacing.four }}>
-                <Pressable
+                <PressableScale
                   onPress={() => setShowArchived((v) => !v)}
                   hitSlop={8}
                   accessibilityRole="button"
@@ -361,7 +361,7 @@ export default function TasksScreen() {
                   <ThemedText type="code" themeColor="textSecondary" style={Common.eyebrow}>
                     {showArchived ? '▾' : '▸'} Archived ({archived.length})
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
                 {showArchived && (
                   <View style={{ gap: Spacing.two }}>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -376,14 +376,14 @@ export default function TasksScreen() {
                         <ThemedText type="small" numberOfLines={1} style={styles.archivedTitle}>
                           {task.title}
                         </ThemedText>
-                        <Pressable
+                        <PressableScale
                           onPress={() => handleRestoreTask(task.id)}
                           hitSlop={8}
                           accessibilityRole="button"
                           accessibilityLabel={`Restore task ${task.title}`}
                           style={[styles.restoreButton, { borderColor: theme.border }]}>
                           <ThemedText type="small">Restore</ThemedText>
-                        </Pressable>
+                        </PressableScale>
                       </ThemedView>
                     ))}
                   </View>
@@ -419,7 +419,7 @@ export default function TasksScreen() {
               </ThemedView>
             ) : (
               <ThemedView type="backgroundElement" style={[styles.taskCard, { borderColor: theme.border }]}>
-                <Pressable style={styles.taskInfo} onPress={() => setEditingId(item.id)}>
+                <PressableScale style={styles.taskInfo} onPress={() => setEditingId(item.id)}>
                   <ThemedText
                     numberOfLines={1}
                     style={item.status === 'done' ? Common.doneText : undefined}
@@ -433,21 +433,21 @@ export default function TasksScreen() {
                     {item.goalId && ` · ${goals.find((g) => g.id === item.goalId)?.title ?? 'Goal'}`}
                     {item.recurrence && ` · ↻ ${describeRecurrence(item.recurrence)}`}
                   </ThemedText>
-                </Pressable>
+                </PressableScale>
                 <View style={styles.taskActions}>
                   {item.sourceUrl && (
-                    <Pressable onPress={() => Linking.openURL(item.sourceUrl!)}>
+                    <PressableScale onPress={() => Linking.openURL(item.sourceUrl!)}>
                       <ThemedText type="small" themeColor="primary">
                         {item.source === 'gitlab' ? 'GitLab' : 'GitHub'} ↗
                       </ThemedText>
-                    </Pressable>
+                    </PressableScale>
                   )}
-                  <Pressable
+                  <PressableScale
                     onPress={() => data.advanceTaskStatus(user!.uid, item, nextStatus(item.status))}
                     style={[styles.pillButton, { borderColor: theme.border }]}>
                     <ThemedText type="small">{STATUS_LABEL[nextStatus(item.status)]}</ThemedText>
-                  </Pressable>
-                  <Pressable
+                  </PressableScale>
+                  <PressableScale
                     onPress={() =>
                       confirmDestructive({
                         title: 'Delete this task?',
@@ -462,7 +462,7 @@ export default function TasksScreen() {
                     <ThemedText type="small" themeColor="danger">
                       Delete
                     </ThemedText>
-                  </Pressable>
+                  </PressableScale>
                 </View>
               </ThemedView>
             )

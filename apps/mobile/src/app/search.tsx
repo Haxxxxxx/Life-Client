@@ -6,10 +6,10 @@ import {
 import { data, visibleGoals, visibleTasks } from '@life-client/shared';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ErrorBanner } from '@/components/ui';
+import { ErrorBanner, PressableScale } from '@/components/ui';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Common } from '@/constants/styles';
@@ -97,7 +97,7 @@ export default function SearchScreen() {
             )
           }
           renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(item.href)} style={[styles.row, { borderColor: theme.border }]}>
+            <PressableScale onPress={() => router.push(item.href)} style={[styles.row, { borderColor: theme.border }]}>
               <View style={[Common.badge, { borderColor: theme.border, backgroundColor: theme.accent }]}>
                 <ThemedText type="code" style={Common.badgeText}>
                   {item.kind}
@@ -106,7 +106,7 @@ export default function SearchScreen() {
               <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
                 {item.title}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           )}
         />
       </SafeAreaView>

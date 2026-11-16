@@ -29,13 +29,13 @@ import {
   parsePositiveInt,
 } from '@life-client/shared';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, Legend, withAlpha } from '@/components/charts';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner, SkeletonList } from '@/components/ui';
+import { ErrorBanner, PressableScale, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -79,14 +79,14 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         {(['endurance', 'strength'] as const).map((k) => {
           const active = k === kind;
           return (
-            <Pressable
+            <PressableScale
               key={k}
               onPress={() => handleKindChange(k)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {k === 'endurance' ? 'Endurance' : 'Strength'}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -95,7 +95,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         {presets.map((p) => {
           const active = p === type && !customType;
           return (
-            <Pressable
+            <PressableScale
               key={p}
               onPress={() => {
                 setType(p);
@@ -103,7 +103,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
               }}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
               <ThemedText type="small">{p}</ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -178,7 +178,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         </View>
       )}
 
-      <Pressable
+      <PressableScale
         onPress={() =>
           onSubmit({
             kind,
@@ -197,7 +197,7 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
         <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
           Log it
         </ThemedText>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -322,14 +322,14 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         {(['endurance', 'strength'] as const).map((k) => {
           const active = k === kind;
           return (
-            <Pressable
+            <PressableScale
               key={k}
               onPress={() => handleKindChange(k)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {k === 'endurance' ? 'Endurance' : 'Strength'}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -337,7 +337,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         {presets.map((p) => {
           const active = p === exerciseType && !customType;
           return (
-            <Pressable
+            <PressableScale
               key={p}
               onPress={() => {
                 setExerciseType(p);
@@ -345,7 +345,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
               }}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
               <ThemedText type="small">{p}</ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -360,14 +360,14 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         {availableMetrics.map((m) => {
           const active = m.id === metric;
           return (
-            <Pressable
+            <PressableScale
               key={m.id}
               onPress={() => handleMetricChange(m.id)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {m.label}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -408,7 +408,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         </View>
       </View>
       {formError ? <ErrorBanner>{formError}</ErrorBanner> : null}
-      <Pressable
+      <PressableScale
         onPress={() => {
           // parsePositive rejects negatives, which used to pass straight
           // through `Number(x) || 1`. A -5 km daily target satisfied
@@ -444,7 +444,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
         <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
           Start challenge
         </ThemedText>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -536,38 +536,38 @@ function ChallengeCard({
               </View>
             </View>
             <View style={styles.challengeActions}>
-              <Pressable onPress={save}>
+              <PressableScale onPress={save}>
                 <ThemedText type="small" themeColor="primary" style={{ fontWeight: '700' }}>
                   Save
                 </ThemedText>
-              </Pressable>
-              <Pressable onPress={() => setEditing(false)}>
+              </PressableScale>
+              <PressableScale onPress={() => setEditing(false)}>
                 <ThemedText type="small" themeColor="textSecondary">
                   Cancel
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
         ) : (
-          <Pressable style={{ flex: 1 }} onPress={startEdit}>
+          <PressableScale style={{ flex: 1 }} onPress={startEdit}>
             <ThemedText type="smallBold">{challenge.title}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {challenge.exerciseType} · {formatMetricValue(challenge.metric, challenge.dailyTarget)}/day
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         )}
         {!editing && (
           <View style={styles.challengeActions}>
-            <Pressable onPress={onArchive}>
+            <PressableScale onPress={onArchive}>
               <ThemedText type="small" themeColor="textSecondary">
                 Archive
               </ThemedText>
-            </Pressable>
-            <Pressable onPress={onDelete}>
+            </PressableScale>
+            <PressableScale onPress={onDelete}>
               <ThemedText type="small" themeColor="danger">
                 Delete
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           </View>
         )}
       </View>
@@ -595,13 +595,13 @@ function ChallengeCard({
           </ThemedText>
         </View>
         {canLogToday && (
-          <Pressable hitSlop={10}
+          <PressableScale hitSlop={10}
             onPress={onLogToday}
             style={[styles.logTodayButton, { backgroundColor: theme.primary, borderColor: theme.border }]}>
             <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
               Log today
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         )}
         {!progress.isFinished && todayEntry?.completed && (
           <View style={[styles.doneTodayBadge, { borderColor: theme.border, backgroundColor: theme.primary }]}>
@@ -729,13 +729,13 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
           <ThemedText type="subtitle">Challenges</ThemedText>
         </View>
         {!formOpen && (
-          <Pressable
+          <PressableScale
             onPress={() => setFormOpen(true)}
             style={[Common.logToggle, { borderColor: theme.border }]}>
             <ThemedText type="small" style={{ fontWeight: '700' }}>
               New challenge
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         )}
       </View>
       {formOpen && <ChallengeForm onSubmit={handleCreate} />}
@@ -833,13 +833,13 @@ export default function SportsScreen() {
               <ThemedText type="subtitle">Sports</ThemedText>
             </View>
             {!formOpen && (
-              <Pressable
+              <PressableScale
                 onPress={() => setFormOpen(true)}
                 style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
                 <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
                   Log activity
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             )}
           </View>
           <ThemedText themeColor="textSecondary">Synced from Strava, or logged by hand.</ThemedText>
@@ -914,11 +914,11 @@ export default function SportsScreen() {
                   </>
                 )}
                 {item.provider === 'manual' && user && (
-                  <Pressable onPress={() => data.deleteSportActivity(user.uid, item.id)}>
+                  <PressableScale onPress={() => data.deleteSportActivity(user.uid, item.id)}>
                     <ThemedText type="small" themeColor="danger">
                       Delete
                     </ThemedText>
-                  </Pressable>
+                  </PressableScale>
                 )}
               </View>
             </ThemedView>

@@ -6,11 +6,11 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { AppState, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { ErrorBanner } from '@/components/ui';
+import { ErrorBanner, PressableScale } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
@@ -166,15 +166,15 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <SectionHeader eyebrow="History" title="Recently Played" />
-        <Pressable hitSlop={10} onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
+        <PressableScale hitSlop={10} onPress={handleSync} disabled={syncing} style={[styles.syncButton, { borderColor: theme.border }]}>
           <ThemedText type="small">{syncing ? 'Syncing…' : 'Sync now'}</ThemedText>
-        </Pressable>
+        </PressableScale>
       </View>
       <ErrorBanner>{error}</ErrorBanner>
       {summary && summary.recentTracks.length > 0 ? (
         <ScrollView style={styles.trackListScroll} nestedScrollEnabled contentContainerStyle={styles.list}>
           {summary.recentTracks.map((track) => (
-            <Pressable key={`${track.id}-${track.playedAt}`} onPress={() => track.url && Linking.openURL(track.url)}>
+            <PressableScale key={`${track.id}-${track.playedAt}`} onPress={() => track.url && Linking.openURL(track.url)}>
               <ThemedView type="backgroundElement" style={[styles.trackRow, { borderColor: theme.border }]}>
                 {track.albumArtUrl && (
                   <Image source={{ uri: track.albumArtUrl }} style={[styles.trackArt, { borderColor: theme.border }]} />
@@ -191,7 +191,7 @@ function RecentTracksSection({ summary }: { summary: SpotifySummary | null }) {
                   {new Date(track.playedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                 </ThemedText>
               </ThemedView>
-            </Pressable>
+            </PressableScale>
           ))}
         </ScrollView>
       ) : (

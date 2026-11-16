@@ -7,10 +7,11 @@ import {
 import { data } from '@life-client/shared';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { PressableScale } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
@@ -127,7 +128,7 @@ export default function IntegrationsScreen() {
                         ? `Connected${connection?.externalAccountLabel ? ` · ${connection.externalAccountLabel}` : ''}`
                         : 'Not connected'}
                     </ThemedText>
-                    <Pressable
+                    <PressableScale
                       onPress={() => handleToggle(provider, connected)}
                       disabled={missingWebAppUrl || pending !== null}
                       accessibilityRole="button"
@@ -146,7 +147,7 @@ export default function IntegrationsScreen() {
                         style={connected ? undefined : { color: theme.primaryForeground, fontWeight: '700' }}>
                         {pending === provider ? '…' : connected ? 'Disconnect' : 'Connect'}
                       </ThemedText>
-                    </Pressable>
+                    </PressableScale>
                   </View>
                 </ThemedView>
               );

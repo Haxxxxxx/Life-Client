@@ -9,11 +9,11 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Linking, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { ErrorBanner } from '@/components/ui';
+import { ErrorBanner, PressableScale } from '@/components/ui';
 import { ThemedView } from '@/components/themed-view';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
@@ -145,7 +145,7 @@ function EventForm({
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <View style={styles.formActions}>
-        <Pressable
+        <PressableScale
           disabled={!canSubmit}
           onPress={() =>
             canSubmit &&
@@ -161,12 +161,12 @@ function EventForm({
           }
           style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: canSubmit ? 1 : 0.5 }]}>
           <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>{submitLabel}</ThemedText>
-        </Pressable>
-        <Pressable onPress={onCancel}>
+        </PressableScale>
+        <PressableScale onPress={onCancel}>
           <ThemedText type="small" themeColor="textSecondary">
             Cancel
           </ThemedText>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -236,13 +236,13 @@ export default function AgendaScreen() {
             </ThemedText>
           </View>
           {!formOpen && (
-            <Pressable
+            <PressableScale
               onPress={() => setFormOpen(true)}
               style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
               <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
                 New event
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           )}
         </View>
 
@@ -284,7 +284,7 @@ export default function AgendaScreen() {
                   </ThemedView>
                 ) : (
                   <ThemedView key={event.id} type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
-                    <Pressable style={styles.cardInfo} onPress={() => setEditingId(event.id)}>
+                    <PressableScale style={styles.cardInfo} onPress={() => setEditingId(event.id)}>
                       <ThemedText type="smallBold" numberOfLines={1}>
                         {event.title}
                       </ThemedText>
@@ -296,22 +296,22 @@ export default function AgendaScreen() {
                           {event.location}
                         </ThemedText>
                       )}
-                    </Pressable>
+                    </PressableScale>
                     <View style={styles.cardActions}>
                       {event.url && (
-                        <Pressable
+                        <PressableScale
                           onPress={() => Linking.openURL(event.url!)}
                           style={[styles.openButton, { borderColor: theme.border }]}>
                           <ThemedText type="small" style={styles.openButtonText}>
                             Open
                           </ThemedText>
-                        </Pressable>
+                        </PressableScale>
                       )}
-                      <Pressable onPress={() => handleDelete(event.id)}>
+                      <PressableScale onPress={() => handleDelete(event.id)}>
                         <ThemedText type="small" themeColor="danger">
                           Delete
                         </ThemedText>
-                      </Pressable>
+                      </PressableScale>
                     </View>
                   </ThemedView>
                 ),

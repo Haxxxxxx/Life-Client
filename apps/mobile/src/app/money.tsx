@@ -19,11 +19,11 @@ import {
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarTrend, ChartCard, Donut, Legend, withAlpha } from '@/components/charts';
-import { ErrorBanner } from '@/components/ui';
+import { ErrorBanner, PressableScale } from '@/components/ui';
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -143,14 +143,14 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         {(['expense', 'income'] as const).map((t) => {
           const active = type === t;
           return (
-            <Pressable
+            <PressableScale
               key={t}
               onPress={() => setType(t)}
               style={[styles.typeButton, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {t}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -166,14 +166,14 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         {TRANSACTION_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
-            <Pressable
+            <PressableScale
               key={c.id}
               onPress={() => setCategory(c.id)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {c.label}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -192,7 +192,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
       <RecurrencePicker value={recurrence} onChange={setRecurrence} noneLabel="One-time" />
-      <Pressable
+      <PressableScale
         disabled={!canSubmit}
         onPress={() =>
           onSubmit({
@@ -206,7 +206,7 @@ function TransactionForm({ onSubmit }: { onSubmit: (input: NewTransaction) => vo
         }
         style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: canSubmit ? 1 : 0.5 }]}>
         <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Log it</ThemedText>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -223,14 +223,14 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
         {TRANSACTION_CATEGORIES.map((c) => {
           const active = c.id === category;
           return (
-            <Pressable
+            <PressableScale
               key={c.id}
               onPress={() => setCategory(c.id)}
               style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
               <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {c.label}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -242,12 +242,12 @@ function BudgetForm({ onSubmit }: { onSubmit: (input: NewBudget) => void }) {
         keyboardType="decimal-pad"
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
-      <Pressable
+      <PressableScale
         disabled={!monthlyLimit.trim() || parsedLimit <= 0}
         onPress={() => onSubmit({ category, monthlyLimit: parsedLimit })}
         style={[styles.addButton, { backgroundColor: theme.primary, borderColor: theme.border, opacity: parsedLimit > 0 ? 1 : 0.5 }]}>
         <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Set budget</ThemedText>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -342,13 +342,13 @@ export default function MoneyScreen() {
               Log a transaction
             </ThemedText>
             {!txFormOpen && (
-              <Pressable
+              <PressableScale
                 onPress={() => setTxFormOpen(true)}
                 style={[Common.logToggle, { backgroundColor: theme.primary, borderColor: theme.border }]}>
                 <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
                   New transaction
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             )}
           </View>
           {txFormOpen && <TransactionForm onSubmit={handleAddTransaction} />}
@@ -358,13 +358,13 @@ export default function MoneyScreen() {
               Budgets
             </ThemedText>
             {!budgetFormOpen && (
-              <Pressable
+              <PressableScale
                 onPress={() => setBudgetFormOpen(true)}
                 style={[styles.smallOutlineButton, { borderColor: theme.border }]}>
                 <ThemedText type="small" style={{ fontWeight: '700' }}>
                   New budget
                 </ThemedText>
-              </Pressable>
+              </PressableScale>
             )}
           </View>
           {budgetFormOpen && <BudgetForm onSubmit={handleAddBudget} />}
@@ -382,7 +382,7 @@ export default function MoneyScreen() {
                       <ThemedText type="code" style={over ? { color: theme.danger } : undefined} themeColor={over ? undefined : 'textSecondary'}>
                         {formatMoney(status.spent)} / {formatMoney(status.limit)}
                       </ThemedText>
-                      <Pressable
+                      <PressableScale
                         onPress={() =>
                           user &&
                           confirmDestructive({
@@ -394,7 +394,7 @@ export default function MoneyScreen() {
                         <ThemedText type="small" themeColor="danger">
                           Delete
                         </ThemedText>
-                      </Pressable>
+                      </PressableScale>
                     </View>
                   </View>
                   <View style={[styles.progressTrack, { borderColor: theme.border }]}>
@@ -452,7 +452,7 @@ export default function MoneyScreen() {
                     {tx.type === 'expense' ? '-' : '+'}
                     {formatMoney(tx.amount)}
                   </ThemedText>
-                  <Pressable
+                  <PressableScale
                     onPress={() =>
                       user &&
                       confirmDestructive({
@@ -464,7 +464,7 @@ export default function MoneyScreen() {
                     <ThemedText type="small" themeColor="danger">
                       Delete
                     </ThemedText>
-                  </Pressable>
+                  </PressableScale>
                 </View>
               </View>
             ))}

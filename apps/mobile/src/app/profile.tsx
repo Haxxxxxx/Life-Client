@@ -29,12 +29,12 @@ import {
 } from '@life-client/shared';
 import { data, parsePositiveInt } from '@life-client/shared';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ErrorBanner } from '@/components/ui';
+import { ErrorBanner, PressableScale } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -81,7 +81,7 @@ function LogEventForm({
         {MANUAL_EVENT_TYPES.map((t) => {
           const active = t.id === eventType;
           return (
-            <Pressable
+            <PressableScale
               key={t.id}
               onPress={() => setEventType(t.id)}
               style={[
@@ -98,7 +98,7 @@ function LogEventForm({
               >
                 {t.label}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -133,7 +133,7 @@ function LogEventForm({
         placeholderTextColor={theme.textSecondary}
         style={[Common.input, { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.background }]}
       />
-      <Pressable
+      <PressableScale
         onPress={() =>
           onSubmit({
             eventType,
@@ -152,7 +152,7 @@ function LogEventForm({
         <ThemedText type="small" style={{ color: theme.primaryForeground, fontWeight: '700' }}>
           Log it
         </ThemedText>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -197,9 +197,9 @@ function CharacteristicCard({
           {level.xpIntoLevel} / {level.xpForNextLevel} XP
         </ThemedText>
         {onLogEvent && !formOpen && (
-          <Pressable onPress={() => setFormOpen(true)} style={[styles.logToggle, { borderColor: theme.border }]}>
+          <PressableScale onPress={() => setFormOpen(true)} style={[styles.logToggle, { borderColor: theme.border }]}>
             <ThemedText type="small">Log event</ThemedText>
-          </Pressable>
+          </PressableScale>
         )}
       </View>
       {manualProgress?.lastEventType && !formOpen && (
@@ -374,11 +374,11 @@ export default function ProfileScreen() {
             ))}
           </View>
 
-          <Pressable onPress={() => signOutUser()} style={styles.signOut}>
+          <PressableScale onPress={() => signOutUser()} style={styles.signOut}>
             <ThemedText type="small" themeColor="primary">
               Sign out
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
