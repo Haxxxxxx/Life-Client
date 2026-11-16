@@ -580,9 +580,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
       )}
 
       {error && (
-        <ThemedText themeColor="text" style={styles.error}>
-          {error}
-        </ThemedText>
+        <ErrorBanner>{error}</ErrorBanner>
       )}
 
       <View style={{ gap: Spacing.two }}>
@@ -930,7 +928,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardActionsRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  error: {},
   reminderCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',

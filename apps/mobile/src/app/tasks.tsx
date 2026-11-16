@@ -24,7 +24,7 @@ import { BarTrend, ChartCard, countPerDay, lastNDays, weekdayInitial } from '@/c
 import { RecurrencePicker } from '@/components/recurrence-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { SkeletonList } from '@/components/ui';
+import { ErrorBanner, SkeletonList } from '@/components/ui';
 import { Common } from '@/constants/styles';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -341,9 +341,7 @@ export default function TasksScreen() {
         </View>
 
         {error && (
-          <ThemedText themeColor="text" style={styles.error}>
-            {error}
-          </ThemedText>
+          <ErrorBanner style={styles.errorSpacing}>{error}</ErrorBanner>
         )}
 
         <FlatList
@@ -505,7 +503,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     alignItems: 'center',
   },
-  error: { marginTop: Spacing.two },
+  errorSpacing: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   chartSection: { marginBottom: Spacing.two },
   taskCard: {

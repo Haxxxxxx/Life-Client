@@ -131,7 +131,7 @@ function DailyLessonSection() {
           </Pressable>
         </ThemedView>
       )}
-      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
+      <ErrorBanner>{error}</ErrorBanner>
     </View>
   );
 }
@@ -251,7 +251,7 @@ function DrillCard({
         </View>
       )}
 
-      {error && <ThemedText themeColor="danger" style={styles.spacedTop}>{error}</ThemedText>}
+      <ErrorBanner style={styles.spacedTop}>{error}</ErrorBanner>
 
       {result && (
         <View style={[styles.resultBox, { borderColor: resultColor, backgroundColor: `${resultColor}1A` }]}>
@@ -414,7 +414,7 @@ function CodeDrillsSection({ drills, loaded }: { drills: CodeDrill[]; loaded: bo
           </ThemedText>
         </Pressable>
       </View>
-      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
+      <ErrorBanner>{error}</ErrorBanner>
       <View style={styles.list}>
         {drills[0] ? (
           <DrillCard
@@ -520,7 +520,7 @@ function VocabCard({ w }: { w: VocabWord }) {
             {submitting ? 'Checking…' : 'Check my sentence'}
           </ThemedText>
         </Pressable>
-        {error && <ThemedText themeColor="danger">{error}</ThemedText>}
+        <ErrorBanner>{error}</ErrorBanner>
         {result && (
           <View style={[styles.resultBox, { borderColor: resultColor, backgroundColor: `${resultColor}1A` }]}>
             <ThemedText type="code" style={{ color: resultColor }}>
@@ -600,7 +600,7 @@ function VocabularySection({ words }: { words: VocabWord[] }) {
           </ThemedText>
         </Pressable>
       </View>
-      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
+      <ErrorBanner>{error}</ErrorBanner>
       <View style={styles.list}>
         {activeWords.map((w) => (
           <VocabCard key={w.id} w={w} />
@@ -688,7 +688,7 @@ function ReadingListSection({ items }: { items: ReadingListItem[] }) {
           <ThemedText style={{ color: theme.primaryForeground, fontWeight: '700' }}>Add</ThemedText>
         </Pressable>
       </View>
-      {error && <ThemedText themeColor="danger">{error}</ThemedText>}
+      <ErrorBanner>{error}</ErrorBanner>
       <View style={styles.list}>
         {items.map((item) => (
           <ThemedView key={item.id} type="backgroundElement" style={[styles.listCard, { borderColor: theme.border }]}>

@@ -740,9 +740,7 @@ function ChallengesSection({ activities }: { activities: SportActivity[] }) {
       </View>
       {formOpen && <ChallengeForm onSubmit={handleCreate} />}
       {error && (
-        <ThemedText themeColor="text" style={styles.error}>
-          {error}
-        </ThemedText>
+        <ErrorBanner style={styles.errorSpacing}>{error}</ErrorBanner>
       )}
       {activeChallenges.length > 0 ? (
         <View style={{ gap: Spacing.two }}>
@@ -849,9 +847,7 @@ export default function SportsScreen() {
 
         {formOpen && <LogActivityForm onSubmit={handleLog} />}
         {error && (
-          <ThemedText themeColor="text" style={styles.error}>
-            {error}
-          </ThemedText>
+          <ErrorBanner style={styles.errorSpacing}>{error}</ErrorBanner>
         )}
 
         <FlatList
@@ -935,7 +931,7 @@ export default function SportsScreen() {
 
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two },
-  error: { marginTop: Spacing.two },
+  errorSpacing: { marginTop: Spacing.two },
   listContent: { paddingVertical: Spacing.four, gap: Spacing.two },
   card: {
     flexDirection: 'row',
