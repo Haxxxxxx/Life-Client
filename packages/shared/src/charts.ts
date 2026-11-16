@@ -1,6 +1,6 @@
 import { monthKey } from "./finance";
 import { toDateStr } from "./streaks";
-import type { Goal, Transaction } from "./types";
+import type { Goal, Transaction, TransactionCategory } from "./types";
 
 /**
  * Chart transforms shared by every client.
@@ -164,4 +164,64 @@ export function startOfWeek(date: Date): Date {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   return d;
+}
+
+export interface SpendingSlice {
+  /** The category this slice represents, or "other" once it is a roll-up. */
+  category: TransactionCategory;
+  value: number;
+}
+
+/**
+ * This month's expenses as donut slices, largest first, with the tail rolled
+ * into a single "other".
+ *
+ * Both clients built this independently — same ranking, same roll-up, the same
+ * comment about the real "other" category — and differed only in how they
+ * coloured the result. Identical logic written twice is how the goal-status
+ * counting came to disagree between platforms, which the comment in
+ * GoalStatusChart still describes. Colour stays at the call site, because web
+ * tints a CSS variable and mobile alpha-blends a theme value.
+ *
+ * `maxSlices` counts the roll-up, so 5 means four named categories plus
+ * "other".
+ */
+export function spendingSlices(
+  transactions: Transaction[],
+  month: string,
+  maxSlices: number,
+): SpendingSlice[] {
+  const totals = new Map<TransactionCategory, number>();
+  for (const t of transactions) {
+    if (t.type !== "expense" || !t.date.startsWith(month)) continue;
+    totals.set(t.category, (totals.get(t.category) ?? 0) + t.amount);
+  }
+
+  const ranked = [...totals]
+    .map(([category, value]) => ({ category, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // The real "other" category always folds into the tail, so it cannot appear
+  // twice — once as itself and once inside the roll-up.
+  const named = ranked.filter((c) => c.category !== "other");
+  const top = named.slice(0, maxSlices - 1);
+  const rest = [...named.slice(maxSlices - 1), ...ranked.filter((c) => c.category === "other")];
+
+  const slices: SpendingSlice[] = [...top];
+  if (rest.length > 0) {
+    slices.push({
+      // A tail of exactly one keeps its own name rather than being relabelled
+      // "Other", which would hide a category for no benefit.
+      category: rest.length === 1 ? rest[0]!.category : "other",
+      value: rest.reduce((sum, c) => sum + c.value, 0),
+    });
+  }
+  return slices;
+}
+
+/** Everything spent this month, across every category. */
+export function spendingTotal(transactions: Transaction[], month: string): number {
+  return transactions
+    .filter((t) => t.type === "expense" && t.date.startsWith(month))
+    .reduce((sum, t) => sum + t.amount, 0);
 }

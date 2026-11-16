@@ -8,6 +8,8 @@ import {
   monthKey,
   monthlyMoneyTrend,
   nextOccurrenceDate,
+  spendingSlices,
+  spendingTotal,
   toDateStr,
   type Budget,
   type NewBudget,
@@ -44,36 +46,18 @@ const DONUT_TINTS = [1, 0.72, 0.5, 0.34, 0.22];
 const DONUT_MAX_SLICES = DONUT_TINTS.length;
 const TREND_MONTHS = 6;
 
-function spendByCategory(transactions: Transaction[], month: string): { category: TransactionCategory; amount: number }[] {
-  const totals = new Map<TransactionCategory, number>();
-  for (const t of transactions) {
-    if (t.type !== 'expense' || !t.date.startsWith(month)) continue;
-    totals.set(t.category, (totals.get(t.category) ?? 0) + t.amount);
-  }
-  return [...totals].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
-}
-
 function SpendingCharts({ transactions, month }: { transactions: Transaction[]; month: string }) {
   const theme = useTheme();
   const { slices, monthTotal, trend, net, hasTrend } = useMemo(() => {
-    const byCategory = spendByCategory(transactions, month);
-    // The real "other" category always folds into the tail bucket so it can't collide with the rolled-up "Other" slice.
-    const ranked = byCategory.filter((c) => c.category !== 'other');
-    const top = ranked.slice(0, DONUT_MAX_SLICES - 1);
-    const rest = [...ranked.slice(DONUT_MAX_SLICES - 1), ...byCategory.filter((c) => c.category === 'other')];
-    const slices = [
-      ...top.map((c, i) => ({ label: CATEGORY_LABEL[c.category], value: c.amount, color: withAlpha(theme.primary, DONUT_TINTS[i]!) })),
-      ...(rest.length > 0
-        ? [
-            {
-              label: rest.length === 1 ? CATEGORY_LABEL[rest[0]!.category] : CATEGORY_LABEL.other,
-              value: rest.reduce((sum, c) => sum + c.amount, 0),
-              color: withAlpha(theme.primary, DONUT_TINTS[DONUT_MAX_SLICES - 1]!),
-            },
-          ]
-        : []),
-    ];
-    const monthTotal = byCategory.reduce((sum, c) => sum + c.amount, 0);
+    // Ranking and the "other" roll-up are shared with web, which had the same
+    // algorithm written out separately. Only the colour is decided here: web
+    // tints a CSS variable, this alpha-blends the theme value.
+    const slices = spendingSlices(transactions, month, DONUT_MAX_SLICES).map((slice, i) => ({
+      label: CATEGORY_LABEL[slice.category],
+      value: slice.value,
+      color: withAlpha(theme.primary, DONUT_TINTS[Math.min(i, DONUT_TINTS.length - 1)]!),
+    }));
+    const monthTotal = spendingTotal(transactions, month);
     // Shared with web, which already suppressed an all-zero trend. This screen
     // rendered it whenever any transaction existed, so a user whose history
     // was all older than the window got six invisible bars and "Net +$0".

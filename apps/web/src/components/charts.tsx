@@ -7,6 +7,8 @@ import {
   lastNDays,
   monthKey,
   monthlyMoneyTrend,
+  spendingSlices,
+  spendingTotal,
   startOfWeek,
   taskCompletedIso,
   type Goal,
@@ -182,43 +184,24 @@ interface MonthRow {
 // midnight and shift first-of-month entries into the previous month west of UTC.
 function buildMoneyCharts(transactions: Transaction[]) {
   const thisMonth = monthKey();
-  const byCategory = new Map<TransactionCategory, number>();
-  // Shared with mobile so the two cannot drift — mobile used to render this
-  // trend whenever any transaction existed, however old, producing six
-  // invisible bars and a "Net +$0" summary.
+  // Both shared with mobile so the two cannot drift — mobile used to render
+  // this trend whenever any transaction existed, however old, producing six
+  // invisible bars and a "Net +$0" summary. The donut ranking and its "other"
+  // roll-up were written out separately on each platform until now; only the
+  // colour is still decided here, because web tints a CSS variable where
+  // mobile alpha-blends a theme value.
   const { rows: trend, net, hasTrend } = monthlyMoneyTrend(transactions, TREND_MONTHS);
-
-  for (const t of transactions) {
-    const month = t.date.slice(0, 7);
-    if (t.type === "expense" && month === thisMonth) {
-      byCategory.set(t.category, (byCategory.get(t.category) ?? 0) + t.amount);
-    }
-  }
-
-  const ranked = [...byCategory]
-    .map(([category, amount]) => ({ category, amount }))
-    .sort((a, b) => b.amount - a.amount);
-  // The real "other" category always folds into the tail bucket so it can't
-  // collide with the rolled-up "Other" slice.
-  const named = ranked.filter((c) => c.category !== "other");
-  const top = named.slice(0, DONUT_TINTS.length - 1);
-  const rest = [...named.slice(DONUT_TINTS.length - 1), ...ranked.filter((c) => c.category === "other")];
-  const slices: DonutSlice[] = top.map((c, i) => ({
-    label: CATEGORY_LABEL[c.category],
-    value: c.amount,
-    fill: tint(DONUT_TINTS[i]!),
-  }));
-  if (rest.length > 0) {
-    slices.push({
-      label: rest.length === 1 ? CATEGORY_LABEL[rest[0]!.category] : CATEGORY_LABEL.other,
-      value: rest.reduce((sum, c) => sum + c.amount, 0),
-      fill: tint(DONUT_TINTS[DONUT_TINTS.length - 1]!),
-    });
-  }
+  const slices: DonutSlice[] = spendingSlices(transactions, thisMonth, DONUT_TINTS.length).map(
+    (slice, i) => ({
+      label: CATEGORY_LABEL[slice.category],
+      value: slice.value,
+      fill: tint(DONUT_TINTS[Math.min(i, DONUT_TINTS.length - 1)]!),
+    }),
+  );
 
   return {
     slices,
-    monthTotal: ranked.reduce((sum, c) => sum + c.amount, 0),
+    monthTotal: spendingTotal(transactions, thisMonth),
     trend,
     net,
     hasTrend,
