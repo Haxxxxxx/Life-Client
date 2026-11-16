@@ -107,7 +107,13 @@ function Donut({
           endAngle={-270}
           paddingAngle={visible.length > 1 ? 2 : 0}
           stroke="var(--surface)"
-          strokeWidth={2}
+          // 0 for a single slice. The stroke is drawn on each slice's
+          // boundary, and a lone slice spanning the full 360 degrees has its
+          // start and end at the same place — so the 2px stroke lands on top
+          // of itself at twelve o'clock and reads as a notch cut out of an
+          // otherwise solid ring. Mobile's Donut already did this; web did
+          // not, which is why the Goals donut shows a seam at 100%.
+          strokeWidth={visible.length > 1 ? 2 : 0}
           isAnimationActive={false}
         />
         <Tooltip
@@ -414,6 +420,13 @@ export function GoalStatusChart({ goals }: { goals: Goal[] }) {
     () => GOAL_STATUS_SLICES.map((s) => ({ label: s.label, value: counts[s.status], fill: s.fill })),
     [counts],
   );
+  // One filtered list for both the donut and its legend. Donut drops
+  // zero-value slices internally, but the legend was mapping the unfiltered
+  // array — so a board with no archived goals still showed "Archived 0" with
+  // a colour swatch for a segment that is not in the chart. A legend that
+  // describes slices the chart does not draw is worse than no legend.
+  const shown = useMemo(() => slices.filter((s) => s.value > 0), [slices]);
+  const shownTotal = shown.reduce((sum, s) => sum + s.value, 0);
 
   return (
     // "of decided", not "of every goal". Archived goals were dropped rather
@@ -425,8 +438,15 @@ export function GoalStatusChart({ goals }: { goals: Goal[] }) {
       headline={`${counts.completed} of ${counts.decided} completed`}
     >
       <div className="flex flex-col items-center gap-4 sm:flex-row">
-        <Donut slices={slices} centerValue={String(goals.length)} centerCaption="goals" formatValue={(v) => plural(v, "goal")} />
-        <Legend vertical items={slices.map((s) => ({ label: s.label, color: s.fill, value: String(s.value) }))} />
+        <Donut slices={shown} centerValue={String(goals.length)} centerCaption="goals" formatValue={(v) => plural(v, "goal")} />
+        <Legend
+          vertical
+          items={shown.map((s) => ({
+            label: s.label,
+            color: s.fill,
+            value: `${s.value} · ${Math.round((s.value / shownTotal) * 100)}%`,
+          }))}
+        />
       </div>
     </ChartCard>
   );
