@@ -70,7 +70,12 @@ export function computeChallengeProgress(
   now: Date = new Date(),
 ): ChallengeProgress {
   const today = toDateStr(now);
-  const endDate = addDays(challenge.startDate, challenge.durationDays - 1);
+  // Clamped rather than trusted. These values reach us from a form and from
+  // whatever is already stored, and `dates` below is an unbounded walk from the
+  // start date, so a duration of 0 or 400,000 is the difference between a
+  // rendered card and a frozen one.
+  const durationDays = Math.min(Math.max(1, Math.floor(challenge.durationDays || 1)), MAX_CHALLENGE_DAYS);
+  const endDate = addDays(challenge.startDate, durationDays - 1);
   const isFinished = today > endDate;
   const lastDay = isFinished ? endDate : today;
   const dates = challenge.startDate <= lastDay ? dateRange(challenge.startDate, lastDay) : [];
@@ -91,9 +96,14 @@ export function computeChallengeProgress(
     valueByDate.set(date, (valueByDate.get(date) ?? 0) + contribution);
   }
 
+  // A non-positive daily target is unreachable, not trivially met. Stored as
+  // -5000 (a "-5 km" target typed into the form), `value >= dailyTarget` held
+  // on every single day, so an untouched challenge reported a full streak and
+  // a 100% completion rate without a single logged activity.
+  const target = challenge.dailyTarget;
   const days: ChallengeDayStatus[] = dates.map((date) => {
     const value = valueByDate.get(date) ?? 0;
-    return { date, value, completed: value >= challenge.dailyTarget };
+    return { date, value, completed: target > 0 && value >= target };
   });
 
   return {
@@ -106,6 +116,17 @@ export function computeChallengeProgress(
   };
 }
 
+/**
+ * Upper bound on a challenge's length, in days.
+ *
+ * computeChallengeProgress walks every day from the start date, so the only
+ * thing keeping that loop small is the challenge's own duration. A year-1000
+ * start date once made it iterate about 365,000 days on every render of every
+ * card. Mobile clamped its form input to this; it belongs here, where the
+ * invariant it protects actually lives.
+ */
+export const MAX_CHALLENGE_DAYS = 3660;
+
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
 
 /** Fixed checkpoints at 25/50/75/100% of the challenge's duration, derived from already-tracked progress. */
@@ -113,7 +134,10 @@ export function computeChallengeMilestones(
   challenge: Challenge,
   progress: ChallengeProgress,
 ): ChallengeMilestone[] {
-  const percentDone = (progress.completedCount / challenge.durationDays) * 100;
+  // durationDays of 0 would make this NaN, and every `NaN >= threshold`
+  // comparison below silently false.
+  const durationDays = Math.max(1, Math.floor(challenge.durationDays || 1));
+  const percentDone = (progress.completedCount / durationDays) * 100;
   return MILESTONE_THRESHOLDS.map((thresholdPercent) => ({
     thresholdPercent,
     label: thresholdPercent === 100 ? "Complete" : `${thresholdPercent}%`,

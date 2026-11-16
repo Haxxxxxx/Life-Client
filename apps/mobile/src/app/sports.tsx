@@ -1,6 +1,7 @@
 import {
   DEFAULT_TARGET_FOR_METRIC,
   ENDURANCE_EXERCISE_PRESETS,
+  MAX_CHALLENGE_DAYS,
   METRICS_FOR_KIND,
   STRENGTH_EXERCISE_PRESETS,
   buildChallengeTitle,
@@ -220,9 +221,6 @@ const DEFAULT_METRIC_FOR_KIND: Record<SportActivityKind, ChallengeMetric> = {
 
 
 const TREND_WEEKS = 12;
-// A sane upper bound: a year-1000 start date made dateRange iterate about
-// 365,000 days on every render of every challenge card.
-const MAX_CHALLENGE_DAYS = 3660;
 
 // A trend across *all* logged activity — the per-challenge day grid below only
 // covers one exercise type against its target, so this isn't a duplicate of it.
