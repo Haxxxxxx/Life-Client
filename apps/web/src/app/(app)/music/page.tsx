@@ -8,7 +8,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Button, Card, ErrorText, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
+import { Alert, Button, Card, ErrorText, PageHeader, SectionHeader, SkeletonRows, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
@@ -202,6 +202,7 @@ export default function MusicPage() {
   // Keyed on uid rather than a boolean reset inside the effect: setState in an
   // effect body cascades a render, and deriving it stops a user switch from
   // briefly showing the previous account's rows as loaded.
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const loaded = Boolean(user) && loadedFor === user?.uid;
 
@@ -209,14 +210,19 @@ export default function MusicPage() {
   useEffect(() => {
     if (!user) return;
     const uid = user.uid;
-    return data.subscribeSpotifySummary(uid, (next) => {
-      setSummary(next);
-      setLoadedFor(uid);
-    });
+    return data.subscribeSpotifySummary(
+      uid,
+      (next) => {
+        setSummary(next);
+        setLoadedFor(uid);
+      },
+      (err) => setLoadError(err.message),
+    );
   }, [user]);
 
   return (
     <div className={pageShellClassName()}>
+      <Alert>{loadError}</Alert>
       <PageHeader eyebrow="Listen" title="Music" description="Your Spotify listening — live, recent, and in aggregate." />
       <NowPlayingSection />
       {loaded ? (

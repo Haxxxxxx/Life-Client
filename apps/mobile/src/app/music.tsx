@@ -239,15 +239,17 @@ function StatsSection({ summary }: { summary: SpotifySummary | null }) {
 export default function MusicScreen() {
   const { user } = useAuth();
   const [summary, setSummary] = useState<SpotifySummary | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    return data.subscribeSpotifySummary(user.uid, setSummary);
+    return data.subscribeSpotifySummary(user.uid, setSummary, (err) => setLoadError(err.message));
   }, [user]);
 
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ErrorBanner>{loadError}</ErrorBanner>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
             <ThemedText type="code" themeColor="primary" style={styles.eyebrow}>
