@@ -430,6 +430,7 @@ interface DayRow {
 }
 
 export function TasksCompletedChart({ tasks }: { tasks: Task[] }) {
+  const today = toDateStr(new Date());
   const { rows, total } = useMemo(() => {
     const days = lastNDays(COMPLETED_DAYS);
     const counts = countPerDay(completedTaskTimestamps(tasks), days);
@@ -441,7 +442,11 @@ export function TasksCompletedChart({ tasks }: { tasks: Task[] }) {
       })),
       total: counts.reduce((a, b) => a + b, 0),
     };
-  }, [tasks]);
+  // today isn't read in the callback below, but lastNDays defaults its `now` to
+  // new Date(), so it's a real (if invisible-to-the-linter) dependency — without
+  // it the window stays on yesterday's days until `tasks` itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, today]);
 
   return (
     <ChartCard eyebrow={`Completed · last ${COMPLETED_DAYS} days`} headline={`${plural(total, "task")} done`}>
@@ -494,6 +499,7 @@ interface WeekDayRow {
 
 /** Rolls up two already-subscribed streams into one "did I show up this week" view; renders nothing on an empty week. */
 export function WeekActivityChart({ tasks, activities }: { tasks: Task[]; activities: SportActivity[] }) {
+  const today = toDateStr(new Date());
   const { rows, total, activeDays } = useMemo(() => {
     const days = lastNDays(7);
     const taskCounts = countPerDay(completedTaskTimestamps(tasks), days);
@@ -515,7 +521,11 @@ export function WeekActivityChart({ tasks, activities }: { tasks: Task[]; activi
       total: rows.reduce((sum, r) => sum + r.tasks + r.sessions, 0),
       activeDays: rows.filter((r) => r.tasks + r.sessions > 0).length,
     };
-  }, [tasks, activities]);
+  // today isn't read in the callback below, but lastNDays defaults its `now` to
+  // new Date(), so it's a real (if invisible-to-the-linter) dependency — without
+  // it the window stays on yesterday's days until `tasks` itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, activities, today]);
   const taskColor = "var(--primary)";
   const sessionColor = tint(45);
 

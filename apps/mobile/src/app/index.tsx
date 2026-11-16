@@ -11,6 +11,7 @@ import {
   nextOccurrenceDate,
   reminderUrgency,
   syncReminderToCalendar,
+  toDateStr,
   todayLessonId,
   visibleGoals,
   visibleTasks,
@@ -625,6 +626,7 @@ function RemindersSection({ reminders, uid }: { reminders: Reminder[]; uid: stri
 // Rolls up two already-subscribed streams into one "did I show up this week" view.
 function WeekActivity({ tasks, activities }: { tasks: Task[]; activities: SportActivity[] }) {
   const theme = useTheme();
+  const today = toDateStr(new Date());
   const { days, taskCounts, sessionCounts, total, activeDays } = useMemo(() => {
     const days = lastNDays(7);
     const taskCounts = countPerDay(completedTaskTimestamps(tasks), days);
@@ -639,7 +641,11 @@ function WeekActivity({ tasks, activities }: { tasks: Task[]; activities: SportA
       total: [...taskCounts, ...sessionCounts].reduce((a, b) => a + b, 0),
       activeDays: days.filter((_, i) => taskCounts[i]! + sessionCounts[i]! > 0).length,
     };
-  }, [tasks, activities]);
+  // today isn't read in the callback below, but lastNDays defaults its `now` to
+  // new Date(), so it's a real (if invisible-to-the-linter) dependency — without
+  // it the window stays on yesterday's days until `tasks` itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, activities, today]);
   const taskColor = theme.primary;
   const sessionColor = withAlpha(theme.primary, 0.45);
 
