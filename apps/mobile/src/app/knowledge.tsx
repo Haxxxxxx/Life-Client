@@ -491,8 +491,10 @@ function VocabCard({ w }: { w: VocabWord }) {
             <PressableScale
               key={m}
               onPress={() => user && data.setVocabMastery(user.uid, w.id, m)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: w.mastery === m ? theme.accent : 'transparent' }]}>
-              <ThemedText type="code">{MASTERY_LABEL[m]}</ThemedText>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: w.mastery === m ? theme.primary : 'transparent' }]}>
+              <ThemedText type="code" style={w.mastery === m ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                {MASTERY_LABEL[m]}
+              </ThemedText>
             </PressableScale>
           ))}
         </View>

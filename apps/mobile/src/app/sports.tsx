@@ -101,8 +101,10 @@ function LogActivityForm({ onSubmit }: { onSubmit: (input: LogInput) => void }) 
                 setType(p);
                 setCustomType('');
               }}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
-              <ThemedText type="small">{p}</ThemedText>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                {p}
+              </ThemedText>
             </PressableScale>
           );
         })}
@@ -343,8 +345,10 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
                 setExerciseType(p);
                 setCustomType('');
               }}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
-              <ThemedText type="small">{p}</ThemedText>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+                {p}
+              </ThemedText>
             </PressableScale>
           );
         })}

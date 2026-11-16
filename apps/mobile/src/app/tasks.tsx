@@ -125,8 +125,8 @@ function EditTaskForm({
             <PressableScale
               key={d.id}
               onPress={() => setDifficulty(d.id)}
-              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' }]}>
-              <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
+              style={[Common.chip, { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' }]}>
+              <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                 {d.label}
               </ThemedText>
             </PressableScale>
@@ -158,15 +158,19 @@ function EditTaskForm({
       <View style={Common.chipRow}>
         <PressableScale
           onPress={() => setGoalId('')}
-          style={[Common.chip, { borderColor: theme.border, backgroundColor: !goalId ? theme.accent : 'transparent' }]}>
-          <ThemedText type="small">No goal</ThemedText>
+          style={[Common.chip, { borderColor: theme.border, backgroundColor: !goalId ? theme.primary : 'transparent' }]}>
+          <ThemedText type="small" style={!goalId ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+            No goal
+          </ThemedText>
         </PressableScale>
         {goals.map((g) => (
           <PressableScale
             key={g.id}
             onPress={() => setGoalId(g.id)}
-            style={[Common.chip, { borderColor: theme.border, backgroundColor: goalId === g.id ? theme.accent : 'transparent' }]}>
-            <ThemedText type="small">{g.title}</ThemedText>
+            style={[Common.chip, { borderColor: theme.border, backgroundColor: goalId === g.id ? theme.primary : 'transparent' }]}>
+            <ThemedText type="small" style={goalId === g.id ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
+              {g.title}
+            </ThemedText>
           </PressableScale>
         ))}
       </View>
@@ -323,9 +327,9 @@ export default function TasksScreen() {
                   onPress={() => setDifficulty(d.id)}
                   style={[
                     Common.chip,
-                    { borderColor: theme.border, backgroundColor: active ? theme.accent : 'transparent' },
+                    { borderColor: theme.border, backgroundColor: active ? theme.primary : 'transparent' },
                   ]}>
-                  <ThemedText type="small" style={active ? { fontWeight: '700' } : undefined}>
+                  <ThemedText type="small" style={active ? { color: theme.primaryForeground, fontWeight: '700' } : undefined}>
                     {d.label}
                   </ThemedText>
                 </PressableScale>
