@@ -14,7 +14,7 @@ import { data } from "@life-client/shared";
 import { useEffect, useMemo, useState } from "react";
 import { GoalStatusChart } from "@/components/charts";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName, rowActionClassName } from "@/components/ui";
+import { Button, Card, ErrorText, Eyebrow, Input, PageHeader, SectionHeader, Select, SkeletonRows, StatTile, emptyPanelClassName, pageShellClassName, rowActionClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function daysUntil(dateStr: string): number {
@@ -258,10 +258,10 @@ function GoalCard({
         <div className="flex flex-wrap gap-2">
           {unlinkedTasks.length > 0 && (
             <div className="flex gap-1">
-              <select
+              <Select
                 value={linkPick}
                 onChange={(e) => setLinkPick(e.target.value)}
-                className="rounded-xl border border-border-strong bg-background px-2 py-1 text-xs"
+                size="sm"
               >
                 <option value="">Existing task…</option>
                 {unlinkedTasks.map((t) => (
@@ -269,7 +269,7 @@ function GoalCard({
                     {t.title}
                   </option>
                 ))}
-              </select>
+              </Select>
               <button
                 type="button"
                 disabled={!linkPick}

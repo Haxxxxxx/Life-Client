@@ -31,7 +31,7 @@ import {
 } from "@life-client/shared";
 import { data } from "@life-client/shared";
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Eyebrow, PageHeader, ProgressBar, pageShellClassName } from "@/components/ui";
+import { Alert, Button, Card, Eyebrow, PageHeader, ProgressBar, Select, pageShellClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 
@@ -68,17 +68,17 @@ function LogEventForm({
       className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3"
     >
       <div className="flex gap-2">
-        <select
+        <Select
           value={eventType}
           onChange={(e) => setEventType(e.target.value as ManualEventType)}
-          className="flex-1 rounded-xl border border-border-strong bg-background px-2 py-1.5 text-xs"
+          size="sm" className="flex-1"
         >
           {MANUAL_EVENT_TYPES.map((t) => (
             <option key={t.id} value={t.id}>
               {t.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <div className="flex gap-2">
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
