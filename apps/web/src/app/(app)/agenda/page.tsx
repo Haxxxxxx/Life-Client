@@ -3,7 +3,10 @@
 import {
   createCalendarEvent,
   deleteCalendarEvent,
+  eventDayKey,
+  eventDayLabel,
   isAllDay,
+  isEventPast,
   timeRangeLabel,
   toDatetimeLocalValue,
   updateCalendarEvent,
@@ -16,30 +19,6 @@ import { useAuth } from "@/lib/auth-context";
 import { webApiClient } from "@/lib/webApiClient";
 
 
-// Deleting a past event through Google's API is unreliable (already-elapsed
-// events can fail in ways that surface as a 500) and there's no real need to
-// manage them here — just don't show them.
-function isPast(event: CalendarEvent): boolean {
-  if (isAllDay(event)) return new Date(`${event.start}T23:59:59`).getTime() < Date.now();
-  return new Date(event.end).getTime() < Date.now();
-}
-
-function dayKey(event: CalendarEvent): string {
-  return isAllDay(event) ? event.start : event.start.slice(0, 10);
-}
-
-function dayLabel(key: string): string {
-  const date = new Date(`${key}T00:00:00`);
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-
-  if (key === todayKey) return "Today";
-  if (key === tomorrowKey) return "Tomorrow";
-  return date.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
-}
 
 
 
@@ -164,8 +143,11 @@ export default function AgendaPage() {
   }
 
   const groups: { key: string; events: CalendarEvent[] }[] = [];
-  for (const event of events.filter((e) => !isPast(e))) {
-    const key = dayKey(event);
+  // Past events are filtered rather than deleted: removing an already-elapsed
+  // event through Google's API is unreliable (it can fail in ways that surface
+  // as a 500), and there's no real need to manage them here.
+  for (const event of events.filter((e) => !isEventPast(e))) {
+    const key = eventDayKey(event);
     const group = groups.at(-1);
     if (group && group.key === key) group.events.push(event);
     else groups.push({ key, events: [event] });
@@ -201,7 +183,7 @@ export default function AgendaPage() {
       <div className="flex flex-col gap-5">
         {groups.map((group) => (
           <div key={group.key} className="flex flex-col gap-2">
-            <Eyebrow>{dayLabel(group.key)}</Eyebrow>
+            <Eyebrow>{eventDayLabel(group.key)}</Eyebrow>
             <ul className="flex flex-col gap-2">
               {group.events.map((event) =>
                 editingId === event.id ? (
