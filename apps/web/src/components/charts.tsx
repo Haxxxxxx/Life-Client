@@ -9,14 +9,16 @@ import {
   monthlyMoneyTrend,
   spendingSlices,
   spendingTotal,
-  startOfWeek,
   taskCompletedIso,
+  toDateStr,
+  weeklySessionRows,
   type Goal,
   type GoalStatus,
   type SportActivity,
   type Task,
   type Transaction,
   type TransactionCategory,
+  type WeeklySessionRow,
 } from "@life-client/shared";
 import { useMemo, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Pie, PieChart, Tooltip, XAxis, YAxis } from "recharts";
@@ -24,7 +26,6 @@ import { Card, EmptyState, Eyebrow } from "@/components/ui";
 
 const AXIS_TICK = { fill: "var(--muted)", fontSize: 11, fontFamily: "var(--font-mono-retro)" };
 const CURSOR_FILL = { fill: "var(--surface-2)" };
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // One accent color: series are told apart by how much of it they carry. Mixed
 // against the card surface (not transparency) so overlapping tooltip cursors
@@ -300,44 +301,32 @@ export function MoneyCharts({ transactions }: { transactions: Transaction[] }) {
 
 const TREND_WEEKS = 12;
 
-interface WeekRow {
-  start: Date;
+interface WeekRow extends WeeklySessionRow {
   label: string;
-  endurance: number;
-  strength: number;
 }
 
-
-function buildWeeklySessions(activities: SportActivity[], truncated: boolean): WeekRow[] {
-  const firstStart = startOfWeek(new Date());
-  firstStart.setDate(firstStart.getDate() - 7 * (TREND_WEEKS - 1));
-  const rows: WeekRow[] = Array.from({ length: TREND_WEEKS }, (_, i) => {
-    const start = new Date(firstStart.getFullYear(), firstStart.getMonth(), firstStart.getDate() + 7 * i);
-    return {
-      start,
-      label: start.toLocaleDateString(undefined, { month: "numeric", day: "numeric" }),
-      endurance: 0,
-      strength: 0,
-    };
-  });
-  for (const activity of activities) {
-    const d = new Date(activity.startDate);
-    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    // Rounded because DST shifts make a local-midnight difference an hour off a whole number of days.
-    const row = rows[Math.floor(Math.round((day.getTime() - firstStart.getTime()) / MS_PER_DAY) / 7)];
-    if (row) row[activity.kind] += 1;
-  }
-  if (!truncated || activities.length === 0) return rows;
-  // The listener is capped (newest first), so weeks at or before the oldest
-  // loaded activity may be missing sessions — drop them rather than chart a
-  // false dip. Always keep the current week.
-  const oldestWeek = startOfWeek(new Date(activities[activities.length - 1]!.startDate)).getTime();
-  const complete = rows.filter((r) => r.start.getTime() > oldestWeek);
-  return complete.length > 0 ? complete : rows.slice(-1);
+/**
+ * Bucketing is shared with mobile; only the tick label is decided here.
+ *
+ * This used to drop weeks at or before the oldest loaded activity, because the
+ * sports listener was capped at 50 and a capped window charts a false dip. The
+ * listener is no longer capped — the same cap was also making
+ * computeChallengeProgress miss days — so there is nothing left to truncate.
+ */
+function buildWeeklySessions(activities: SportActivity[]): WeekRow[] {
+  return weeklySessionRows(activities, TREND_WEEKS).map((row) => ({
+    ...row,
+    label: row.start.toLocaleDateString(undefined, { month: "numeric", day: "numeric" }),
+  }));
 }
 
-export function WeeklySessionsChart({ activities, limit }: { activities: SportActivity[]; limit: number }) {
-  const weeks = useMemo(() => buildWeeklySessions(activities, activities.length >= limit), [activities, limit]);
+export function WeeklySessionsChart({ activities }: { activities: SportActivity[] }) {
+  const today = toDateStr(new Date());
+  // today isn't read below, but weeklySessionRows defaults its `now` to new Date(),
+  // so it's a real (if invisible-to-the-linter) dependency — without it the memo
+  // keeps the previous day's buckets until `activities` itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const weeks = useMemo(() => buildWeeklySessions(activities), [activities, today]);
   const thisWeek = weeks[weeks.length - 1]!;
   const enduranceColor = "var(--primary)";
   const strengthColor = tint(45);

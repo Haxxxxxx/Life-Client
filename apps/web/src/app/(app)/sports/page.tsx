@@ -27,9 +27,10 @@ import { WeeklySessionsChart } from "@/components/charts";
 import { Button, Card, ErrorText, PageHeader, SectionHeader, emptyPanelClassName, pageShellClassName, rowActionClassName } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
-// Passed explicitly (matches the shared default) so the sessions chart knows
-// when older weeks may be cut off by the listener's cap.
-const ACTIVITY_LIMIT = 50;
+// Caps the rendered list only. The subscription is deliberately uncapped: both
+// the trend chart and computeChallengeProgress need the full history, and a
+// capped list silently marked days of a long challenge "not completed".
+const VISIBLE_ACTIVITIES = 50;
 
 
 
@@ -613,7 +614,6 @@ export default function SportsPage() {
         setLoaded(true);
       },
       (err) => setError(err.message),
-      ACTIVITY_LIMIT,
     );
   }, [user]);
 
@@ -662,7 +662,7 @@ export default function SportsPage() {
       {formOpen && <LogActivityForm onSubmit={handleLog} />}
       <ErrorText>{error}</ErrorText>
 
-      {activities.length > 0 && <WeeklySessionsChart activities={activities} limit={ACTIVITY_LIMIT} />}
+      {activities.length > 0 && <WeeklySessionsChart activities={activities} />}
 
       <ChallengesSection activities={activities} />
 
@@ -677,7 +677,7 @@ export default function SportsPage() {
       )}
 
       <ul className="flex flex-col gap-2">
-        {activities.map((activity) => (
+        {activities.slice(0, VISIBLE_ACTIVITIES).map((activity) => (
           <li
             key={activity.id}
             className="flex items-center justify-between gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3"
