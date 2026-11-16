@@ -223,7 +223,7 @@ export default function MoneyPage() {
         description="Log expenses/income, track budgets by category, and watch subscriptions."
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <StatTile value={formatMoney(monthlyExpense)} label="Spent this month" tone="danger" />
         <StatTile value={formatMoney(monthlyIncome)} label="Income this month" tone="primary" />
       </div>
