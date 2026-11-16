@@ -14,6 +14,7 @@ export * from "./timezone";
 export * from "./knowledge";
 export * from "./numericInput";
 export * from "./format";
+export * from "./music";
 export * from "./knowledgeApi";
 export * from "./remindersApi";
 export * from "./spotify";

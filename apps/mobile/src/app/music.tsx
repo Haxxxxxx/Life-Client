@@ -1,8 +1,11 @@
 import {
   type NowPlayingTrack,
   type SpotifySummary,
+  formatTrackTime,
   getNowPlaying,
+  liveTrackProgressMs,
   syncSpotifyNow,
+  trackProgressPercent,
 } from '@life-client/shared';
 import { data } from '@life-client/shared';
 import { useEffect, useState } from 'react';
@@ -29,13 +32,6 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
       <ThemedText type="subtitle">{title}</ThemedText>
     </View>
   );
-}
-
-function formatMs(ms: number): string {
-  const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function NowPlayingSection() {
@@ -98,9 +94,7 @@ function NowPlayingSection() {
   }, [nowPlaying?.isPlaying]);
 
   const track = nowPlaying?.track;
-  const liveProgressMs = track
-    ? Math.min(track.durationMs, track.progressMs + Math.max(0, now - fetchedAt))
-    : 0;
+  const liveProgressMs = track ? liveTrackProgressMs(track, now, fetchedAt) : 0;
 
   return (
     <View style={styles.section}>
@@ -125,13 +119,13 @@ function NowPlayingSection() {
                     Common.progressFill,
                     {
                       backgroundColor: theme.primary,
-                      width: `${Math.min(100, (liveProgressMs / track.durationMs) * 100)}%`,
+                      width: `${trackProgressPercent(liveProgressMs, track.durationMs)}%`,
                     },
                   ]}
                 />
               </View>
               <ThemedText type="code" themeColor="textSecondary">
-                {formatMs(liveProgressMs)} / {formatMs(track.durationMs)}
+                {formatTrackTime(liveProgressMs)} / {formatTrackTime(track.durationMs)}
               </ThemedText>
             </View>
           </View>
