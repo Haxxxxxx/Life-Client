@@ -431,7 +431,7 @@ function ChallengeCard({
           </button>
         )}
         {!editing && (
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
             <button
               type="button"
               onClick={onArchive}

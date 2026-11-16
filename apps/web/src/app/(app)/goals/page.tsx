@@ -196,7 +196,7 @@ function GoalCard({
             >
               {goal.status}
             </span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               {goal.status === "active" && (
                 <button
                   type="button"
@@ -257,7 +257,7 @@ function GoalCard({
         <span className="font-mono text-micro text-muted uppercase">Link tasks to this goal</span>
         <div className="flex flex-wrap gap-2">
           {unlinkedTasks.length > 0 && (
-            <div className="flex gap-1">
+            <div className="flex min-w-0 flex-1 gap-1">
               <Select aria-label="Link a task to this goal"
                 value={linkPick}
                 onChange={(e) => setLinkPick(e.target.value)}
@@ -277,7 +277,7 @@ function GoalCard({
                   onLinkTask(linkPick);
                   setLinkPick("");
                 }}
-                className="rounded-xl border border-border-strong px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10 disabled:opacity-50"
+                className="shrink-0 rounded-xl border border-border-strong px-2 py-1 font-mono text-xs font-bold uppercase hover:bg-primary/10 disabled:opacity-50"
               >
                 Link
               </button>
@@ -443,7 +443,7 @@ export default function GoalsPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <StatTile value={activeGoals.length} label="Active" tone="primary" />
         <StatTile value={completedGoals.length} label="Completed" />
         <StatTile value={`${overallPercent}%`} label="Avg. progress" />
