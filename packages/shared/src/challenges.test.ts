@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { computeChallengeProgress } from "./challenges";
+import {
+  MAX_CHALLENGE_DAYS,
+  computeChallengeMilestones,
+  computeChallengeProgress,
+} from "./challenges";
 import { canonicalExerciseType, type Challenge, type SportActivity } from "./types";
 
 const NOW = new Date(2026, 10, 10, 12, 0, 0); // Tue 10 Nov 2026, local noon
@@ -133,5 +137,79 @@ describe("computeChallengeProgress — Strava activities count toward challenges
       NOW,
     );
     expect(progress.completedCount).toBe(1);
+  });
+});
+
+describe("challenge values that should never have been stored", () => {
+  const now = new Date(2026, 10, 16, 12, 0, 0);
+  const base = {
+    id: "c",
+    title: "c",
+    exerciseType: "Running",
+    metric: "distanceMeters" as const,
+    dailyTarget: 5000,
+    durationDays: 10,
+    startDate: "2026-11-10",
+    archived: false,
+  };
+
+  it("never marks a day complete against a negative daily target", () => {
+    // Typing "-5" km into the form stored -5000, and `value >= dailyTarget`
+    // then held on every single day: a full streak and a 100% completion rate
+    // with no activity logged at all.
+    const progress = computeChallengeProgress(
+      { ...base, dailyTarget: -5000 } as Challenge,
+      [],
+      now,
+    );
+    expect(progress.completedCount).toBe(0);
+    expect(progress.currentStreak).toBe(0);
+    expect(progress.longestStreak).toBe(0);
+    expect(progress.days.every((d) => !d.completed)).toBe(true);
+  });
+
+  it("never marks a day complete against a zero daily target", () => {
+    const progress = computeChallengeProgress({ ...base, dailyTarget: 0 } as Challenge, [], now);
+    expect(progress.completedCount).toBe(0);
+  });
+
+  it("still completes days normally for a positive target", () => {
+    const progress = computeChallengeProgress(base as Challenge, [
+      {
+        id: "a",
+        kind: "endurance",
+        type: "Running",
+        name: "Running",
+        startDate: new Date(2026, 10, 12, 8, 0).toISOString(),
+        distanceMeters: 6000,
+      },
+    ] as SportActivity[], now);
+    expect(progress.completedCount).toBe(1);
+  });
+
+  it("bounds the day walk for an absurd duration rather than iterating forever", () => {
+    // `dates` is an unbounded walk from the start date, and its only bound is
+    // the challenge's own duration. 400,000 days would be built on every
+    // render of the card.
+    const progress = computeChallengeProgress(
+      { ...base, durationDays: 400_000, startDate: "1000-01-01" } as Challenge,
+      [],
+      now,
+    );
+    expect(progress.totalDaysSoFar).toBeLessThanOrEqual(MAX_CHALLENGE_DAYS);
+  });
+
+  it("treats a zero duration as one day rather than producing nothing", () => {
+    const progress = computeChallengeProgress({ ...base, durationDays: 0 } as Challenge, [], now);
+    expect(progress.totalDaysSoFar).toBeGreaterThan(0);
+  });
+
+  it("gives real milestone percentages for a zero duration instead of NaN", () => {
+    // completedCount / 0 is NaN, and every `NaN >= threshold` below is
+    // silently false, so the card showed no milestones at all.
+    const progress = computeChallengeProgress({ ...base, durationDays: 0 } as Challenge, [], now);
+    const milestones = computeChallengeMilestones({ ...base, durationDays: 0 } as Challenge, progress);
+    expect(milestones).toHaveLength(4);
+    expect(milestones.every((m) => typeof m.achieved === "boolean")).toBe(true);
   });
 });

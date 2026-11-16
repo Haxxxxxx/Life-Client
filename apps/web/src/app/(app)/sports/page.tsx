@@ -3,6 +3,7 @@
 import {
   DEFAULT_TARGET_FOR_METRIC,
   ENDURANCE_EXERCISE_PRESETS,
+  MAX_CHALLENGE_DAYS,
   METRICS_FOR_KIND,
   STRENGTH_EXERCISE_PRESETS,
   buildChallengeTitle,
@@ -12,7 +13,10 @@ import {
   formatDistance,
   formatDuration,
   formatMetricValue,
+  kilometresToMetres,
   metricUnitLabel,
+  parsePositive,
+  parsePositiveInt,
   toDateStr,
   updateChallenge,
   type Challenge,
@@ -203,6 +207,7 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
   const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET_FOR_METRIC.distanceMeters);
   const [durationDays, setDurationDays] = useState(100);
   const [startDate, setStartDate] = useState(toDateStr(new Date()));
+  const [formError, setFormError] = useState<string | null>(null);
 
   const type = customType.trim() || exerciseType;
   const presets = kind === "endurance" ? ENDURANCE_EXERCISE_PRESETS : STRENGTH_EXERCISE_PRESETS;
@@ -307,18 +312,34 @@ function ChallengeForm({ onSubmit }: { onSubmit: (input: Parameters<typeof creat
           />
         </label>
       </div>
+      <ErrorText>{formError}</ErrorText>
       <Button
         size="sm"
-        onClick={() =>
+        onClick={() => {
+          // The min/step attributes above are hints only: this is a plain
+          // onClick, not a form submit, so the browser never runs constraint
+          // validation. A "-5" km target reached computeChallengeProgress as
+          // -5000, where `value >= dailyTarget` held on every day and the
+          // challenge reported a full streak with no activity logged at all.
+          const dailyTargetDisplay = parsePositive(dailyTarget);
+          const parsedDurationDays = parsePositiveInt(durationDays, MAX_CHALLENGE_DAYS);
+          if (dailyTargetDisplay === null || parsedDurationDays === null) {
+            setFormError(
+              `Daily target must be above zero, and duration a whole number of days (max ${MAX_CHALLENGE_DAYS}).`,
+            );
+            return;
+          }
+          setFormError(null);
           onSubmit({
-            title: buildChallengeTitle(durationDays, metric, dailyTarget, type),
+            title: buildChallengeTitle(parsedDurationDays, metric, dailyTargetDisplay, type),
             exerciseType: type,
             metric,
-            dailyTarget: metric === "distanceMeters" ? Math.round(dailyTarget * 1000) : dailyTarget,
-            durationDays,
+            dailyTarget:
+              metric === "distanceMeters" ? kilometresToMetres(dailyTargetDisplay) : dailyTargetDisplay,
+            durationDays: parsedDurationDays,
             startDate,
-          })
-        }
+          });
+        }}
       >
         Start challenge
       </Button>
@@ -369,10 +390,14 @@ function ChallengeCard({
   }
 
   function save() {
+    // Same reasoning as the create form: `Number(x) || fallback` accepts a
+    // negative target, which makes every day of the challenge read as complete.
+    const parsedTarget = parsePositive(dailyTarget);
+    const parsedDuration = parsePositiveInt(durationDays, MAX_CHALLENGE_DAYS);
     onSave({
       title: title.trim() || challenge.title,
-      dailyTarget: Number(dailyTarget) ? dailyTargetToStored(Number(dailyTarget)) : challenge.dailyTarget,
-      durationDays: Number(durationDays) || challenge.durationDays,
+      dailyTarget: parsedTarget === null ? challenge.dailyTarget : dailyTargetToStored(parsedTarget),
+      durationDays: parsedDuration ?? challenge.durationDays,
     });
     setEditing(false);
   }
